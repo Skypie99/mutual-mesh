@@ -106,7 +106,7 @@ export const PII_HEURISTICS: ReadonlyArray<{ label: string; regex: RegExp; repla
       // Expo tokens identify a specific device installation — stripping is
       // required to preserve error-report anonymization (PRIVACY.md §E1).
       label: 'expo_token',
-      regex: /ExponentPushToken\[[A-Za-z0-9_\-]+\]/g,
+      regex: /ExponentPushToken\[[A-Za-z0-9_-]+\]/g,
       replacement: REDACTED_TOKEN,
     },
     {
