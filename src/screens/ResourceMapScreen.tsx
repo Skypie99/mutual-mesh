@@ -21,10 +21,9 @@
  *   - 44pt minimum touch targets (TOUCH_TARGET_MIN).
  *   - Reduce motion respected — no auto-animation on mount.
  *
- * NOTE: react-native-maps is NOT installed yet. The screen renders a
- * "Map requires react-native-maps" placeholder until installed. The FSA
- * chip list, preview card, center-on-me, and accessibility surfaces all
- * work regardless. Flip MAP_LIBRARY_INSTALLED and add the import when ready.
+ * NOTE: react-native-maps is installed. MAP_LIBRARY_INSTALLED = true.
+ * The FSA chip list, preview card, center-on-me, and accessibility surfaces
+ * all work regardless of map availability.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -52,28 +51,24 @@ import {
   BUCKET_FILL_COLORS_DARK,
   BUCKET_FILL_COLORS_LIGHT,
   DEFAULT_REGION,
+  OSM_TILE_URL,
   clampRegionZoom,
   type MapRegion,
 } from '@/lib/mapHelpers';
 import { colors, TOUCH_TARGET_MIN } from '@/lib/theme';
 import { useResources } from '@/hooks/useResources';
 import type { ResourceRow } from '@/types/database';
+import MapView, { UrlTile } from 'react-native-maps';
 
 // ============================================================================
 // react-native-maps availability flag
 // ============================================================================
 
 /**
- * react-native-maps is an optional dependency. When not installed, the
- * screen renders a fallback FSA chip list (still fully usable).
- *
- * Once react-native-maps is installed:
- *   1. Run: npx expo install react-native-maps
- *   2. Flip this to `true`.
- *   3. Uncomment the MapView import block above.
- *   4. The map render block at the bottom of this file activates.
+ * react-native-maps is installed and active.
+ * Set to `false` to fall back to the FSA chip-list view (still fully usable).
  */
-const MAP_LIBRARY_INSTALLED = false;
+const MAP_LIBRARY_INSTALLED = true;
 
 // ============================================================================
 // Props
@@ -360,10 +355,6 @@ export function ResourceMapScreen({
   // ======================================================================
   // Map-installed path — MapView with OSM tiles + FSA overlays
   // ======================================================================
-  // TODO: Uncomment these imports when MAP_LIBRARY_INSTALLED is flipped:
-  //   import MapView, { UrlTile } from 'react-native-maps';
-  //   import { OSM_TILE_URL } from '@/lib/mapHelpers';
-
   return (
     <SafeAreaView className="flex-1 bg-light-bg dark:bg-dark-bg">
       {/* Header with MapToggle */}
@@ -383,17 +374,23 @@ export function ResourceMapScreen({
         />
       </View>
 
-      {/* Map placeholder — replace with <MapView> once installed */}
+      {/* MapView — OSM tiles, clamped to FSA zoom, privacy-safe (no GPS pins) */}
       <View
         className="flex-1"
-        accessibilityRole="image"
-        accessibilityLabel={summary}
       >
-        <View className="flex-1 items-center justify-center bg-light-surface dark:bg-dark-surface">
-          <Text className="text-base text-light-text-muted dark:text-dark-text-muted">
-            Map loading…
-          </Text>
-        </View>
+        <MapView
+          style={{ flex: 1 }}
+          region={region}
+          onRegionChangeComplete={(next) => setRegion(clampRegionZoom(next))}
+          accessibilityRole="image"
+          accessibilityLabel={summary}
+        >
+          <UrlTile
+            urlTemplate={OSM_TILE_URL}
+            maximumZ={19}
+            flipY={false}
+          />
+        </MapView>
 
         {/* Center-on-me FAB */}
         <View
