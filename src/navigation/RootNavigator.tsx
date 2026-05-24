@@ -7,6 +7,7 @@ import type { HomeStackParamList, MainTabParamList } from '@/types/navigation';
 
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ResourceDetailScreen } from '@/screens/ResourceDetailScreen';
+import { ResourceMapScreen } from '@/screens/ResourceMapScreen';
 import { AddResourceScreen } from '@/screens/AddResourceScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 
@@ -30,11 +31,21 @@ function HomeStackNavigator() {
           <HomeScreen
             onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
             onAddResource={() => navigation.navigate('AddResource')}
+            onOpenMap={() => navigation.navigate('ResourceMap')}
           />
         )}
       </HomeStack.Screen>
       <HomeStack.Screen name="Detail" options={{ title: '' }}>
         {({ route }) => <ResourceDetailScreen resourceId={route.params.resourceId} />}
+      </HomeStack.Screen>
+      <HomeStack.Screen name="ResourceMap" options={{ title: 'Map', headerShown: false }}>
+        {({ navigation }) => (
+          <ResourceMapScreen
+            onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
+            onSelectFsa={() => navigation.navigate('Feed')}
+            onSwitchToList={() => navigation.navigate('Feed')}
+          />
+        )}
       </HomeStack.Screen>
       <HomeStack.Screen
         name="AddResource"

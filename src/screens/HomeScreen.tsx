@@ -5,6 +5,7 @@ import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { FAB } from '@/components/FAB';
 import { FeedSkeleton } from '@/components/LoadingSkeleton';
+import { MapToggle } from '@/components/MapToggle';
 import { StatusPill } from '@/components/StatusPill';
 import { useResources } from '@/hooks/useResources';
 import { colors } from '@/lib/theme';
@@ -22,13 +23,19 @@ import type { ResourceRow } from '@/types/database';
  *
  * Pull-to-refresh wires to the hook's reload(). Realtime updates flow in via
  * the hook's subscription — no manual polling needed.
+ *
+ * MapToggle (Phase 3.2) switches between list and map views. The map view
+ * is navigated to as a separate screen in the HomeStack so back-nav works
+ * correctly. The toggle defaults to 'list' (Quinn AC-5 — list is canonical).
  */
 type HomeScreenProps = {
   onOpenResource?: (id: string) => void;
   onAddResource?: () => void;
+  /** Called when user taps the "Map" segment in the toggle. */
+  onOpenMap?: () => void;
 };
 
-export function HomeScreen({ onOpenResource, onAddResource }: HomeScreenProps) {
+export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScreenProps) {
   const { resources, loading, error, reload } = useResources();
   const [refreshing, setRefreshing] = useState(false);
   const scheme = useColorScheme();
@@ -43,12 +50,23 @@ export function HomeScreen({ onOpenResource, onAddResource }: HomeScreenProps) {
   return (
     <SafeAreaView className="flex-1 bg-light-bg dark:bg-dark-bg">
       <View className="flex-1 px-4 pt-4">
+        {/* Header + view toggle */}
         <Text
           accessibilityRole="header"
-          className="mb-4 text-2xl font-semibold text-light-text dark:text-dark-text"
+          className="mb-3 text-2xl font-semibold text-light-text dark:text-dark-text"
         >
           Available now
         </Text>
+
+        {/* MapToggle — 'list' is always selected here; tapping 'map' navigates away */}
+        <View className="mb-4">
+          <MapToggle
+            value="list"
+            onChange={(next) => {
+              if (next === 'map') onOpenMap?.();
+            }}
+          />
+        </View>
 
         {loading && resources.length === 0 ? (
           <FeedSkeleton />
