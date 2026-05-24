@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -7,6 +7,11 @@ import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { useAuth } from '@/lib/auth';
 import { deleteMyAccount, listMyClaims, listMyPosts } from '@/lib/resources';
 import { userFacingErrorMessage } from '@/lib/errors';
+import {
+  DEFAULT_OPT_IN as ERROR_REPORTING_DEFAULT_OPT_IN,
+  getErrorReportingOptIn,
+  setErrorReportingOptIn,
+} from '@/lib/errorReporting';
 
 /**
  * ProfileScreen — wired in L28 + L29.
@@ -29,6 +34,11 @@ export function ProfileScreen() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Phase 4 #22 — anonymous error-reporting opt-in. Default OFF
+  // (PRIVACY.md D8). Persisted via src/lib/errorReporting.
+  const [errorReportingOptIn, setErrorReportingOptInState] = useState<boolean>(
+    ERROR_REPORTING_DEFAULT_OPT_IN,
+  );
   const mountedRef = useRef(true);
 
   const loadCounts = useCallback(async () => {
@@ -46,10 +56,25 @@ export function ProfileScreen() {
   useEffect(() => {
     mountedRef.current = true;
     void loadCounts();
+    // Load the persisted error-reporting opt-in flag once on mount. Read
+    // failures fall back to DEFAULT_OPT_IN (false) inside the helper.
+    void (async () => {
+      const persisted = await getErrorReportingOptIn();
+      if (!mountedRef.current) return;
+      setErrorReportingOptInState(persisted);
+    })();
     return () => {
       mountedRef.current = false;
     };
   }, [loadCounts]);
+
+  const handleErrorReportingToggle = (next: boolean) => {
+    // Optimistic UI: flip the switch immediately, then persist. Persistence
+    // failures are silently swallowed by setErrorReportingOptIn — at worst
+    // the user sees the toggle revert on next launch.
+    setErrorReportingOptInState(next);
+    void setErrorReportingOptIn(next);
+  };
 
   const handleDeleteConfirm = async () => {
     setDeleting(true);
@@ -123,6 +148,33 @@ export function ProfileScreen() {
               <Text className="mt-1 text-2xl font-semibold text-light-text dark:text-dark-text">
                 {loading ? '…' : claimedCount}
               </Text>
+            </View>
+          </View>
+        </Card>
+
+        <Card>
+          <View className="gap-3">
+            <Text
+              accessibilityRole="header"
+              className="text-base font-semibold text-light-text dark:text-dark-text"
+            >
+              Help improve Mutual Mesh
+            </Text>
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-light-text dark:text-dark-text">
+                  Send anonymous error reports
+                </Text>
+                <Text className="mt-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                  No personal data — only crash counts.
+                </Text>
+              </View>
+              <Switch
+                accessibilityLabel="Send anonymous error reports"
+                accessibilityHint="No personal data — only crash counts."
+                value={errorReportingOptIn}
+                onValueChange={handleErrorReportingToggle}
+              />
             </View>
           </View>
         </Card>

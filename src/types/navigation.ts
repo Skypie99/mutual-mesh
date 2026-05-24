@@ -29,6 +29,7 @@ export type HomeStackParamList = {
   Feed: undefined;
   Detail: { resourceId: string };
   AddResource: undefined;
+  ResourceMap: undefined;
 };
 
 export type MainTabParamList = {

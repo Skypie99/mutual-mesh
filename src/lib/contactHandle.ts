@@ -29,6 +29,10 @@ export type ValidationFailure = 'empty' | 'too-long' | 'url-not-allowed';
 /**
  * Validate a user-supplied contact handle.
  * Pure function — no side effects, no imports.
+ *
+ * @privacy-load-bearing PRIVACY.md §B2 — ensures contact handles meet
+ * format constraints before storage. Handles are semi-public (visible to
+ * verified users). Do not relax constraints without Jordan review.
  */
 export function validateContactHandle(input: string): ValidationResult {
   const trimmed = input.trim();

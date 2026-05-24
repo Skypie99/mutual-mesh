@@ -13,7 +13,17 @@
 // Domain enums
 // ============================================================================
 
-export type ResourceStatus = 'available' | 'reserved';
+export type ResourceStatus = 'available' | 'reserved' | 'completed';
+
+export type ResourceCategory = 'food' | 'hygiene' | 'baby' | 'HRT' | 'other';
+
+export type PushPreferences = {
+  enabled: boolean;
+  on_claim?: boolean;
+  on_pickup?: boolean;
+  on_approve?: boolean;
+  on_reject?: boolean;
+};
 
 export type VerificationDecision = 'approve' | 'reject' | 'escalate';
 
@@ -29,6 +39,8 @@ export type UserRow = {
   is_verified: boolean;
   is_admin: boolean;
   referrer_token_hash: string | null;
+  onboarding_complete: boolean;
+  push_preferences: PushPreferences;
   last_active_at: string;
   created_at: string;
 };
@@ -68,9 +80,12 @@ export type ResourceRow = {
   photo_url: string | null;
   pickup_text: string;
   contact_handle: string;
+  category: ResourceCategory;
   status: ResourceStatus;
   postal_prefix: string | null;
   city: string | null;
+  confirmed_at: string | null;
+  confirmed_by: string | null;
   created_at: string;
   status_changed_at: string;
 };
@@ -78,6 +93,27 @@ export type ResourceRow = {
 export type ConfigRow = {
   key: string;
   value: string;
+};
+
+export type PushTokenRow = {
+  id: string;
+  user_id: string;
+  expo_token: string;
+  platform: string;
+  created_at: string;
+  last_used_at: string;
+};
+
+export type ErrorReportRow = {
+  id: string;
+  created_at: string;
+  app_version: string;
+  platform: string;
+  severity: string;
+  message_hash: string;
+  stack_hash: string;
+  count: number;
+  last_seen_at: string;
 };
 
 // ============================================================================
@@ -101,11 +137,13 @@ export type Database = {
     Tables: {
       users: {
         Row: UserRow;
-        Insert: Omit<UserRow, 'created_at' | 'last_active_at' | 'is_verified' | 'is_admin'> & {
+        Insert: Omit<UserRow, 'created_at' | 'last_active_at' | 'is_verified' | 'is_admin' | 'onboarding_complete' | 'push_preferences'> & {
           created_at?: string;
           last_active_at?: string;
           is_verified?: boolean;
           is_admin?: boolean;
+          onboarding_complete?: boolean;
+          push_preferences?: PushPreferences;
         };
         Update: Partial<UserRow>;
         Relationships: EmptyRelationships;
@@ -142,13 +180,16 @@ export type Database = {
         Row: ResourceRow;
         Insert: Omit<
           ResourceRow,
-          'id' | 'created_at' | 'status_changed_at' | 'status' | 'claimed_by'
+          'id' | 'created_at' | 'status_changed_at' | 'status' | 'claimed_by' | 'category' | 'confirmed_at' | 'confirmed_by'
         > & {
           id?: string;
           created_at?: string;
           status_changed_at?: string;
           status?: ResourceStatus;
           claimed_by?: string | null;
+          category?: ResourceCategory;
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
         };
         Update: Partial<ResourceRow>;
         Relationships: EmptyRelationships;
@@ -157,6 +198,27 @@ export type Database = {
         Row: ConfigRow;
         Insert: ConfigRow;
         Update: Partial<ConfigRow>;
+        Relationships: EmptyRelationships;
+      };
+      push_tokens: {
+        Row: PushTokenRow;
+        Insert: Omit<PushTokenRow, 'id' | 'created_at' | 'last_used_at'> & {
+          id?: string;
+          created_at?: string;
+          last_used_at?: string;
+        };
+        Update: Partial<PushTokenRow>;
+        Relationships: EmptyRelationships;
+      };
+      error_reports: {
+        Row: ErrorReportRow;
+        Insert: Omit<ErrorReportRow, 'id' | 'created_at' | 'count' | 'last_seen_at'> & {
+          id?: string;
+          created_at?: string;
+          count?: number;
+          last_seen_at?: string;
+        };
+        Update: Partial<ErrorReportRow>;
         Relationships: EmptyRelationships;
       };
     };
@@ -185,6 +247,36 @@ export type Database = {
       touch_my_last_active: {
         Args: Record<string, never>;
         Returns: void;
+      };
+      confirm_pickup: {
+        Args: { p_resource_id: string };
+        Returns: boolean;
+      };
+      complete_onboarding: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      register_push_token: {
+        Args: { token: string; platform: string };
+        Returns: boolean;
+      };
+      revoke_push_token: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      update_push_preferences: {
+        Args: { prefs: PushPreferences };
+        Returns: PushPreferences;
+      };
+      log_error: {
+        Args: {
+          p_app_version: string;
+          p_platform: string;
+          p_severity: string;
+          p_message_hash: string;
+          p_stack_hash: string;
+        };
+        Returns: boolean;
       };
     };
     Enums: { [_ in never]: never };

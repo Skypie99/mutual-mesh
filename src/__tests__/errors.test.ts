@@ -49,3 +49,56 @@ describe('userFacingErrorMessage', () => {
     );
   });
 });
+
+// ============================================================================
+// Phase 4 Gary coverage gaps — see qa-reports/phase-4-gary-coverage-audit.md
+// ============================================================================
+
+describe('errorMessage — additional shapes', () => {
+  it('returns generic fallback when .message exists but is not a string', () => {
+    expect(errorMessage({ message: 42 })).toMatch(/something went wrong/i);
+    expect(errorMessage({ message: null })).toMatch(/something went wrong/i);
+    expect(errorMessage({ message: { nested: true } })).toMatch(/something went wrong/i);
+  });
+
+  it('returns generic fallback for objects without a message property', () => {
+    expect(errorMessage({ code: 500 })).toMatch(/something went wrong/i);
+    expect(errorMessage({})).toMatch(/something went wrong/i);
+  });
+
+  it('returns generic fallback for booleans and arrays', () => {
+    expect(errorMessage(true)).toMatch(/something went wrong/i);
+    expect(errorMessage(false)).toMatch(/something went wrong/i);
+    expect(errorMessage(['boom'])).toMatch(/something went wrong/i);
+  });
+});
+
+describe('userFacingErrorMessage — STRIDE I6 (no internal leakage)', () => {
+  it('hides PGRST codes regardless of case / surrounding text', () => {
+    expect(userFacingErrorMessage(new Error('pgrst301 schema mismatch'))).toMatch(
+      /something went wrong/i,
+    );
+    expect(userFacingErrorMessage(new Error('PgRsT404 ohno'))).toMatch(/something went wrong/i);
+  });
+
+  it('hides any URL even if the rest of the message is safe', () => {
+    expect(userFacingErrorMessage(new Error('https://x.y/blew/up'))).toMatch(
+      /something went wrong/i,
+    );
+    expect(userFacingErrorMessage(new Error('see http://internal-svc:8080/'))).toMatch(
+      /something went wrong/i,
+    );
+  });
+
+  it('hides JWT-mention errors case-insensitively', () => {
+    expect(userFacingErrorMessage(new Error('JWT expired'))).toMatch(/something went wrong/i);
+    expect(userFacingErrorMessage(new Error('jwt malformed'))).toMatch(/something went wrong/i);
+    expect(userFacingErrorMessage(new Error('JwT no soup'))).toMatch(/something went wrong/i);
+  });
+
+  it('passes through messages with no internal markers', () => {
+    expect(userFacingErrorMessage(new Error('Please enter a valid email.'))).toBe(
+      'Please enter a valid email.',
+    );
+  });
+});

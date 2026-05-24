@@ -18,10 +18,7 @@ type EmptyStateProps = {
  */
 export function EmptyState({ title, description, ctaLabel, onCta }: EmptyStateProps) {
   return (
-    <View
-      accessibilityLabel={`${title}${description ? '. ' + description : ''}`}
-      className="flex-1 items-center justify-center px-8 py-12"
-    >
+    <View className="flex-1 items-center justify-center px-8 py-12">
       <Text className="text-center text-xl font-semibold text-light-text dark:text-dark-text">
         {title}
       </Text>

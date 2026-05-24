@@ -6,6 +6,7 @@ import {
   type RealtimeResource,
   type RealtimeEvent,
 } from '@/lib/resourcesRealtime';
+import type { ResourceStatus } from '@/types/database';
 
 const r1: RealtimeResource = { id: '1', status: 'available', name: 'Rice' };
 const r2: RealtimeResource = { id: '2', status: 'available', name: 'Formula' };
@@ -84,9 +85,13 @@ describe('filterAvailable', () => {
     expect(filterAvailable([r1, r2, r3])).toEqual([r1, r2]);
   });
 
-  it('is lenient about case', () => {
-    const upperR: RealtimeResource = { id: '4', status: 'AVAILABLE', name: 'X' };
-    expect(filterAvailable([upperR])).toEqual([upperR]);
+  it('rejects status values that are not exactly "available" (strict match)', () => {
+    // ResourceStatus is a string union — only lowercase 'available' is valid.
+    const wrongCase: RealtimeResource = { id: '4', status: 'available' as const, name: 'X' };
+    expect(filterAvailable([wrongCase])).toEqual([wrongCase]);
+    // Unlisted statuses (e.g. reserved, completed) are excluded.
+    const reserved: RealtimeResource = { id: '5', status: 'reserved' as const, name: 'Y' };
+    expect(filterAvailable([reserved])).toEqual([]);
   });
 
   it('drops resources with missing status field', () => {
@@ -120,5 +125,54 @@ describe('sortByNewest', () => {
     const bogus = { id: 'b', created_at: 'not-a-date' };
     // Both treated as 0 + epoch respectively → dated wins; bogus to end.
     expect(sortByNewest([bogus, dated]).map((r) => r.id)).toEqual(['a', 'b']);
+  });
+});
+
+// ============================================================================
+// Phase 4 Gary coverage gaps — see qa-reports/phase-4-gary-coverage-audit.md
+// ============================================================================
+
+describe('filterAvailable — defensive non-string status', () => {
+  it('drops rows where status is non-string, null, or wrong-case', () => {
+    const rows: RealtimeResource[] = [
+      { id: '1', status: 'available' },
+      { id: '2', status: 42 as unknown as ResourceStatus },
+      { id: '3', status: null as unknown as ResourceStatus },
+      { id: '4', status: 'AVAILABLE' as unknown as ResourceStatus },
+    ];
+    // Only exact lowercase 'available' passes — strict match per ResourceStatus union.
+    expect(filterAvailable(rows).map((r) => r.id)).toEqual(['1']);
+  });
+
+  it('returns an empty array for an empty input', () => {
+    expect(filterAvailable([])).toEqual([]);
+  });
+
+  it('returns the same logical content but a new array (no mutation)', () => {
+    const input: RealtimeResource[] = [{ id: '1', status: 'available' }];
+    const out = filterAvailable(input);
+    expect(out).not.toBe(input);
+    expect(out).toEqual(input);
+  });
+});
+
+describe('applyResourceDeltas — empty event sequence', () => {
+  it('returns the original state unchanged for an empty event list', () => {
+    const state = [r1, r2];
+    expect(applyResourceDeltas(state, [])).toBe(state);
+  });
+});
+
+describe('sortByNewest — stable behavior', () => {
+  it('handles all-undated rows without throwing', () => {
+    const a = { id: 'a' };
+    const b = { id: 'b' };
+    const out = sortByNewest([a, b]);
+    expect(out).toHaveLength(2);
+    expect(out.map((r) => r.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('returns an empty array for an empty input', () => {
+    expect(sortByNewest([])).toEqual([]);
   });
 });
