@@ -1,0 +1,8 @@
+# Default owner — Sky must approve all PRs
+* @Skypie99
+
+# Migrations: live DB schema — explicit Sky review required
+/supabase/migrations/ @Skypie99
+
+# CI + GitHub config: changes to safety systems require Sky review
+/.github/ @Skypie99
