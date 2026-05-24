@@ -1,0 +1,25 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+.env
+.env.local
+.DS_Store
+
+# Claude plugin/skill bundles — sometimes left at the project root by
+# external tooling; not part of the MutualMesh source tree.
+*.skill
+*.plugin
+
+# Per-machine Claude Code state. `.claude/launch.json` is committed so
+# anyone running the project can use Claude Preview against the Expo
+# dev server; everything else under .claude/ is local.
+.claude/settings.local.json
+.claude/worktrees/

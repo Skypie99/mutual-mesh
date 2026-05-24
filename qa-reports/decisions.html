@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mutual Mesh — Decisions for Sky</title>
+    <style>
+      /* Tokens mirror DESIGN.md / src/lib/theme.ts. All contrast ratios
+         verified WCAG 2.2 AA (Alex audit, 2026-05-23). */
+      :root {
+        --bg: #f7f3ee;
+        --surface: #ffffff;
+        --text: #1a1916;
+        --text-secondary: #4a3d2c;
+        --text-muted: #6b5640;
+        --border: #d9cbba;
+        --border-strong: #8b6f4e;
+        --accent: #1f7a6a;
+        --accent-text: #ffffff;
+        --success: #3f6b33;
+        --warning: #8a5a1f;
+        --danger: #8c2d2d;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e0d0b;
+          --surface: #1a1916;
+          --text: #f5f2ee;
+          --text-secondary: #d9cbba;
+          --text-muted: #a8957d;
+          --border: #2e2218;
+          --border-strong: #8a7659;
+          --accent: #4fbfa8;
+          --accent-text: #0e0d0b;
+          --success: #88bc73;
+          --warning: #dba951;
+          --danger: #e07878;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        font-size: 16px;
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          system-ui,
+          sans-serif;
+        font-size: 1rem;
+        line-height: 1.5;
+        background: var(--bg);
+        color: var(--text);
+        padding: 0;
+      }
+
+      /* Header */
+      header.app {
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        padding: 1.25rem 1.5rem;
+        z-index: 10;
+      }
+      header.app h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      header.app .progress-line {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        flex-wrap: wrap;
+      }
+      .progress-bar {
+        flex: 1 1 auto;
+        min-width: 8rem;
+        max-width: 24rem;
+        height: 6px;
+        background: var(--border);
+        border-radius: 9999px;
+        overflow: hidden;
+      }
+      .progress-bar > span {
+        display: block;
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        transition: width 200ms ease;
+      }
+
+      main {
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 6rem;
+      }
+
+      .intro {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 2rem;
+      }
+      .intro h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1.125rem;
+      }
+      .intro p {
+        margin: 0.5rem 0;
+        color: var(--text-secondary);
+      }
+      .intro .from-morgan {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        margin-top: 0.75rem;
+      }
+
+      section.group {
+        margin-bottom: 2.5rem;
+      }
+      section.group > h2 {
+        font-size: 1.25rem;
+        margin: 0 0 1rem;
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+      }
+      section.group > h2 .count {
+        font-size: 0.875rem;
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+        transition: border-color 200ms ease;
+      }
+      .card.state-approved {
+        border-color: var(--success);
+        border-width: 2px;
+      }
+      .card.state-pushback {
+        border-color: var(--danger);
+        border-width: 2px;
+      }
+      .card.state-edit {
+        border-color: var(--warning);
+        border-width: 2px;
+      }
+      .card-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .card-head h3 {
+        margin: 0;
+        font-size: 1.0625rem;
+        font-weight: 600;
+      }
+      .card-id {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+      }
+      .card-section {
+        margin: 0.75rem 0;
+      }
+      .card-section .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+      }
+      .card-section .body {
+        font-size: 0.9375rem;
+        color: var(--text);
+      }
+      .card-section .body code {
+        background: var(--bg);
+        padding: 0.05rem 0.35rem;
+        border-radius: 4px;
+        font-family: ui-monospace, monospace;
+        font-size: 0.875rem;
+      }
+      .rec-line {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--bg);
+        border-radius: 6px;
+        border-left: 3px solid var(--accent);
+      }
+
+      .actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+      button.action {
+        appearance: none;
+        background: var(--surface);
+        border: 1.5px solid var(--border-strong);
+        border-radius: 8px;
+        padding: 0.5rem 0.875rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text);
+        cursor: pointer;
+        min-height: 44px;
+        font-family: inherit;
+      }
+      button.action:hover {
+        border-color: var(--accent);
+      }
+      button.action:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      button.action.selected {
+        color: var(--accent-text);
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      button.action.approve.selected {
+        background: var(--success);
+        border-color: var(--success);
+      }
+      button.action.pushback.selected {
+        background: var(--danger);
+        border-color: var(--danger);
+      }
+      button.action.edit.selected {
+        background: var(--warning);
+        border-color: var(--warning);
+      }
+
+      .note {
+        margin-top: 0.75rem;
+        display: none;
+      }
+      .card.state-edit .note,
+      .card.state-pushback .note {
+        display: block;
+      }
+      .note label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+      }
+      .note textarea {
+        width: 100%;
+        min-height: 80px;
+        padding: 0.625rem 0.75rem;
+        font-family: inherit;
+        font-size: 0.9375rem;
+        background: var(--bg);
+        color: var(--text);
+        border: 1.5px solid var(--border-strong);
+        border-radius: 8px;
+        resize: vertical;
+      }
+      .note textarea:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-color: var(--accent);
+      }
+
+      /* Open question card (different shape — single-select) */
+      .question-options {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .question-options button {
+        flex: 1 1 auto;
+        min-width: 10rem;
+      }
+
+      /* Export panel */
+      section.export {
+        margin-top: 3rem;
+        background: var(--surface);
+        border: 2px solid var(--accent);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+      }
+      section.export h2 {
+        margin: 0 0 0.75rem;
+        font-size: 1.125rem;
+      }
+      section.export p {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0.25rem 0 0.75rem;
+      }
+      .export-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .export-actions button {
+        appearance: none;
+        background: var(--accent);
+        color: var(--accent-text);
+        border: 0;
+        border-radius: 8px;
+        padding: 0.625rem 1.125rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        min-height: 44px;
+        font-family: inherit;
+      }
+      .export-actions button.secondary {
+        background: var(--surface);
+        color: var(--text);
+        border: 1.5px solid var(--border-strong);
+      }
+      .export-actions button.danger {
+        background: var(--surface);
+        color: var(--danger);
+        border: 1.5px solid var(--danger);
+      }
+      .export-actions button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      #exportOutput {
+        margin-top: 1rem;
+        width: 100%;
+        min-height: 240px;
+        padding: 0.75rem;
+        font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+        font-size: 0.8125rem;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+
+      /* Toast (live region) */
+      #toast {
+        position: fixed;
+        bottom: 1.25rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(150%);
+        background: var(--accent);
+        color: var(--accent-text);
+        padding: 0.625rem 1.125rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: transform 200ms ease;
+        z-index: 100;
+        pointer-events: none;
+      }
+      #toast.visible {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* Visually hidden but accessible to SR */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a href="#main" class="sr-only">Skip to main content</a>
+
+    <header class="app" role="banner">
+      <h1>Mutual Mesh — Decisions for Sky</h1>
+      <div class="progress-line">
+        <span id="progressLabel" aria-live="polite">0 of 22 decided</span>
+        <div
+          class="progress-bar"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="22"
+          aria-valuenow="0"
+          aria-label="Decisions progress"
+        >
+          <span id="progressBar"></span>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="intro" aria-labelledby="intro-h">
+        <h2 id="intro-h">From Morgan</h2>
+        <p>
+          Hi Sky. This is the consolidated decision queue for Mutual Mesh — 10 from Jordan's
+          PRIVACY.md draft, 8 from Steve's security review, and 4 open questions Jordan flagged for
+          your call. Click <strong>Approve</strong>, <strong>Pushback</strong>, or
+          <strong>Edit</strong> on each one. Your choices save automatically to this browser. When
+          you're done, scroll to the bottom and click <strong>Export</strong> — paste the result
+          back to me and I'll apply it to PRIVACY.md and the schema spec.
+        </p>
+        <p>
+          Recommendations are inline (the blue-bordered line under each card). All 18 decisions
+          have a recommended path; the 4 open questions are genuinely open.
+        </p>
+        <p class="from-morgan">
+          Morgan, 2026-05-23 · Constitution v1.3 Art. 9: I'm the only voice messaging you. No agent
+          will email you about this; the artifact is in-repo only.
+        </p>
+      </section>
+
+      <section class="group" id="jordan-group" aria-labelledby="jordan-h">
+        <h2 id="jordan-h">Jordan — Privacy Model <span class="count">(10 decisions)</span></h2>
+        <div id="jordan-cards"></div>
+      </section>
+
+      <section class="group" id="steve-group" aria-labelledby="steve-h">
+        <h2 id="steve-h">Steve — Security Additions <span class="count">(8 decisions)</span></h2>
+        <div id="steve-cards"></div>
+      </section>
+
+      <section class="group" id="open-group" aria-labelledby="open-h">
+        <h2 id="open-h">Open Questions <span class="count">(4 — your call)</span></h2>
+        <div id="open-cards"></div>
+      </section>
+
+      <section class="export" aria-labelledby="export-h">
+        <h2 id="export-h">Export your decisions</h2>
+        <p>
+          When you're done, click Generate. Copy the result and paste it back into the chat with
+          Claude — I'll apply each decision to PRIVACY.md, the Cycle 1 spec, and the schema.
+        </p>
+        <div class="export-actions">
+          <button id="exportBtn">Generate export</button>
+          <button id="copyBtn" class="secondary" disabled>Copy to clipboard</button>
+          <button id="resetBtn" class="danger">Reset all decisions</button>
+        </div>
+        <textarea
+          id="exportOutput"
+          readonly
+          aria-label="Generated decision export"
+          placeholder="Click Generate to produce a markdown summary of all your decisions."
+        ></textarea>
+      </section>
+    </main>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      'use strict';
+
+      // ============================================================
+      // Decision data — single source of truth in this file.
+      // Pulled from PRIVACY.md and qa-reports/2026-05-23_security-privacy-review.md.
+      // ============================================================
+
+      const JORDAN = [
+        {
+          id: 'D1',
+          title: 'Drop real-name and phone collection entirely',
+          ask: 'Collect only handle + email + postal prefix at signup. No real name, no phone, no gender.',
+          why: "Original PRD's PII set exceeded minimum-collection by a large margin for a surveillance-averse audience.",
+          alt: 'Optional encrypted phone — rejected because (a) "optional" creeps into pseudo-required, (b) creates two classes of user.',
+          rollback: 'Add columns later if a specific verified need emerges. We never lose data by NOT collecting.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D2',
+          title: 'Per-resource contact handle replaces in-app chat AND phone',
+          ask: 'Poster types a contact handle (Signal / Proton / Reddit handle) when posting. Claimant sees it on Claim. No app-managed channel.',
+          why: 'Keeps Mutual Mesh out of "messaging app" regulatory category; lets users use channels they already trust.',
+          alt: 'Build a thin Supabase Realtime chat in MVP — rejected for scope + moderation/retention surface.',
+          rollback: 'Chat can be added as v2 without changing existing data.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D3',
+          title: 'Postal prefix at 3 characters (FSA-equivalent)',
+          ask: 'Store only the first 3 chars of the postal code. Neighborhood-level matching without identifying a building.',
+          why: 'Full postal code identifies an address. No location at all kills cross-city matching. 3 chars is the middle ground.',
+          alt: 'No location at all — rejected. Full postal code — rejected as too precise.',
+          rollback: 'Narrowing later is destructive; widening later is easy. Start narrow.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D4',
+          title: 'Referrer is a hashed token, never a name',
+          ask: 'Existing users generate single-use invite codes. New user pastes one on signup. Code is hashed; no link to the generator is stored.',
+          why: 'Prevents subpoena-able identity graphs while still gating signups.',
+          alt: 'Open signup + admin verification only — rejected (admin overload). No referrer — rejected (same reason).',
+          rollback: 'Can shift to open signup later if admin verification proves robust.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D5',
+          title: 'Two-layer EXIF stripping (client + server)',
+          ask: 'expo-image-manipulator strips on client; server-side Edge Function re-processes to guarantee.',
+          why: 'A malicious client could bypass client-side stripping. Belt-and-braces.',
+          alt: 'Client-only — bypassable. Server-only — wastes upload bandwidth on EXIF-bloated images.',
+          rollback: 'If server-side proves slow/expensive, can downgrade to client-only with documented risk.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D6',
+          title: 'True cascade delete on "Delete my account"',
+          ask: 'delete_my_account() RPC hard-deletes all user-related rows + Storage objects. No soft-delete.',
+          why: 'Honest deletion is a load-bearing trust signal for a surveillance-averse audience.',
+          alt: 'Soft-delete with 30-day grace — rejected; users who want out should be out immediately.',
+          rollback:
+            'Supabase 7-day PITR window is disclosed in the in-app delete confirmation. Cannot scrub backups; platform limit.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D7',
+          title: 'Resource retention — 30 days post-status-change',
+          ask: 'Nightly pg_cron job prune_expired_resources() hard-deletes expired rows; photos cascade.',
+          why: 'Stale listings clutter; unclaimed listings indicate a fit problem worth surfacing in metrics.',
+          alt: '7-day / 14-day / 60-day windows. 30 days is the middle ground.',
+          rollback: 'Easy to retune the constant.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D8',
+          title: 'No third-party SDKs in MVP',
+          ask: 'No Sentry, no Mixpanel, no analytics. package.json audit at every Phase boundary.',
+          why: 'Every SDK is a data-egress surface.',
+          alt: 'Self-hosted Sentry / Plausible — deferred until launch volume justifies operational cost.',
+          rollback: 'Re-evaluate at Cycle 7 (ship-readiness) with per-SDK privacy review.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D9',
+          title: 'Verification admins are flagged users, not a separate role',
+          ask: 'No separate Supabase role. RLS policies use is_admin = true as the gate. Admins cannot read photos/claims/messages of other users via admin status.',
+          why: 'Reduces blast radius if an admin account is compromised; admins can do exactly what they need (verify) and nothing more.',
+          alt: 'Separate admin Postgres role — rejected for complexity; defeats RLS-as-source-of-truth.',
+          rollback: 'Can add separate role later if specific need emerges.',
+          rec: 'Approve',
+        },
+        {
+          id: 'D10',
+          title: 'PIPEDA draft is for Sky\'s review, NOT legal advice',
+          ask: 'Mapping in PRIVACY.md is Jordan\'s best-effort draft; needs a Canadian privacy lawyer to sign off before public launch.',
+          why: 'Jordan is not a lawyer; AI cannot give legal advice. Constitution Art. 4 (Jordan role) labels findings as "draft for legal review."',
+          alt: 'Skip legal review — rejected. Treat AI draft as final — rejected.',
+          rollback: 'N/A — this is an acknowledgment, not a code change.',
+          rec: 'Approve (and budget for a real lawyer pre-launch)',
+        },
+      ];
+
+      const STEVE = [
+        {
+          id: 'S1',
+          title: 'Invite token must be ≥12 chars (62+ bits entropy), bcrypt-hashed',
+          ask: 'Pin the invite token format at 12+ chars from a 36-char alphabet. Hash with bcrypt cost 10 before storage.',
+          why: 'Jordan\'s draft says "8-character alphanumeric" (~41 bits) — guessable on an unrated endpoint.',
+          alt: 'If 12 chars feels long to type, downgrade to 10 (50 bits). Don\'t go below 10.',
+          rollback: 'Format change is forward-only after launch (invite codes are single-use anyway).',
+          rec: 'Approve',
+        },
+        {
+          id: 'S2',
+          title: 'Rate-limit signup invite-verification endpoint to 10/min/IP',
+          ask: 'Add a 10/min/IP rate limit on the signup RPC that consumes an invite token.',
+          why: 'Even with high entropy, an adversary could try invite codes through a script. Rate limit makes brute-force impractical.',
+          alt: 'Postgres-level rate limit via pg_stat_statements; or no rate limit (relying on entropy alone).',
+          rollback: 'Disable the limit if it false-positives on shared NATs. Document the trade-off.',
+          rec: 'Approve',
+        },
+        {
+          id: 'S3',
+          title: 'Sanitize + length-cap pickup_text & contact_handle, reject URLs in handle',
+          ask: 'pickup_text capped at 280 chars; contact_handle capped at 64 chars + server-side reject if it contains URLs.',
+          why: 'Posters could put <script> or phishing URLs in these fields. RN <Text> is escape-safe today but might not be in future contexts (web, chat).',
+          alt: 'No cap, sanitize at render only — fragile if rendering layer changes.',
+          rollback: 'Loosen rejection regex if it false-positives on legitimate use cases.',
+          rec: 'Approve (already applied at the validation layer in Loop 6)',
+        },
+        {
+          id: 'S4',
+          title: 'Photos in PRIVATE Storage bucket with 1h signed URLs (LOAD-BEARING)',
+          ask: 'resource-photos bucket is PRIVATE. Client fetches signed URLs via createSignedUrl(path, 3600). RLS gates createSignedUrl on is_verified = true.',
+          why: 'Public bucket = leaked URL is forever public, and attackers can enumerate path scheme {userId}/{ts}.ext.',
+          alt: 'Public bucket — rejected (catastrophic leak vector, STRIDE I1, risk 25).',
+          rollback: 'N/A — foundational decision.',
+          rec: 'Approve (this is the single most important RLS test in Cycle 3)',
+        },
+        {
+          id: 'S5',
+          title: 'delete_my_account() wrapped in transaction with FOR UPDATE',
+          ask: 'Wrap the deletion RPC in a single transaction with SELECT ... FOR UPDATE on auth.users to serialize concurrent deletes/posts.',
+          why: 'If a user deletes while a claim is in flight, the claim could succeed against a half-deleted user, leaving an orphan row.',
+          alt: 'No transaction — accept orphan-row risk. Rejected.',
+          rollback: 'N/A — must be atomic.',
+          rec: 'Approve',
+        },
+        {
+          id: 'S6',
+          title: 'cron_log table + observability for retention jobs',
+          ask: 'Dana adds public.cron_log(job_name, ran_at, rows_affected, success, error_text). Prune job inserts a row each run. Steve adds a check (Cycle 7) that the most-recent row is <36h old.',
+          why: 'Silent cron failures = listings accumulate forever = retention promise broken.',
+          alt: 'No observability — rejected (retention promise = SLA).',
+          rollback: 'N/A — observability is non-negotiable for a retention promise.',
+          rec: 'Approve',
+        },
+        {
+          id: 'S7',
+          title: 'Disclose AsyncStorage unencrypted at rest (session-on-stolen-phone)',
+          ask: 'Stay on AsyncStorage in MVP (matches AccessMap). Disclose in PRIVACY.md and in-app onboarding that local device theft = session theft.',
+          why: 'AsyncStorage is unencrypted on device. A surveillance-averse user whose phone is seized may have an open session.',
+          alt: 'SecureStore wrapper now — has size limits; defer to v2.',
+          rollback: 'N/A — this is a disclosure, not a code change.',
+          rec: 'Approve',
+        },
+        {
+          id: 'S8',
+          title: 'verification_log append-only at RLS, Sky-only SELECT',
+          ask: 'No UPDATE policy, no DELETE policy (except service_role / pg_cron) on verification_log. SELECT policy locks to auth.uid() = SKY_USER_UUID.',
+          why: 'Append-only protects against an admin tampering with their own decision history. Sky-only SELECT prevents admin-to-admin visibility.',
+          alt: 'Loosen SELECT to "any admin" — rejected (privacy of decisions matters).',
+          rollback: 'Loosen SELECT later if Sky wants to delegate audit-review to a trusted reviewer.',
+          rec: 'Approve',
+        },
+      ];
+
+      const OPEN_QUESTIONS = [
+        {
+          id: 'Q1',
+          title: 'Email verification at signup — OTP/magic-link required?',
+          context:
+            'Jordan flagged this as an open question. Recommendation: OTP-required, because it raises the bar against throwaway-email sock-puppet attacks.',
+          options: [
+            { value: 'otp-required', label: 'Require OTP (recommended)' },
+            { value: 'otp-skip', label: 'No OTP; rely on admin verification' },
+            { value: 'optional', label: 'OTP optional per user' },
+          ],
+          rec: 'otp-required',
+        },
+        {
+          id: 'Q2',
+          title: 'City/region selection on signup — explicit dropdown or auto-derived from postal prefix?',
+          context:
+            'Postal prefixes can be ambiguous near city borders. Recommendation: explicit dropdown so users disambiguate themselves.',
+          options: [
+            { value: 'dropdown', label: 'Explicit dropdown (recommended)' },
+            { value: 'auto', label: 'Auto-derive from postal prefix' },
+            { value: 'both', label: 'Auto-suggest + let user override' },
+          ],
+          rec: 'dropdown',
+        },
+        {
+          id: 'Q3',
+          title: 'Multi-language support timeline',
+          context:
+            'Mutual Mesh\'s audience often has limited English. English MVP locked; when does French / Spanish / Mandarin / Punjabi land?',
+          options: [
+            { value: 'cycle-7', label: 'Cycle 7 (pre-launch)' },
+            { value: 'v2', label: 'v2 (post-launch)' },
+            { value: 'on-demand', label: 'On-demand when a partner needs it' },
+          ],
+          rec: 'v2',
+        },
+        {
+          id: 'Q4',
+          title: 'Inactive verification admins — auto-suspend after how long?',
+          context:
+            'What happens to a verification admin who goes inactive? Steve to draft policy. Your default?',
+          options: [
+            { value: '30d', label: 'Auto-suspend after 30 days no-action' },
+            { value: '60d', label: 'Auto-suspend after 60 days' },
+            { value: '90d', label: 'Auto-suspend after 90 days' },
+            { value: 'manual', label: 'Manual review only — no auto-suspend' },
+          ],
+          rec: '60d',
+        },
+      ];
+
+      const STORAGE_KEY = 'mutualmesh.decisions.v1';
+      const TOTAL = JORDAN.length + STEVE.length + OPEN_QUESTIONS.length;
+
+      // ============================================================
+      // State
+      // ============================================================
+
+      /** state[id] = { status: 'approve'|'pushback'|'edit'|'choose', note?: string, choice?: string } */
+      let state = loadState();
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+          console.warn('Could not load saved decisions', e);
+          return {};
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          console.warn('Could not save decisions', e);
+        }
+      }
+
+      // ============================================================
+      // Rendering
+      // ============================================================
+
+      function renderDecisionCard(d) {
+        const status = state[d.id]?.status || null;
+        const note = state[d.id]?.note || '';
+        const card = document.createElement('article');
+        card.className = 'card';
+        if (status) card.classList.add('state-' + (status === 'choose' ? '' : status));
+        card.dataset.id = d.id;
+
+        card.innerHTML = `
+          <div class="card-head">
+            <h3>${escapeHtml(d.title)}</h3>
+            <span class="card-id">${d.id}</span>
+          </div>
+          <div class="card-section">
+            <div class="label">What's being asked</div>
+            <div class="body">${escapeHtml(d.ask)}</div>
+          </div>
+          <div class="card-section">
+            <div class="label">Why</div>
+            <div class="body">${escapeHtml(d.why)}</div>
+          </div>
+          <div class="card-section">
+            <div class="label">Alternative considered</div>
+            <div class="body">${escapeHtml(d.alt)}</div>
+          </div>
+          <div class="card-section">
+            <div class="label">Rollback</div>
+            <div class="body">${escapeHtml(d.rollback)}</div>
+          </div>
+          <div class="rec-line"><strong>Recommendation:</strong> ${escapeHtml(d.rec)}</div>
+          <div class="actions" role="group" aria-label="Decision for ${d.id}">
+            <button class="action approve ${status === 'approve' ? 'selected' : ''}" data-action="approve">✅ Approve</button>
+            <button class="action pushback ${status === 'pushback' ? 'selected' : ''}" data-action="pushback">❌ Pushback</button>
+            <button class="action edit ${status === 'edit' ? 'selected' : ''}" data-action="edit">✏️ Edit</button>
+          </div>
+          <div class="note">
+            <label for="note-${d.id}">Your note for ${d.id}</label>
+            <textarea id="note-${d.id}" rows="3">${escapeHtml(note)}</textarea>
+          </div>
+        `;
+
+        card.querySelectorAll('button.action').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const action = btn.dataset.action;
+            const prev = state[d.id]?.status;
+            if (prev === action) {
+              delete state[d.id];
+            } else {
+              state[d.id] = { ...(state[d.id] || {}), status: action };
+            }
+            saveState();
+            rerenderCard(d, card);
+            updateProgress();
+            toast(prev === action ? `${d.id} cleared` : `${d.id} set to ${action}`);
+          });
+        });
+
+        const noteField = card.querySelector('textarea');
+        noteField.addEventListener('input', () => {
+          state[d.id] = { ...(state[d.id] || {}), note: noteField.value };
+          saveState();
+        });
+
+        return card;
+      }
+
+      function rerenderCard(d, card) {
+        const status = state[d.id]?.status || null;
+        card.classList.remove('state-approve', 'state-pushback', 'state-edit');
+        if (status) card.classList.add('state-' + status);
+        card.querySelectorAll('button.action').forEach((btn) => {
+          btn.classList.toggle('selected', btn.dataset.action === status);
+        });
+      }
+
+      function renderOpenCard(q) {
+        const choice = state[q.id]?.choice || null;
+        const card = document.createElement('article');
+        card.className = 'card';
+        if (choice) card.classList.add('state-approve');
+        card.dataset.id = q.id;
+
+        const optionsHtml = q.options
+          .map(
+            (o) => `
+            <button class="action ${o.value === choice ? 'selected' : ''}" data-value="${escapeAttr(o.value)}">
+              ${escapeHtml(o.label)}
+            </button>`,
+          )
+          .join('');
+
+        card.innerHTML = `
+          <div class="card-head">
+            <h3>${escapeHtml(q.title)}</h3>
+            <span class="card-id">${q.id}</span>
+          </div>
+          <div class="card-section">
+            <div class="label">Context</div>
+            <div class="body">${escapeHtml(q.context)}</div>
+          </div>
+          <div class="rec-line">
+            <strong>Recommendation:</strong>
+            ${escapeHtml(q.options.find((o) => o.value === q.rec)?.label || '—')}
+          </div>
+          <div class="question-options" role="radiogroup" aria-label="${q.id} choice">
+            ${optionsHtml}
+          </div>
+        `;
+
+        card.querySelectorAll('button.action').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const value = btn.dataset.value;
+            if (state[q.id]?.choice === value) {
+              delete state[q.id];
+            } else {
+              state[q.id] = { status: 'choose', choice: value };
+            }
+            saveState();
+            rerenderOpenCard(q, card);
+            updateProgress();
+            toast(`${q.id}: ${state[q.id]?.choice || 'cleared'}`);
+          });
+        });
+
+        return card;
+      }
+
+      function rerenderOpenCard(q, card) {
+        const choice = state[q.id]?.choice || null;
+        card.classList.toggle('state-approve', !!choice);
+        card.querySelectorAll('button.action').forEach((btn) => {
+          btn.classList.toggle('selected', btn.dataset.value === choice);
+        });
+      }
+
+      function updateProgress() {
+        const decided = Object.keys(state).length;
+        document.getElementById('progressLabel').textContent = `${decided} of ${TOTAL} decided`;
+        const bar = document.getElementById('progressBar');
+        bar.style.width = `${(decided / TOTAL) * 100}%`;
+        document
+          .querySelector('.progress-bar')
+          .setAttribute('aria-valuenow', String(decided));
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+      function escapeAttr(s) {
+        return escapeHtml(s).replace(/'/g, '&#39;');
+      }
+
+      // ============================================================
+      // Toast (a11y live region)
+      // ============================================================
+      let toastTimeout = null;
+      function toast(message) {
+        const el = document.getElementById('toast');
+        el.textContent = message;
+        el.classList.add('visible');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => el.classList.remove('visible'), 2200);
+      }
+
+      // ============================================================
+      // Export
+      // ============================================================
+      function generateExport() {
+        const lines = [];
+        lines.push('# Sky\'s decisions — Mutual Mesh — ' + new Date().toISOString().slice(0, 10));
+        lines.push('');
+        lines.push('## Jordan — Privacy Model');
+        lines.push('');
+        for (const d of JORDAN) {
+          const s = state[d.id];
+          const marker = !s ? '⬜ pending' : s.status === 'approve' ? '✅ APPROVED' : s.status === 'pushback' ? '❌ PUSHBACK' : '✏️ EDIT';
+          lines.push(`- **${d.id}** ${marker} — ${d.title}`);
+          if (s && s.note && s.note.trim()) {
+            lines.push(`  - Note: ${s.note.trim()}`);
+          }
+        }
+        lines.push('');
+        lines.push('## Steve — Security Additions');
+        lines.push('');
+        for (const d of STEVE) {
+          const s = state[d.id];
+          const marker = !s ? '⬜ pending' : s.status === 'approve' ? '✅ APPROVED' : s.status === 'pushback' ? '❌ PUSHBACK' : '✏️ EDIT';
+          lines.push(`- **${d.id}** ${marker} — ${d.title}`);
+          if (s && s.note && s.note.trim()) {
+            lines.push(`  - Note: ${s.note.trim()}`);
+          }
+        }
+        lines.push('');
+        lines.push('## Open Questions');
+        lines.push('');
+        for (const q of OPEN_QUESTIONS) {
+          const s = state[q.id];
+          const choice = s?.choice;
+          const choiceLabel = q.options.find((o) => o.value === choice)?.label;
+          lines.push(
+            `- **${q.id}** ${choice ? '✓ ' + (choiceLabel || choice) : '⬜ pending'} — ${q.title}`,
+          );
+        }
+        lines.push('');
+        const decided = Object.keys(state).length;
+        lines.push(`---`);
+        lines.push(``);
+        lines.push(`Decided: ${decided} of ${TOTAL}`);
+        if (decided < TOTAL) {
+          lines.push(``);
+          lines.push(`> Some items are still pending. You can paste this anyway — I'll only act on the items you marked.`);
+        }
+        return lines.join('\n');
+      }
+
+      // ============================================================
+      // Init
+      // ============================================================
+      function init() {
+        const jc = document.getElementById('jordan-cards');
+        JORDAN.forEach((d) => jc.appendChild(renderDecisionCard(d)));
+        const sc = document.getElementById('steve-cards');
+        STEVE.forEach((d) => sc.appendChild(renderDecisionCard(d)));
+        const oc = document.getElementById('open-cards');
+        OPEN_QUESTIONS.forEach((q) => oc.appendChild(renderOpenCard(q)));
+        updateProgress();
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+          const out = generateExport();
+          document.getElementById('exportOutput').value = out;
+          document.getElementById('copyBtn').disabled = false;
+          toast('Export generated');
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+          const text = document.getElementById('exportOutput').value;
+          try {
+            await navigator.clipboard.writeText(text);
+            toast('Copied to clipboard');
+          } catch (e) {
+            document.getElementById('exportOutput').select();
+            toast('Select-and-copy manually');
+          }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+          if (
+            !confirm(
+              'Reset every decision? This clears localStorage. Your existing export (above) is preserved if you generated one.',
+            )
+          )
+            return;
+          state = {};
+          saveState();
+          // Re-render
+          jc.innerHTML = '';
+          sc.innerHTML = '';
+          oc.innerHTML = '';
+          JORDAN.forEach((d) => jc.appendChild(renderDecisionCard(d)));
+          STEVE.forEach((d) => sc.appendChild(renderDecisionCard(d)));
+          OPEN_QUESTIONS.forEach((q) => oc.appendChild(renderOpenCard(q)));
+          updateProgress();
+          toast('Decisions reset');
+        });
+      }
+
+      // The .state-choose class is intentionally a no-op (state for open questions
+      // uses .state-approve). The state-edit class only applies to D/S items.
+      // Defensive: also accept .state-(name) variants.
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    </script>
+  </body>
+</html>

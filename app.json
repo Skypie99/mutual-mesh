@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Mutual Mesh",
+    "slug": "mutual-mesh",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "mutualmesh",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mutualmesh.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F3EE"
+      },
+      "package": "com.mutualmesh.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": []
+  }
+}

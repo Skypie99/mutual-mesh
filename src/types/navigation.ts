@@ -1,0 +1,37 @@
+/**
+ * Navigation route types for Mutual Mesh.
+ *
+ * Two stacks:
+ *
+ * - `HomeStackParamList` — the push stack inside the Home tab
+ *     - Feed       (HomeScreen)
+ *     - Detail     (ResourceDetailScreen — push)
+ *     - AddResource (AddResourceScreen — modal-style push)
+ *
+ * - `MainTabParamList` — the bottom tab navigator (only shown to verified users)
+ *     - HomeTab    (the HomeStack above)
+ *     - ProfileTab (ProfileScreen)
+ *
+ * Auth-stage screens (`SignIn`, `WaitingRoom`) are rendered directly by the
+ * top-level Gate component in App.tsx — they're not in a navigator because
+ * there's no "back" navigation from them.
+ *
+ * When Phase 0b lands real data, declare module augmentation here:
+ *
+ *     declare global {
+ *       namespace ReactNavigation {
+ *         interface RootParamList extends MainTabParamList {}
+ *       }
+ *     }
+ */
+
+export type HomeStackParamList = {
+  Feed: undefined;
+  Detail: { resourceId: string };
+  AddResource: undefined;
+};
+
+export type MainTabParamList = {
+  HomeTab: undefined;
+  ProfileTab: undefined;
+};
