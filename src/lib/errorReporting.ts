@@ -83,7 +83,7 @@ export const REDACTED_HANDLE = '[REDACTED_HANDLE]';
 export const REDACTED_TOKEN = '[REDACTED_TOKEN]';
 
 /**
- * The four PII heuristics applied to message + stack BEFORE the text leaves
+ * The six PII heuristics applied to message + stack BEFORE the text leaves
  * the device. Each entry: a stable label + the regex.
  *
  * Order matters: tokens (URLs with auth) match first because they may
@@ -97,6 +97,28 @@ export const REDACTED_TOKEN = '[REDACTED_TOKEN]';
  */
 export const PII_HEURISTICS: ReadonlyArray<{ label: string; regex: RegExp; replacement: string }> =
   [
+    {
+      // Expo push token format: ExponentPushToken[AbCdEf...] — Steve F2.
+      // The brackets and the prefix are NOT caught by the generic token heuristic
+      // below (brackets aren't in the character class; "ExponentPushToken" isn't
+      // in the keyword list). Added first so the specific pattern fires before
+      // the generic one, which would leave the payload un-stripped.
+      // Expo tokens identify a specific device installation — stripping is
+      // required to preserve error-report anonymization (PRIVACY.md §E1).
+      label: 'expo_token',
+      regex: /ExponentPushToken\[[A-Za-z0-9_\-]+\]/g,
+      replacement: REDACTED_TOKEN,
+    },
+    {
+      // HTTP header colon-delimited token format: "apikey: eyJ..." and
+      // "authorization: Bearer eyJ..." — Steve F3.
+      // The generic token heuristic below uses `=?` as the separator and
+      // misses colon-space (HTTP header) format. This covers Supabase's
+      // two-header pattern (`apikey: <anon>` + `Authorization: Bearer <anon>`).
+      label: 'http_header_token',
+      regex: /(?:\bapikey|\bauthorization):\s*(?:Bearer\s+)?[A-Za-z0-9\-_.~+/=]{16,}/gi,
+      replacement: REDACTED_TOKEN,
+    },
     {
       // Token leakage in URLs and free-text — query-string and bare-assignment
       // auth tokens (?token=..., token=..., access_token=..., api_key=..., jwt=...,
@@ -312,7 +334,7 @@ export function extractErrorParts(error: unknown): { message: string; stack: str
  *   1. Read opt-in flag from AsyncStorage. If false, return early — no
  *      network call, no logging.
  *   2. Extract message + stack from the error value.
- *   3. Strip PII (4 heuristics — emails, postal codes, tokens, handles).
+ *   3. Strip PII (6 heuristics — Expo tokens, HTTP header tokens, URL tokens, emails, postal codes, handles).
  *   4. Truncate to the Edge Function's max-input sizes.
  *   5. POST to the log-error Edge Function. Use the anon key in the
  *      Authorization header so Supabase's function gateway accepts it.
