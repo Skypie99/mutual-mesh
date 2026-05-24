@@ -18,7 +18,7 @@
  */
 
 import { supabase } from './supabase';
-import type { ResourceRow } from '@/types/database';
+import type { ResourceCategory, ResourceRow } from '@/types/database';
 
 const LIST_LIMIT = 500;
 
@@ -78,6 +78,8 @@ export type CreateResourceInput = {
   city?: string | null;
   /** Optional photo URL — already uploaded + EXIF-stripped via photos.ts. */
   photo_url?: string | null;
+  /** Resource category — defaults to 'other' at the DB level if omitted. */
+  category?: ResourceCategory;
 };
 
 /**
@@ -99,6 +101,7 @@ export async function createResource(input: CreateResourceInput, postedBy: strin
       postal_prefix: input.postal_prefix ?? null,
       city: input.city ?? null,
       photo_url: input.photo_url ?? null,
+      category: input.category,
     })
     .select()
     .single();
@@ -148,4 +151,26 @@ export async function deleteResourceById(id: string) {
  */
 export async function deleteMyAccount() {
   return supabase.rpc('delete_my_account');
+}
+
+// ============================================================================
+// Phase 2 — pickup confirmation + onboarding
+// ============================================================================
+
+/**
+ * Confirm pickup of a reserved resource. Calls the confirm_pickup RPC
+ * which flips status to 'completed' + sets confirmed_at/confirmed_by.
+ * Either the poster or claimant can call this (RPC enforces authorization).
+ */
+export async function confirmPickup(resourceId: string) {
+  return supabase.rpc('confirm_pickup', { p_resource_id: resourceId });
+}
+
+/**
+ * Mark the current user's onboarding as complete. Called once after the
+ * user finishes the onboarding tour. The RPC sets onboarding_complete = true
+ * on public.users for auth.uid(). Idempotent.
+ */
+export async function completeOnboarding() {
+  return supabase.rpc('complete_onboarding');
 }

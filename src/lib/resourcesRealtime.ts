@@ -16,10 +16,13 @@
  * and (for filterAvailable) `status`.
  */
 
+import type { ResourceStatus } from '@/types/database';
+
 /** Structural minimum we need. Wider types satisfy. */
 export type RealtimeResource = {
   id: string;
-  status?: string;
+  status?: ResourceStatus;
+  created_at?: string;
   [key: string]: unknown;
 };
 
@@ -76,23 +79,20 @@ export function applyResourceDeltas<T extends RealtimeResource>(
   return events.reduce<T[]>((acc, ev) => applyResourceDelta(acc, ev), state);
 }
 
+const AVAILABLE_STATUS: ResourceStatus = 'available';
+
 /**
- * Filter to resources currently available in the marketplace. Status
- * comparison is lowercase to be lenient against schema drift.
+ * Filter to resources currently available in the marketplace.
  */
 export function filterAvailable<T extends RealtimeResource>(state: T[]): T[] {
-  return state.filter(
-    (r) => typeof r.status === 'string' && r.status.toLowerCase() === 'available',
-  );
+  return state.filter((r) => r.status === AVAILABLE_STATUS);
 }
 
 /**
  * Defensive sort: newest first by `created_at` if present, else stable.
  * Pure — does not mutate input.
  */
-export function sortByNewest<T extends RealtimeResource & { created_at?: string }>(
-  state: T[],
-): T[] {
+export function sortByNewest<T extends RealtimeResource>(state: T[]): T[] {
   // Steve loop-6 audit: Date.parse returns NaN for invalid strings. A NaN
   // comparator return value is undefined behavior per ECMAScript; coerce
   // NaN → 0 so unparseable rows are treated as "no date" (sort to end).

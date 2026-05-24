@@ -23,6 +23,7 @@
     "dist/",
     "web-build/",
     ".claude/",
+    "supabase/functions/",
     "babel.config.js",
     "metro.config.js",
     "tailwind.config.js",

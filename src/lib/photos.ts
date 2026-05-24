@@ -30,21 +30,36 @@ const COMPRESS_QUALITY = 0.75; // 0–1; trade-off between size and clarity.
  * This is verifiable: the output URI's file when read as bytes has no EXIF
  * markers. A unit test in __tests__ would confirm this if we had image
  * fixtures; deferred to Cycle 7 with real test images.
+ *
+ * @privacy-load-bearing PRIVACY.md D5 — client-side EXIF strip. Do not
+ * remove or weaken without Jordan review. Failure here leaks GPS coordinates
+ * embedded in camera photos (location, device make, timestamp).
+ *
+ * Throws a user-facing Error on codec/memory failure so callers can surface
+ * the message instead of crashing silently.
  */
 export async function stripExifAndCompress(localUri: string): Promise<{
   uri: string;
   width: number;
   height: number;
 }> {
-  const result = await ImageManipulator.manipulateAsync(
-    localUri,
-    [{ resize: { width: MAX_DIMENSION } }], // resize triggers re-encode even if smaller
-    {
-      compress: COMPRESS_QUALITY,
-      format: ImageManipulator.SaveFormat.JPEG,
-    },
-  );
-  return { uri: result.uri, width: result.width, height: result.height };
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      localUri,
+      [{ resize: { width: MAX_DIMENSION } }], // resize triggers re-encode even if smaller
+      {
+        compress: COMPRESS_QUALITY,
+        format: ImageManipulator.SaveFormat.JPEG,
+      },
+    );
+    return { uri: result.uri, width: result.width, height: result.height };
+  } catch (cause) {
+    // Codec failure, memory exhaustion, or bad URI. Re-throw with a message
+    // callers can show directly.
+    throw new Error('Could not process your photo. Try a smaller image or post without one.', {
+      cause,
+    });
+  }
 }
 
 /**

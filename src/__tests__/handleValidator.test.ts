@@ -124,3 +124,37 @@ describe('realNameWarningMessage', () => {
     expect(msg).toMatch(/choosing to/i);
   });
 });
+
+// ============================================================================
+// Phase 4 Gary coverage gaps — see qa-reports/phase-4-gary-coverage-audit.md
+// ============================================================================
+
+describe('validateHandle — reserved hyphenated variants', () => {
+  it('rejects mutual-mesh (hyphenated brand name)', () => {
+    expect(validateHandle('mutual-mesh')).toEqual({ ok: false, reason: 'reserved' });
+  });
+
+  it('rejects team and official (impersonation-surface guards)', () => {
+    expect(validateHandle('team')).toEqual({ ok: false, reason: 'reserved' });
+    expect(validateHandle('official')).toEqual({ ok: false, reason: 'reserved' });
+    expect(validateHandle('verified')).toEqual({ ok: false, reason: 'reserved' });
+    expect(validateHandle('staff')).toEqual({ ok: false, reason: 'reserved' });
+  });
+
+  it('rejects reserved with surrounding whitespace (trim runs first)', () => {
+    expect(validateHandle('   admin   ')).toEqual({ ok: false, reason: 'reserved' });
+  });
+});
+
+describe('looksLikeRealName — edge cases', () => {
+  it('returns false for empty input (no false positive on empty)', () => {
+    expect(looksLikeRealName('')).toBe(false);
+    expect(looksLikeRealName('   ')).toBe(false);
+  });
+
+  it('case-folds before checking the known-names set', () => {
+    expect(looksLikeRealName('JANE')).toBe(true);
+    expect(looksLikeRealName('John')).toBe(true);
+    expect(looksLikeRealName('MaRiA')).toBe(true);
+  });
+});

@@ -76,3 +76,41 @@ describe('generateHandleSuggestions', () => {
     expect(generateHandleSuggestions()).toHaveLength(3);
   });
 });
+
+// ============================================================================
+// Phase 4 Gary coverage gaps — see qa-reports/phase-4-gary-coverage-audit.md
+// ============================================================================
+
+describe('generateRandomHandle — suffix range', () => {
+  it('only emits suffixes in 0000–9999 range', () => {
+    for (let i = 0; i < 200; i++) {
+      const h = generateRandomHandle();
+      const parts = h.split('-');
+      const last = parts[parts.length - 1]!;
+      const n = parseInt(last, 10);
+      expect(n).toBeGreaterThanOrEqual(0);
+      expect(n).toBeLessThanOrEqual(9999);
+    }
+  });
+});
+
+describe('generateHandleSuggestions — boundary values', () => {
+  it('returns 1 suggestion when asked for 1', () => {
+    expect(generateHandleSuggestions(1)).toHaveLength(1);
+  });
+
+  it('returns 5 unique suggestions when asked for 5', () => {
+    const s = generateHandleSuggestions(5);
+    expect(s).toHaveLength(5);
+    expect(new Set(s).size).toBe(5);
+  });
+
+  it('all suggestions draw words from the published wordlists', () => {
+    const suggestions = generateHandleSuggestions(5);
+    for (const s of suggestions) {
+      const [adj, noun] = s.split('-');
+      expect(ADJECTIVES).toContain(adj);
+      expect(NOUNS).toContain(noun);
+    }
+  });
+});

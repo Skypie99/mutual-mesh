@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
@@ -44,6 +44,16 @@ export function SignInScreen({ onAuthSuccess }: SignInScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  // Mounted-ref: guard every setState after an await against unmount
+  // (CLAUDE.md gotcha #5 — pattern from auth.tsx + ProfileScreen.tsx).
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // ─────────────────────────────────────────────────────────────────────────
   // Handlers
   // ─────────────────────────────────────────────────────────────────────────
@@ -56,9 +66,10 @@ export function SignInScreen({ onAuthSuccess }: SignInScreenProps) {
       if (err) throw err;
       onAuthSuccess?.();
     } catch (err) {
+      if (!isMounted.current) return;
       setError(userFacingErrorMessage(err, 'Sign in failed. Check your email and password.'));
     } finally {
-      setSubmitting(false);
+      if (isMounted.current) setSubmitting(false);
     }
   };
 
@@ -76,12 +87,14 @@ export function SignInScreen({ onAuthSuccess }: SignInScreenProps) {
       const { error: err } = await signUpWithEmail(email.trim(), password);
       if (err) throw err;
 
+      if (!isMounted.current) return;
       setMode({ kind: 'sign-up-otp', email: email.trim(), inviteCode: inviteCode.trim() });
       setInfo('Check your email for a 6-digit code.');
     } catch (err) {
+      if (!isMounted.current) return;
       setError(userFacingErrorMessage(err, 'Could not start sign up.'));
     } finally {
-      setSubmitting(false);
+      if (isMounted.current) setSubmitting(false);
     }
   };
 
@@ -105,11 +118,13 @@ export function SignInScreen({ onAuthSuccess }: SignInScreenProps) {
         );
       }
 
+      if (!isMounted.current) return;
       onAuthSuccess?.();
     } catch (err) {
+      if (!isMounted.current) return;
       setError(userFacingErrorMessage(err, 'Could not verify your code.'));
     } finally {
-      setSubmitting(false);
+      if (isMounted.current) setSubmitting(false);
     }
   };
 
@@ -120,11 +135,13 @@ export function SignInScreen({ onAuthSuccess }: SignInScreenProps) {
     try {
       const { error: err } = await resendOtp(mode.email);
       if (err) throw err;
+      if (!isMounted.current) return;
       setInfo('Code re-sent. Check your email.');
     } catch (err) {
+      if (!isMounted.current) return;
       setError(userFacingErrorMessage(err, 'Could not re-send code.'));
     } finally {
-      setSubmitting(false);
+      if (isMounted.current) setSubmitting(false);
     }
   };
 

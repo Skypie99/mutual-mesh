@@ -27,6 +27,11 @@ export type GateInput = {
    * - `true`  → user is approved; route to home
    * - `false` → user signed up but admin hasn't approved
    * - `null`  → not yet fetched (still loading the row) OR row missing
+   *
+   * @invariant `{session: null, isVerified: true}` is representable but
+   * impossible — if there is no session, isVerified must be null (no user
+   * row to read). `routeForGate` handles this defensively (`!session →
+   * sign-in`) but callers must never construct this state intentionally.
    */
   isVerified: boolean | null;
 };

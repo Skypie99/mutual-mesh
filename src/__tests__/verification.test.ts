@@ -124,4 +124,38 @@ describe('decideGateRoute', () => {
       decideGateRoute({ loading: false, session: sessionFixture, profile: completeUnverified }),
     ).toBe('wait');
   });
+
+  // ============================================================================
+  // Phase 4 Gary coverage gaps — see qa-reports/phase-4-gary-coverage-audit.md
+  // ============================================================================
+
+  it('routes to splash when loading=true even without a session (boot defensive)', () => {
+    // Belt-and-braces: loading wins over session presence so the very first
+    // tick after cold boot is never sign-in or home, always splash.
+    expect(decideGateRoute({ loading: true, session: null, profile: null })).toBe('splash');
+    expect(
+      decideGateRoute({ loading: true, session: sessionFixture, profile: pendingProfile }),
+    ).toBe('splash');
+  });
+
+  it('treats handle "pending-" (suffix-empty) as pending — boundary case', () => {
+    // `isProfilePending` uses startsWith('pending-'); the bare prefix
+    // should also count as pending. Regression guard.
+    const justPrefix = { handle: 'pending-', is_verified: false };
+    expect(
+      decideGateRoute({ loading: false, session: sessionFixture, profile: justPrefix }),
+    ).toBe('complete-profile');
+  });
+
+  it('routes to wait for any non-strict-true is_verified (covers true/false/numeric)', () => {
+    // Defensive total-function coverage on the strict-true gate.
+    const numericTruthy = { handle: 'brave-otter-4729', is_verified: 1 as unknown as boolean };
+    const stringTruthy = { handle: 'brave-otter-4729', is_verified: 'true' as unknown as boolean };
+    expect(
+      decideGateRoute({ loading: false, session: sessionFixture, profile: numericTruthy }),
+    ).toBe('wait');
+    expect(
+      decideGateRoute({ loading: false, session: sessionFixture, profile: stringTruthy }),
+    ).toBe('wait');
+  });
 });

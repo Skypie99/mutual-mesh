@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { Button } from './Button';
 import { errorMessage } from '@/lib/errors';
+import { logError } from '@/lib/errorReporting';
 
 type Props = {
   children: ReactNode;
@@ -32,9 +33,14 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // No third-party error tracking in v1. console.warn is the audit trail.
-    // Phase 0b may add a local-only error log; never external.
+    // Dev-visible console line — kept so a hot-reload session still surfaces
+    // the original throw site in the Metro output.
     console.warn('[ErrorBoundary]', error, info.componentStack);
+    // Anonymous error report — opt-in default OFF, PII-stripped client-side
+    // and SHA-256-hashed server-side (PRIVACY.md D8; migration 008;
+    // supabase/functions/log-error). Fire-and-forget; logError swallows
+    // every failure so a logging error cannot itself crash the fallback UI.
+    void logError(error, 'error');
   }
 
   reset = () => {
