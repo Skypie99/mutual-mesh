@@ -1,0 +1,87 @@
+{
+  "cli": {
+    "version": ">= 13.0.0",
+    "appVersionSource": "local",
+    "requireCommit": true
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR-STAGING-PROJECT.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR-STAGING-ANON-KEY"
+      },
+      "ios": {
+        "simulator": true,
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      }
+    },
+    "preview": {
+      "distribution": "store",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR-STAGING-PROJECT.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR-STAGING-ANON-KEY"
+      },
+      "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium",
+        "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "autoIncrement": "versionCode"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR-PRODUCTION-PROJECT.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR-PRODUCTION-ANON-KEY"
+      },
+      "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium",
+        "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "autoIncrement": "versionCode"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "REPLACE-WITH-SKY-APPLE-ID@example.com",
+        "ascAppId": "REPLACE-WITH-APP-STORE-CONNECT-NUMERIC-ID",
+        "appleTeamId": "REPLACE-WITH-APPLE-TEAM-ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "../play-store-service-account.json",
+        "track": "production",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": false
+      }
+    },
+    "preview": {
+      "ios": {
+        "appleId": "REPLACE-WITH-SKY-APPLE-ID@example.com",
+        "ascAppId": "REPLACE-WITH-APP-STORE-CONNECT-NUMERIC-ID",
+        "appleTeamId": "REPLACE-WITH-APPLE-TEAM-ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "../play-store-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
+  }
+}

@@ -1,0 +1,232 @@
+/**
+ * Mutual Mesh — Privacy Policy + Terms of Service text constants.
+ *
+ * Phase 4 — Will (draft) + Jordan (per-line review against PRIVACY.md).
+ * Briefing: qa-reports/phase-4-policy-tos-2026-05-24.md
+ *
+ * **NOT LEGAL ADVICE.** This text is a starting point, not a final document.
+ * Sky must engage Canadian privacy counsel (PIPEDA) per PRIVACY.md D10 before
+ * public launch. The disclaimer is the FIRST LINE of each constant and is
+ * asserted by src/__tests__/policyText.test.ts.
+ *
+ * Source of truth for the data inventory below: PRIVACY.md rows 1-15 + Steve's
+ * S1-S8 hardening + the STRIDE threat model (qa-reports/2026-05-23_threat-model-stride.md).
+ * If PRIVACY.md changes, this file must change in the same PR. Drift is a P0
+ * privacy risk.
+ *
+ * Voice: plain, honest, no marketing. Mirrors community/mission.md. If we MAY
+ * do something, we DO say we MAY. We do not soften ("we may, but probably
+ * won't") — that's misleading.
+ *
+ * Format: long template strings with \n for line breaks. No JSX, no Markdown
+ * (the screens render with newline-respecting Text). Section headers are
+ * ALL-CAPS with a trailing colon so screen readers + sighted users both
+ * recognize them.
+ */
+
+export const PRIVACY_POLICY_TEXT = `NOT LEGAL ADVICE
+
+This is a starting point, not a final document. Sky must engage Canadian privacy counsel before public launch. PIPEDA references below are non-authoritative and need a real privacy lawyer's sign-off.
+
+Last updated: 2026-05-24
+
+
+WHO WE ARE
+
+Mutual Mesh is a privacy-first community-run mutual-aid network. People in the same neighborhood use it to share food, baby formula, harm-reduction supplies, and other survival resources without an app collecting their name or selling their data.
+
+
+WHAT WE COLLECT
+
+We collect only what we strictly need to let you use the app:
+
+- A chosen handle (you pick it; the app suggests a random one like "calm-otter-3829" by default). This is what other verified users see.
+- Your email address, used only for sign-in.
+- The first three characters of your postal code (the "FSA" — for example, M5V), used to match you with people in your neighborhood. We do NOT store your full postal code.
+- The city you select from a dropdown at signup.
+- Optional photos of resources you post. We strip all metadata (including GPS, device model, and timestamps) before they leave your phone, and we re-strip them again on our server.
+- A hashed copy of the invite code you used at signup. We cannot reverse the hash back to the original code, and we never store who invited you.
+
+
+WHAT WE DO NOT COLLECT
+
+- Your real name. Not in any field, anywhere in the app. If your handle or contact info looks like a real name, we warn you.
+- Your full postal code, your street address, or any GPS coordinates.
+- Your phone number.
+- Your browsing history, what you tap on, how long you stay on a screen, or any other analytics events.
+- Your IP address beyond what Supabase (our backend host) logs by platform default.
+- Your device ID, advertising ID, or browser fingerprint.
+- Anything from third-party SDKs. We do not embed Sentry, Mixpanel, Amplitude, Google Analytics, Facebook SDK, or any other tracker.
+
+
+WHERE YOUR DATA IS STORED
+
+Your data is stored in Supabase, our backend host. Supabase regions are configurable; the specific region Mutual Mesh uses will be disclosed here once Sky has selected it (this is a known DECISION FOR SKY tracked in the project notes). Until that's set, assume your data may be processed in the United States or Canada. If you need certainty about region before signing up, contact Sky directly.
+
+
+WHO CAN SEE YOUR DATA
+
+- Other verified users in the app see: your handle and the resources you've posted (name, description, pickup text, photo, your chosen per-resource contact handle once they claim it). They do NOT see your email, your postal prefix, or your city directly — only the resources matched to their neighborhood.
+- Verification admins see: your handle, your postal prefix, your city, and whether your invite code was valid. They do NOT see your email address, your IP address, your device info, your posted resources, your claimed resources, or any photos. They see only what they need to decide whether to verify you.
+- Sky (the project owner) has full database access via the service role. Sky uses this access for emergency moderation, schema changes, and reading the verification audit log. Sky does not browse user data routinely.
+- We do not share your data with advertisers, data brokers, governments (except under valid legal process), or any third party. We do not sell your data ever.
+
+
+HOW LONG WE KEEP IT
+
+- Your account: until you delete it.
+- Resources you post: 30 days after they're claimed (status "reserved"), or 30 days after creation if no one claims them. After that, the row and the photo are hard-deleted from our database and storage. A nightly job runs this cleanup.
+- Verification audit log (admin decisions): 90 days after the decision, then hard-deleted.
+- Supabase platform backups: 7 days. We CANNOT scrub backups — that's a platform limit we don't control.
+
+
+DELETION
+
+You can delete your account anytime from the Profile screen. Tap "Delete my account," confirm by typing DELETE, and the app calls a database function that, in a single transaction:
+
+- Deletes every resource you posted (and the photos in storage).
+- Releases any resources you had claimed so other people can claim them.
+- Deletes your profile row.
+- Deletes your authentication record.
+
+This happens in seconds. It is a true cascade hard-delete, not a soft-delete or a "marked for deletion." Honest disclosure: Supabase's backup system keeps point-in-time-recovery snapshots for about 7 days, so your data is technically recoverable from a backup during that window. We cannot scrub those backups. After 7 days, the backups roll off.
+
+
+CHILDREN
+
+Mutual Mesh is not for people under 16. We do not actively verify your age at signup, but if we learn that an account belongs to someone under 16, we will delete it. If you are a parent or guardian and believe your child has signed up, contact us and we will remove the account.
+
+
+YOUR RIGHTS UNDER PIPEDA (FOR USERS IN CANADA)
+
+Canada's Personal Information Protection and Electronic Documents Act gives you the following rights about your personal information:
+
+- Access: you can ask what we hold about you. Almost everything is visible on the Profile screen; for anything else, contact us.
+- Correction: you can change your handle, postal prefix, and city in the app. For other corrections, contact us.
+- Withdrawal of consent: you can delete your account anytime (Profile screen). Once deleted, we stop processing your data immediately (subject to the 7-day backup window above).
+- Complaint: you can file a complaint with the Office of the Privacy Commissioner of Canada at https://www.priv.gc.ca/. You do not need to go through us first.
+
+
+CHANGES TO THIS POLICY
+
+If we change this policy in a way that affects you, we will post a notice in the app at least 30 days before the change takes effect. You can read the new policy on this screen at any time. If you do not agree with the change, you can delete your account before the change takes effect.
+
+
+CONTACT
+
+Reach the project owner (Sky) at privacy@mutualmesh.ca. We will respond to privacy questions, deletion requests, and complaints. If you would rather reach us through an alias or a privacy-preserving channel, that is fine — say so and we will accommodate.
+
+
+REMINDER
+
+This is NOT legal advice. Sky is engaging Canadian privacy counsel before public launch. If you are reading this before that review is complete, treat it as a draft.
+`;
+
+export const TERMS_OF_SERVICE_TEXT = `NOT LEGAL ADVICE
+
+This is a starting point, not a final document. Sky must engage Canadian counsel before public launch to review and finalize these terms. The jurisdiction, governing law, and disputes section especially need a real lawyer's input.
+
+Last updated: 2026-05-24
+
+
+WHO WE ARE
+
+Mutual Mesh is a privacy-first community-run mutual-aid network. We make software that lets people in the same neighborhood share food, baby formula, harm-reduction supplies, and other survival resources without handing over their identity to a platform.
+
+We are not a delivery service. We are not a charity. We are not a marketplace. We are software you and your neighbors use to find each other.
+
+
+ELIGIBILITY
+
+To use Mutual Mesh you must:
+
+- Be at least 16 years old.
+- Have been invited by an existing member (you need a single-use invite code at signup).
+- Be approved by a community verification admin after signup. Approval usually takes about 24 hours.
+
+If you do not meet these conditions, you cannot use the app. We may suspend or remove accounts that don't.
+
+
+ACCEPTABLE USE
+
+When you use Mutual Mesh, you agree to the following:
+
+- Do not use your real name as your handle, your per-resource contact handle, or anywhere else. The app warns you if it looks like you're entering a real name; do not bypass the warning.
+- Do not resell items posted on Mutual Mesh, and do not use the app for commercial purposes (running a business, advertising, soliciting). This is for mutual aid, not commerce.
+- Do not harass, threaten, dox, or intimidate other users.
+- Do not impersonate another person or organization, and do not register handles designed to look like an existing user's handle.
+- Do not post resources you do not have or do not intend to give away.
+- Do not post anything illegal, anything that endangers another person, or anything that violates someone else's rights.
+- Do not attempt to break the app's security, scrape data, or access accounts that are not yours.
+
+Violating any of these may result in suspension or removal of your account.
+
+
+RESOURCES YOU POST
+
+When you post a resource:
+
+- You represent the item honestly. If you say the formula is unopened, it is unopened. If you say the food is within its expiry date, it is.
+- You are responsible for arranging the pickup with whoever claims it. Mutual Mesh does not broker the exchange, does not hold the item, and does not guarantee anyone shows up.
+- The pickup location and time you describe are between you and the claimant. We don't store coordinates, we don't ping your phone, we don't track the meet.
+- You pick the contact channel (Signal handle, Proton alias, "DM me on Reddit @user", etc.). We do not provide an in-app chat. We never see what you and the claimant say to each other.
+
+
+ADMIN VERIFICATION
+
+When you sign up, a community verification admin reviews your account. The admin sees only your handle, your postal prefix, your city, and whether your invite code was valid. They use that information to make one decision: approve or reject.
+
+- An approval grants you access to the marketplace.
+- A rejection comes with a reason. You can re-apply later if your circumstances change.
+- Admin decisions are final at the time they're made. If you believe a rejection was a mistake, contact the project owner (Sky).
+
+
+REPORTING BAD ACTORS
+
+If another user violates these terms, you can report them. The in-app report flow is on the project roadmap but is not yet built. Until it lands, email the project owner (Sky) at privacy@mutualmesh.ca with the handle and a description of what happened. We will investigate and take action when warranted.
+
+
+SUSPENSION AND TERMINATION
+
+We may suspend or terminate your account if:
+
+- You violate these terms.
+- You are an admin who has been inactive (no verification activity) for about 30 days. The exact threshold and a reinstatement path are being finalized.
+- We are legally required to.
+- We have a credible safety reason.
+
+You may delete your account at any time from the Profile screen. We do not require a reason.
+
+
+DISCLAIMER OF LIABILITY
+
+Mutual Mesh is software, not a service that brokers exchanges between people. We do not inspect resources, we do not vet users beyond the verification step, we do not show up at pickups, and we do not guarantee that any exchange will happen or that any party will behave as they said they would.
+
+We provide the app "as is" and "as available." To the maximum extent allowed by law, we are not responsible for what happens between users at a pickup, for the quality or safety of any item posted on the app, for any loss or harm arising from the use of the app, or for any service interruption or data loss caused by Supabase, our backend host.
+
+This disclaimer does not limit any rights you have that cannot be waived under applicable law.
+
+
+DISPUTES
+
+If you have a dispute with us, please contact the project owner (Sky) first. We will try in good faith to resolve it. If we cannot resolve it within 60 days, the next step is mediation in a neutral venue.
+
+If your dispute is about privacy or data handling, you may also file a complaint with the Office of the Privacy Commissioner of Canada at https://www.priv.gc.ca/.
+
+The governing law, jurisdiction, and venue for any unresolved dispute are a known DECISION FOR SKY tracked in the project notes. Until counsel sets the jurisdiction, assume Canada as the default and contact Sky for the current status.
+
+
+CHANGES TO THESE TERMS
+
+If we change these terms in a way that affects you, we will post a notice in the app at least 30 days before the change takes effect. You can read the new terms on this screen anytime. If you do not agree with the change, you can delete your account before the change takes effect.
+
+
+CONTACT
+
+Reach the project owner (Sky) at privacy@mutualmesh.ca.
+
+
+REMINDER
+
+This is NOT legal advice. Sky is engaging Canadian counsel before public launch. If you are reading this before that review is complete, treat it as a draft.
+`;
