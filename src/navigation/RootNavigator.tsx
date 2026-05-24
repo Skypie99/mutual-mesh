@@ -34,11 +34,7 @@ function HomeStackNavigator() {
         )}
       </HomeStack.Screen>
       <HomeStack.Screen name="Detail" options={{ title: '' }}>
-        {() => (
-          // Phase 0b: fetch resource by route.params.resourceId.
-          // For now, the screen handles missing resource gracefully.
-          <ResourceDetailScreen />
-        )}
+        {({ route }) => <ResourceDetailScreen resourceId={route.params.resourceId} />}
       </HomeStack.Screen>
       <HomeStack.Screen
         name="AddResource"
@@ -47,7 +43,7 @@ function HomeStackNavigator() {
         {({ navigation }) => (
           <AddResourceScreen
             onCancel={() => navigation.goBack()}
-            onSubmit={() => navigation.goBack()}
+            onPosted={() => navigation.goBack()}
           />
         )}
       </HomeStack.Screen>

@@ -108,3 +108,29 @@ Tests: 51 across 6 suites (added `useReducedMotion.test.ts` + `errorBoundary.tes
 ---
 
 _Phase 0a + Push 2 complete. Next entries land when Cycle 1 ships post-Sky-approval._
+
+---
+
+## 2026-05-23 — Cycle 1: Real Supabase wiring (auth + verification gate + waiting room)
+
+Cycle 1 lands the first real user-data layer. Six load-bearing patterns emerged that future cycles must follow:
+
+**(1) The Gate is a pure function.** `src/lib/verification.ts` exports `decideGateRoute({ loading, session, profile })` returning one of 5 states (`splash | sign-in | complete-profile | wait | home`). `App.tsx`'s Gate component does ZERO routing logic itself — it calls `decideGateRoute` and switches on the result. This makes the entire app-level routing testable without React Testing Library; see `src/__tests__/verification.test.ts` for 9 routing scenarios including defensive demotion. Future cycles that add gate states (e.g., "banned", "deactivated") extend this enum + add tests.
+
+**(2) Profile starts "pending-XXX", not email-local-part.** The `handle_new_user()` trigger in `supabase/schema.sql` creates a `public.users` row with `handle = 'pending-' || substr(uuid, 1, 12)`. The Gate detects `pending-` prefix via `isProfilePending(handle)` and routes to `CompleteProfileScreen`. This is the load-bearing D1/D2 enforcement — the handle is NEVER derived from the email (which would leak real names like `jane.smith`). Random adjective-noun-4digit is what the user picks in step 3 (with re-roll button + soft-warn on real-name shape).
+
+**(3) Realtime subscription on the user's own row with filter.** `AuthProvider` subscribes via `supabase.channel(`user-row-${uid}`).on('postgres_changes', { filter: `id=eq.${uid}` })`. The filter is **required defense-in-depth** for STRIDE I3, even though RLS would already block cross-user leakage. When `is_verified` flips true, `WaitingRoomScreen`'s mounted-ref edge detector fires `AccessibilityInfo.announceForAccessibility` once, then the Gate auto-routes to RootNavigator.
+
+**(4) Security-definer RPCs are the ONLY path for privileged operations.** Direct UPDATE on `is_verified` or `is_admin` is rejected by the `protect_admin_flags()` trigger. Admins approve/reject via `approve_user(id)` / `reject_user(id, reason)` RPCs (security definer, admin-check, log append). Atomic claim goes through `claim_resource(resource_id)` (FOR UPDATE + status check). Account deletion goes through `delete_my_account()` (FOR UPDATE + cascade). Never let the client write to a privileged column.
+
+**(5) bcrypt invite tokens via pgcrypto.** Invite codes are 12+ char alphanumeric, bcrypt-hashed cost-10 via `crypt(token, gen_salt('bf', 10))`. The plaintext never sits in the DB. `consume_invite_token(plain)` does `crypt(plain, stored_hash) = stored_hash` for the verify step, then marks the token used atomically via `FOR UPDATE`. The Cycle 1 spec / Cowork prompt generates the FIRST token via dashboard SQL — Sky inserts manually with their own UUID as `created_by`.
+
+**(6) Append-only audit log via RLS absence.** `public.verification_log` has only a SELECT policy (Sky-only via `config.sky_uuid`). No UPDATE policy, no DELETE policy. The admin's INSERT happens via security-definer RPC. An admin with database access via compromise CANNOT modify their own decision history — confirmed in `supabase/__tests__/rls.sql` test T8.
+
+**Toolchain validation at end of Cycle 1:** 91 tests across 8 suites (handleGenerator + handleValidator + decideGateRoute + isProfilePending added in this cycle); typecheck clean; lint clean; prettier clean. The pure-helper + tested-routing pattern means we caught a defensive-demotion edge case (admin flips verified → false; UI must route back to WaitingRoom) before it could ship.
+
+**Apply step Sky must do**: see `qa-reports/cycle-1-auth-gate-2026-05-23.md` for the numbered Supabase dashboard list (enable extensions, run schema, set `config.sky_uuid`, promote Sky to `is_admin`, generate first invite token, apply realtime.sql, verify pg_cron).
+
+---
+
+_Cycle 1 complete. Cycle 2 (Marketplace Feed wired to real Supabase + resourcesRealtime integration) starts the moment Sky applies the schema._

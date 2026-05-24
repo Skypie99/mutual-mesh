@@ -4,7 +4,7 @@ A privacy-first community-run mutual-aid network for marginalized groups to shar
 
 **Live local path:** `~/MutualMesh`
 **Owner:** skylerhalisky@gmail.com
-**Status (2026-05-23):** **Phase 0a + Push 2 complete.** Build chain green (typecheck + 51 jest tests in 6 suites + lint + format:check). Six stub screens + ten UI primitives (Button, TextField, Card, StatusPill, FAB + FlashBanner, EmptyState, LoadingSkeleton, FeedSkeleton, ErrorBoundary) + bottom-tab navigator wired into App.tsx with ErrorBoundary as global fallback (mock data, no auth). Four pure helpers (`verification`, `contactHandle`, `resourcesRealtime`, `useReducedMotion`) tested and audited. Jordan v1 PRIVACY.md is READY-FOR-REVIEW with 10 DECISIONS FOR SKY + 8 Steve-added security decisions. Push 2 added: Riley's 3 composite personas + 2 journey maps + friction analysis; Casey's mission/onboarding/growth-strategy real narrative; Quinn's full Cycle 1 spec; Steve's STRIDE threat model (21 threats). **PRIVACY.md APPROVED — locked 2026-05-23.** Sky resolved all 18 D/S decisions (D1 & D2 edited to enforce "no real names anywhere"; D3–D10 + S1–S8 approved) and answered the four open questions (Q1 OTP-required, Q2 explicit city dropdown, Q3 multi-language deferred to post-v1 for Quinn + Casey, Q4 auto-suspend inactive admins with Steve to draft the threshold). **Phase 0b / Cycle 1 is UNLOCKED** (Supabase wiring, real auth gate, schema apply). See `qa-reports/decisions-applied-2026-05-23.md`.
+**Status (2026-05-23):** **Cycle 1 complete (Loops 11–20).** PRIVACY.md 🟢 APPROVED. Build chain green: typecheck + **91 jest tests** in 8 suites + lint + format:check. Cycle 1 wired the real Supabase layer: `supabase/schema.sql` (8 tables + 7 RPCs + 4 triggers + RLS coverage tested in `supabase/__tests__/rls.sql`) + `realtime.sql`; `src/types/database.ts` (using `type`, never `interface`); `src/lib/supabase.ts` (env-var safe init); `src/lib/auth.tsx` (AuthProvider with realtime `is_verified` subscription); `src/lib/handleGenerator.ts` (~150 adj + ~150 noun wordlist, generates `<adj>-<noun>-<4digit>`); `src/lib/handleValidator.ts` (no-real-names soft warn per DFS-C1.1). `App.tsx` Gate uses pure `decideGateRoute` (5 states: splash / sign-in / complete-profile / wait / home). Three-step signup with OTP. **Schema is a FILE — not yet applied to any live Supabase project.** Sky applies via dashboard (numbered steps in `qa-reports/cycle-1-auth-gate-2026-05-23.md`). After Sky applies + sets `config.sky_uuid` + promotes self to `is_admin`, Cycle 2 (Marketplace Feed real data) starts.
 
 ---
 
@@ -140,22 +140,49 @@ qa-reports/                             orchestrator cycle reports
 
 ---
 
-## Database (Supabase) — DRAFT until Jordan signs off
+## Database (Supabase) — Cycle 1 (Dana 2026-05-23)
 
-The schema below is a starting sketch. **Final field list comes from Jordan's `PRIVACY.md`.** Dana writes the actual `supabase/schema.sql` from that file in Cycle 0.
+Source-of-truth: [`supabase/schema.sql`](supabase/schema.sql) + [`supabase/realtime.sql`](supabase/realtime.sql). Dana writes files only; **Sky applies via dashboard.** See `qa-reports/cycle-1-auth-gate-2026-05-23.md` for numbered apply steps.
 
-Two tables anticipated:
+### Tables
 
-- `public.users` — auth mirror + **chosen handle**, **postal-prefix only**, **optional phone (encrypted)**, **`is_verified` boolean**. Auto-populated by `handle_new_user` trigger on `auth.users` insert.
-- `public.resources` — `name`, `description`, `photo_url`, `pickup_location_text`, `status` (`available` | `reserved`), `posted_by`, `claimed_by`, `created_at`.
+| Table                     | Purpose                                                                                                                  | RLS posture                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `public.users`            | Profile mirror of `auth.users` (handle, postal_prefix, city, is_verified, is_admin, referrer_token_hash, last_active_at) | Self-read; verified users see verified peers; admins see unverified queue; protect_admin_flags trigger blocks self-promotion |
+| `public.invite_tokens`    | Single-use, bcrypt-hashed invite codes (S1)                                                                              | No client policies — RPC-only access via `consume_invite_token`                                                              |
+| `public.verification_log` | Append-only audit (S8)                                                                                                   | Admins INSERT via RPC only; Sky-only SELECT (via config.sky_uuid)                                                            |
+| `public.cron_log`         | pg_cron observability (S6)                                                                                               | Service-role writes; Sky-only SELECT                                                                                         |
+| `public.resources`        | Marketplace listings (Cycle 2+)                                                                                          | Verified users see all; posters own UPDATE/DELETE; claim via atomic RPC                                                      |
+| `public.config`           | Key/value (currently just sky_uuid)                                                                                      | Sky-only                                                                                                                     |
 
-**Critical guardrails:**
+### Triggers
 
-1. **`is_verified` gate at three layers** — App.tsx (UI), RLS SELECT policies (DB), Storage bucket RLS (photos). PRD Section 3 "Strict Boolean Guardrails" calls this out as non-negotiable.
-2. **Atomic Claim via Postgres RPC** — `claim_resource(resource_id)` flips status + claimed_by inside a single transaction with row-level lock. PRD Section 3 "State Mutation Security."
-3. **EXIF stripped before upload** — `expo-image-manipulator` re-encodes and drops metadata. Storage RLS path-enforces `<userId>/<timestamp>.<ext>`.
+- `handle_new_user()` — fires on `auth.users` INSERT; creates `public.users` row with `pending-XXX` placeholder handle. Signup step 3 overrides with the real handle.
+- `touch_status_changed_at()` — bumps `resources.status_changed_at` whenever `status` changes (drives 30-day retention).
+- `protect_admin_flags()` — rejects direct UPDATE of `is_verified` or `is_admin` from the `authenticated` role. Service role bypasses (so Sky can promote via dashboard).
 
-All DDL must be idempotent. Dana writes files only; Sky applies via Supabase dashboard.
+### RPCs (security definer — bypass RLS for trusted operations)
+
+| RPC                           | Purpose                                       | Notes                                               |
+| ----------------------------- | --------------------------------------------- | --------------------------------------------------- |
+| `consume_invite_token(plain)` | Bcrypt-verify + atomic mark-used              | Locks the row; returns false on invalid/used        |
+| `approve_user(applicant_id)`  | Admin-only verification approval              | Logs to verification_log                            |
+| `reject_user(id, reason?)`    | Admin-only rejection (deletes auth.users row) | Logs first, then cascade-deletes                    |
+| `delete_my_account()`         | True cascade hard-delete (D6 + S5)            | Single txn + FOR UPDATE; nulls others' claims-by-me |
+| `claim_resource(resource_id)` | Atomic available→reserved transition          | FOR UPDATE; rejects self-claim + double-claim       |
+| `touch_my_last_active()`      | App calls on foreground                       | Drives Q4 inactive-admin auto-suspend signal        |
+| `prune_expired_resources()`   | Nightly cron per D7                           | Logs to cron_log; raises on failure                 |
+
+### Critical guardrails
+
+1. **`is_verified` gate at three layers** — UI (`decideGateRoute` in `verification.ts`), DB (RLS on every SELECT requires `is_verified = true` for marketplace tables), Storage RLS (signed URLs gated on `is_verified = true` per S4). If any layer fails, the other two hold.
+2. **Atomic Claim via Postgres RPC** — `claim_resource(resource_id)` uses `SELECT … FOR UPDATE` inside a transaction. PRD §3 "State Mutation Security" + S5.
+3. **PRIVATE Storage bucket with signed URLs** — `resource-photos` bucket has `public = false`. Clients fetch via `createSignedUrl(path, 3600)`. Path scheme `<userId>/<ts>.<ext>` enforced by RLS. STRIDE I1 mitigation; load-bearing.
+4. **Append-only `verification_log`** — no UPDATE/DELETE policies (S8). Sky-only SELECT via `public.config.sky_uuid` pointer.
+5. **No real names anywhere** (D1/D2 EDITED) — `handle_new_user` defaults to `pending-XXX` (NOT email-local-part). `handleGenerator.ts` produces random adjective-noun-4digit defaults. `handleValidator.ts` soft-warns when input looks like a common first name.
+6. **30-day resource retention** — `prune_expired_resources()` runs nightly via `pg_cron`. Logs success/failure to `cron_log`. Most-recent run must be <36h old.
+
+All DDL is idempotent. RLS coverage verified by `supabase/__tests__/rls.sql` (Steve, Loop 15).
 
 ---
 

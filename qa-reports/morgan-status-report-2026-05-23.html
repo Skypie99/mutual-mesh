@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mutual Mesh — Program Status &amp; Decisions · Morgan briefing · 2026-05-23</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #0e1726;
+        --panel: #16223a;
+        --panel-2: #1d2c49;
+        --ink: #eef3fb;
+        --ink-soft: #b6c4dc;
+        --ink-faint: #8295b4;
+        --line: #2a3a5c;
+        --teal: #2dd4bf;
+        --indigo: #818cf8;
+        --amber: #fbbf24;
+        --rose: #fb7185;
+        --green: #34d399;
+        --red: #f87171;
+        --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+        --radius: 14px;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #0b1320 0%, #0e1726 100%);
+        color: var(--ink);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 1160px; margin: 0 auto; padding: 28px 22px 80px; }
+      header.top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 8px; }
+      .brand { display: flex; align-items: center; gap: 12px; }
+      .logo { width: 40px; height: 40px; border-radius: 11px; background: conic-gradient(from 200deg, var(--teal), var(--indigo), var(--teal)); box-shadow: var(--shadow); }
+      h1 { font-size: 24px; margin: 0; letter-spacing: -0.2px; }
+      .sub { color: var(--ink-faint); font-size: 13.5px; margin-top: 2px; }
+      .pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink-soft); }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.16); }
+
+      .banner { margin: 20px 0 26px; padding: 16px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(120deg, rgba(45, 212, 191, 0.10), rgba(129, 140, 248, 0.08)); display: flex; gap: 14px; align-items: flex-start; }
+      .banner .icon { font-size: 22px; line-height: 1; }
+      .banner b { color: #fff; }
+
+      .grid { display: grid; gap: 16px; }
+      .kpis { grid-template-columns: repeat(6, 1fr); }
+      @media (max-width: 920px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+      @media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+      .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 14px 13px; box-shadow: var(--shadow); }
+      .kpi .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--ink-faint); margin-bottom: 6px; }
+      .kpi .val { font-size: 23px; font-weight: 700; letter-spacing: -0.3px; }
+      .kpi .val small { font-size: 13px; font-weight: 600; color: var(--ink-faint); }
+      .kpi .meta { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+      .kpi.good .val { color: var(--green); }
+      .kpi.warn .val { color: var(--amber); }
+
+      section { margin-top: 34px; }
+      h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: 0.2px; }
+      h2 .num { color: var(--teal); font-variant-numeric: tabular-nums; }
+      .section-sub { color: var(--ink-faint); font-size: 13px; margin: 0 0 16px; }
+
+      .charts { grid-template-columns: 1fr 1fr; }
+      @media (max-width: 860px) { .charts { grid-template-columns: 1fr; } }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 10px; box-shadow: var(--shadow); }
+      .card h3 { margin: 0 0 2px; font-size: 14px; }
+      .card .hint { color: var(--ink-faint); font-size: 12px; margin: 0 0 10px; }
+      .chart-box { position: relative; height: 240px; }
+      .chart-box.tall { height: 300px; }
+
+      /* Decisions */
+      .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 0 0 16px; font-size: 12.5px; color: var(--ink-soft); }
+      .legend span { display: inline-flex; align-items: center; gap: 7px; }
+      .tag { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 3px 8px; border-radius: 6px; }
+      .tag.open { background: rgba(251, 191, 36, 0.16); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.4); }
+      .tag.confirm { background: rgba(129, 140, 248, 0.16); color: var(--indigo); border: 1px solid rgba(129, 140, 248, 0.4); }
+      .tag.action { background: rgba(45, 212, 191, 0.16); color: var(--teal); border: 1px solid rgba(45, 212, 191, 0.4); }
+
+      .decision { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; box-shadow: var(--shadow); }
+      .decision .head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
+      .decision .code { font-weight: 800; color: var(--teal); font-variant-numeric: tabular-nums; }
+      .decision .title { font-weight: 700; font-size: 15px; }
+      .decision .src { color: var(--ink-faint); font-size: 12px; }
+      .decision .why { color: var(--ink-soft); font-size: 13.5px; margin: 9px 0 13px; }
+      .opts { display: grid; gap: 9px; }
+      .opt { display: flex; gap: 11px; align-items: flex-start; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+      .opt:hover { border-color: var(--indigo); }
+      .opt:focus-within { outline: 2px solid var(--indigo); outline-offset: 1px; }
+      .opt input { margin-top: 3px; accent-color: var(--teal); width: 16px; height: 16px; flex: none; }
+      .opt .otext { font-size: 13.6px; }
+      .opt .otext .ol { font-weight: 600; }
+      .opt .otext .od { color: var(--ink-faint); font-size: 12.6px; display: block; margin-top: 1px; }
+      .opt.rec { border-color: rgba(52, 211, 153, 0.5); background: rgba(52, 211, 153, 0.07); }
+      .recbadge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #06281f; background: var(--green); padding: 2px 7px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+      .note { margin-top: 11px; }
+      .note label { font-size: 12px; color: var(--ink-faint); display: block; margin-bottom: 5px; }
+      .note textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); padding: 9px 11px; font: inherit; font-size: 13px; resize: vertical; min-height: 38px; }
+
+      .actions { position: sticky; bottom: 0; margin-top: 22px; padding: 14px 16px; background: rgba(14, 23, 38, 0.92); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+      .actions .summary { font-size: 13px; color: var(--ink-soft); }
+      .actions .summary b { color: #fff; }
+      .btn { font: inherit; font-weight: 700; font-size: 13.5px; padding: 10px 16px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; }
+      .btn.primary { background: var(--teal); color: #06281f; }
+      .btn.primary:hover { filter: brightness(1.06); }
+      .btn.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); }
+      .btn.ghost:hover { color: #fff; border-color: var(--indigo); }
+
+      dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink); max-width: 760px; width: 92vw; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+      dialog::backdrop { background: rgba(4, 8, 16, 0.6); }
+      .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+      .modal-head h3 { margin: 0; font-size: 15px; }
+      .modal-body { padding: 16px 18px; }
+      .modal-body textarea { width: 100%; min-height: 320px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); padding: 12px; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+      footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 12.5px; }
+      footer a { color: var(--ink-soft); }
+      .roles { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+      .role { font-size: 11.5px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-soft); background: var(--panel); }
+      a.skip { position: absolute; left: -999px; }
+      a.skip:focus { left: 12px; top: 12px; background: var(--teal); color: #06281f; padding: 8px 12px; border-radius: 8px; z-index: 10; }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#decisions">Skip to decisions</a>
+    <div class="wrap">
+      <header class="top">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <h1>Mutual Mesh — Program Status &amp; Decisions</h1>
+            <div class="sub">Morgan cross-role briefing · compiled 2026-05-23 · read-only PM view</div>
+          </div>
+        </div>
+        <div class="pill"><span class="dot"></span> Build green · Cycle 1 complete</div>
+      </header>
+
+      <div class="banner">
+        <div class="icon">🧭</div>
+        <div>
+          <b>Where things stand.</b> Privacy gate is locked (22/22 decisions). Cycle 0 + Cycle 1 shipped: real auth, verification gate, 3-step OTP signup, and the full Supabase layer — written as files, <b>not yet applied</b>. The single thing standing between you and Cycle 2 is <b>applying the schema</b> in the Supabase dashboard. Everything below is the team's read on what's done, what's at risk, and the calls waiting on you — each with the recommended choice pre-selected.
+        </div>
+      </div>
+
+      <div class="grid kpis">
+        <div class="kpi good"><div class="label">Cycles shipped</div><div class="val">2 <small>/ 8</small></div><div class="meta">Cycle 0 + Cycle 1</div></div>
+        <div class="kpi good"><div class="label">Tests</div><div class="val">91</div><div class="meta">8 suites · 0 failing</div></div>
+        <div class="kpi good"><div class="label">Build chain</div><div class="val">Green</div><div class="meta">type · test · lint · fmt</div></div>
+        <div class="kpi good"><div class="label">Privacy decisions</div><div class="val">22 <small>/ 22</small></div><div class="meta">locked 2026-05-23</div></div>
+        <div class="kpi warn"><div class="label">Schema</div><div class="val">Ready</div><div class="meta">file only · not applied</div></div>
+        <div class="kpi warn"><div class="label">Open calls</div><div class="val">9</div><div class="meta">1 action · 1 open · 7 confirm</div></div>
+      </div>
+
+      <section>
+        <h2><span class="num">01</span> &nbsp;Progress &amp; health</h2>
+        <p class="section-sub">Roadmap completion, test growth across phases, and where the data model stands.</p>
+        <div class="grid charts">
+          <div class="card">
+            <h3>Roadmap — 8 cycles</h3>
+            <p class="hint">Cycle 0 (scaffold) + 7 product cycles. Green = shipped.</p>
+            <div class="chart-box tall"><canvas id="roadmap" role="img" aria-label="Roadmap: Cycle 0 and Cycle 1 complete; Cycles 2 through 7 pending."></canvas></div>
+          </div>
+          <div class="card">
+            <h3>Test growth</h3>
+            <p class="hint">Pure-helper + gate state-machine coverage by phase.</p>
+            <div class="chart-box tall"><canvas id="tests" role="img" aria-label="Test count grew from 47 to 51 to 91."></canvas></div>
+          </div>
+          <div class="card">
+            <h3>Decisions resolved</h3>
+            <p class="hint">22 privacy/security items: edited, approved, answered.</p>
+            <div class="chart-box"><canvas id="decpie" role="img" aria-label="Of 22 decisions, 2 edited, 12 approved, 4 questions answered, plus Steve's 8 approved."></canvas></div>
+          </div>
+          <div class="card">
+            <h3>Schema composition</h3>
+            <p class="hint">supabase/schema.sql — 639 lines, idempotent, file only.</p>
+            <div class="chart-box"><canvas id="schema" role="img" aria-label="Schema: 6 tables, 7 RPCs, 14 RLS policies, 3 triggers."></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2><span class="num">02</span> &nbsp;Risk radar</h2>
+        <p class="section-sub">From Steve's STRIDE model (21 threats) and Riley's cross-persona friction ranking. These don't block Cycle 2, but they shape v2.</p>
+        <div class="grid charts">
+          <div class="card">
+            <h3>Threat residual risk after mitigation</h3>
+            <p class="hint">21 threats scored. Most are Low/Negligible; 3 carry medium residual.</p>
+            <div class="chart-box tall"><canvas id="threats" role="img" aria-label="Most threats reduced to low or negligible residual; three remain medium."></canvas></div>
+          </div>
+          <div class="card">
+            <h3>Top user frictions (severity)</h3>
+            <p class="hint">Riley, cross-persona. #1 — empty marketplace — is the launch make-or-break.</p>
+            <div class="chart-box tall"><canvas id="friction" role="img" aria-label="Top frictions ranked by severity; empty marketplace and doxxing risk are critical."></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="decisions">
+        <h2><span class="num">03</span> &nbsp;Decisions waiting on you</h2>
+        <p class="section-sub">Each card has the team-recommended choice pre-selected (green). Change any you disagree with, add notes, then export to hand back to the team.</p>
+        <div class="legend">
+          <span><span class="tag action">Action</span> something to do, not a fork</span>
+          <span><span class="tag open">Open</span> genuinely undecided — needs your pick</span>
+          <span><span class="tag confirm">Confirm</span> team already built it; rubber-stamp or override</span>
+          <span><span class="recbadge">Rec</span> team's recommendation</span>
+        </div>
+        <div id="decision-list"></div>
+        <div class="actions">
+          <div class="summary" id="summary">Recommended choices selected on all 9 items.</div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn ghost" id="resetBtn" type="button">Reset to recommended</button>
+            <button class="btn primary" id="exportBtn" type="button">Export my choices →</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2><span class="num">04</span> &nbsp;What unblocks Cycle 2</h2>
+        <p class="section-sub">The schema is a file. Applying it (Sky-only, in the Supabase dashboard) is the gate. Summary of the 8 steps from the Cycle 1 briefing:</p>
+        <div class="card" style="padding:18px 20px;">
+          <ol style="margin:0; padding-left:20px; color:var(--ink-soft); font-size:13.6px; line-height:1.9;">
+            <li>Enable extensions: <code>pgcrypto</code>, <code>pg_cron</code>.</li>
+            <li>Run <code>supabase/schema.sql</code> in the SQL editor; verify the 6 tables exist.</li>
+            <li>Run <code>supabase/realtime.sql</code>; confirm <code>users</code> + <code>resources</code> are in the realtime publication.</li>
+            <li>Confirm the <code>resource-photos</code> Storage bucket is <b>PRIVATE</b> (S4 — load-bearing).</li>
+            <li>Add your <code>.env</code> + insert one bcrypt invite token; sign up via the app.</li>
+            <li>Promote yourself: <code>is_verified = true, is_admin = true</code> and set <code>config.sky_uuid</code> (fail-closed until you do).</li>
+            <li>Verify <code>pg_cron</code> nightly prune job is scheduled.</li>
+            <li>Run <code>supabase/__tests__/rls.sql</code> against a <b>test</b> project first (expect 12+ PASS).</li>
+          </ol>
+        </div>
+      </section>
+
+      <footer>
+        <div><b>Sources (in <code>~/MutualMesh</code>):</b> CLAUDE.md · PRIVACY.md · FEATURES.md · qa-reports/cycle-1-auth-gate-2026-05-23.md · qa-reports/decisions-applied-2026-05-23.md · qa-reports/2026-05-23_threat-model-stride.md · qa-reports/2026-05-23_security-cycle-1.md · qa-reports/2026-05-23_a11y-cycle-1.md · research/friction-2026-05-23.md</div>
+        <div style="margin-top:8px;">Constitution v1.3 compliance: read-only briefing · no external sends · no live DB applied · no <code>main</code> writes. Morgan is the sole external channel; this report is for Sky.</div>
+        <div class="roles" aria-label="Roles that contributed">
+          <span class="role">Quinn · Product</span><span class="role">Riley · Research</span><span class="role">Dani · Design</span><span class="role">Dana · Backend</span><span class="role">Shamus · Features</span><span class="role">Steve · Security</span><span class="role">Peter · Performance</span><span class="role">Alex · Accessibility</span><span class="role">Gary · QA</span><span class="role">Rory · DevOps</span><span class="role">Will · Docs</span><span class="role">Casey · Community</span><span class="role">Jordan · Privacy</span><span class="role">Morgan · PM</span>
+        </div>
+      </footer>
+    </div>
+
+    <dialog id="exportModal">
+      <div class="modal-head">
+        <h3>Your decisions — copy this back to the team</h3>
+        <button class="btn ghost" id="closeModal" type="button">Close</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 10px; color:var(--ink-faint); font-size:12.5px;">Paste this into Claude Code or a qa-report. Items you changed from the recommendation are marked.</p>
+        <textarea id="exportText" readonly aria-label="Exported decisions as markdown"></textarea>
+        <div style="margin-top:12px; display:flex; gap:10px;">
+          <button class="btn primary" id="copyBtn" type="button">Copy to clipboard</button>
+          <span id="copyMsg" style="align-self:center; color:var(--green); font-size:13px;"></span>
+        </div>
+      </div>
+    </dialog>
+
+    <script>
+      // ---------- Decision data ----------
+      const DECISIONS = [
+        {
+          code: "A0", kind: "action", title: "Apply the Cycle 1 schema to Supabase",
+          src: "Cycle 1 briefing · §A — the gate to Cycle 2",
+          why: "Schema, RLS, RPCs, realtime and the private Storage bucket are written and tested as files but not applied. Cycle 2 (Marketplace Feed) cannot wire real data until this runs.",
+          options: [
+            { ol: "Apply to a TEST project first, then production", od: "Run schema + RLS suite on a fresh throwaway project, confirm 12+ PASS, then repeat on your real project.", rec: true },
+            { ol: "Apply straight to production", od: "Faster, but you skip the RLS dry-run safety net on privacy-critical policies." },
+            { ol: "Hold — I'm not ready to apply yet", od: "Cycle 2 stays blocked; the team can keep building non-data work in the meantime." },
+          ],
+        },
+        {
+          code: "C1.2", kind: "open", title: "Which city/region(s) go live first?",
+          src: "DFS-C1.2 · CompleteProfileScreen.tsx · the only truly OPEN item",
+          why: "Casey's growth strategy seeds one neighborhood at a time, with real listings before public invites (friction #1 is an empty marketplace). Adding cities later is cheap; removing one after signups is hard.",
+          options: [
+            { ol: "Start with ONE city (e.g. Toronto); grey out the rest", od: "Matches Casey's seed-one-at-a-time plan; avoids the empty-marketplace death spiral.", rec: true },
+            { ol: "Launch all 6 (Toronto, Hamilton, Vancouver, Montréal, Ottawa, Other)", od: "Wider reach, but spreads thin listings across cities and risks dead feeds." },
+            { ol: "A custom subset — I'll name them in the note", od: "Pick the cities where you already have partner admins lined up." },
+          ],
+        },
+        {
+          code: "C1.1", kind: "confirm", title: "“No real names” enforcement strategy",
+          src: "DFS-C1.1 · handleValidator.ts (implemented)",
+          why: "Handles are public. The build soft-warns (never blocks) when a handle looks like a common first name, and defaults to a random adjective+noun. Your D1 pushback made “no real names anywhere” a hard rule.",
+          options: [
+            { ol: "Approve soft-warn as built", od: "Warns but lets the user proceed — respects autonomy while nudging toward privacy.", rec: true },
+            { ol: "Make it a hard block on real-name-shaped handles", od: "Stronger, but false-positives could lock out legitimate handles; harsher first run." },
+            { ol: "Approve, but have Casey extend the first-name list now", od: "Broader cultural coverage before any signups exist." },
+          ],
+        },
+        {
+          code: "C1.5", kind: "confirm", title: "OTP fallback for users without reliable email",
+          src: "DFS-C1.5 · Q1 OTP-required (implemented)",
+          why: "Email-OTP is the only second factor (SMS is rejected — it excludes shared-phone users, friction #6). Some users may lack reliable email.",
+          options: [
+            { ol: "No fallback in v1; Casey helps partners set up Proton aliases", od: "Keeps the surface small; community handles the edge case off-app.", rec: true },
+            { ol: "Build an in-app fallback path now", od: "More inclusive, but adds scope and a new verification surface to harden." },
+          ],
+        },
+        {
+          code: "C1.3", kind: "confirm", title: "Handle randomizer wordlist review timing",
+          src: "DFS-C1.3 · handleGenerator.ts (~140 adj + ~140 nouns, natural-world)",
+          why: "Random handles like brave-otter-4821. Casey should skim the wordlist for cultural neutrality at some point.",
+          options: [
+            { ol: "Ship as-is; Casey reviews as a pre-launch checkpoint", od: "Unblocks now; review happens before any public invite goes out.", rec: true },
+            { ol: "Casey reviews before any signups at all", od: "Safer wording guarantee, but adds a gate before you can self-test." },
+          ],
+        },
+        {
+          code: "C1.4", kind: "confirm", title: "Splash screen minimum duration",
+          src: "DFS-C1.4 · SplashScreen.tsx (MIN_DISPLAY_MS = 400)",
+          why: "Shows the wordmark for at least 400ms, then dismisses when ready. Low-stakes; tune after user testing.",
+          options: [
+            { ol: "Keep 400ms", od: "Brief, avoids a jarring flash; accessible fallback text after 2s if load hangs.", rec: true },
+            { ol: "Shorter / longer — I'll specify in the note", od: "Adjust to taste once you've felt it on a real device." },
+          ],
+        },
+        {
+          code: "Q4", kind: "confirm", title: "Inactive verification-admin auto-suspend threshold",
+          src: "Q4 / S-CYC1-1 · Steve drafted the policy (lands Cycle 5)",
+          why: "Admins who go dark shouldn't keep approval power. Steve drafted a policy; it ships with the admin tool in Cycle 5, not now.",
+          options: [
+            { ol: "30-day inactivity; reinstate via service_role only", od: "Steve's recommendation; conservative and reversible.", rec: true },
+            { ol: "60-day inactivity", od: "More lenient for low-volume volunteer admins." },
+            { ol: "Decide later in Cycle 5", od: "Defer entirely until the admin tool is being built." },
+          ],
+        },
+        {
+          code: "NEXT", kind: "confirm", title: "What's the next cycle?",
+          src: "FEATURES.md roadmap · Cycle 2 is next by value/effort",
+          why: "Cycle 2 = Marketplace Feed wired to real Supabase (read-only value for verified users). The kickoff prompt is already drafted in the Cycle 1 briefing.",
+          options: [
+            { ol: "Cycle 2 (Marketplace Feed), after you verify the apply end-to-end", od: "Highest value next; reuses the existing realtime merge helper.", rec: true },
+            { ol: "A different cycle next — I'll say which in the note", od: "e.g. jump to Profile/Delete (Cycle 6) if you want the deletion loop sooner." },
+            { ol: "Pause building until I've tested Cycle 1 myself", od: "No new code until you've walked the auth flow on a device." },
+          ],
+        },
+        {
+          code: "D10", kind: "confirm", title: "PIPEDA legal review",
+          src: "D10 · privacy mapping is a draft, not legal advice",
+          why: "Jordan's PIPEDA mapping needs a real Canadian privacy lawyer before public launch. Not urgent now, but it has lead time.",
+          options: [
+            { ol: "Budget a 1–2h lawyer consult before Cycle 7 (ship-readiness)", od: "Lines up sign-off without blocking the build now.", rec: true },
+            { ol: "Defer the decision for now", od: "Revisit closer to launch; risk is letting it slip past Cycle 7." },
+          ],
+        },
+      ];
+
+      // ---------- Render decision cards ----------
+      const list = document.getElementById("decision-list");
+      DECISIONS.forEach((d, i) => {
+        const recIdx = d.options.findIndex((o) => o.rec);
+        const card = document.createElement("div");
+        card.className = "decision";
+        const tagClass = d.kind;
+        const tagLabel = d.kind === "action" ? "Action" : d.kind === "open" ? "Open" : "Confirm";
+        card.innerHTML =
+          '<div class="head"><span class="code">' + d.code + '</span>' +
+          '<span class="tag ' + tagClass + '">' + tagLabel + '</span>' +
+          '<span class="title">' + d.title + '</span></div>' +
+          '<div class="src">' + d.src + '</div>' +
+          '<div class="why">' + d.why + '</div>' +
+          '<div class="opts" role="radiogroup" aria-label="' + d.title.replace(/"/g, "&quot;") + '"></div>' +
+          '<div class="note"><label for="note-' + i + '">Note (optional)</label><textarea id="note-' + i + '" data-note="' + i + '" placeholder="Anything to add, or your custom answer…"></textarea></div>';
+        const opts = card.querySelector(".opts");
+        d.options.forEach((o, j) => {
+          const id = "d" + i + "o" + j;
+          const lab = document.createElement("label");
+          lab.className = "opt" + (o.rec ? " rec" : "");
+          lab.setAttribute("for", id);
+          lab.innerHTML =
+            '<input type="radio" id="' + id + '" name="d' + i + '" value="' + j + '"' + (j === recIdx ? " checked" : "") + '>' +
+            '<span class="otext"><span class="ol">' + o.ol + (o.rec ? '<span class="recbadge">Rec</span>' : "") + '</span>' +
+            '<span class="od">' + o.od + '</span></span>';
+          opts.appendChild(lab);
+        });
+        list.appendChild(card);
+        card.addEventListener("change", updateSummary);
+      });
+
+      function updateSummary() {
+        let changed = 0;
+        DECISIONS.forEach((d, i) => {
+          const recIdx = d.options.findIndex((o) => o.rec);
+          const sel = document.querySelector('input[name="d' + i + '"]:checked');
+          if (sel && Number(sel.value) !== recIdx) changed++;
+        });
+        const el = document.getElementById("summary");
+        el.innerHTML = changed === 0
+          ? "All <b>9</b> items set to the team recommendation."
+          : "<b>" + changed + "</b> of 9 changed from the recommendation · " + (9 - changed) + " following the team.";
+      }
+      updateSummary();
+
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        DECISIONS.forEach((d, i) => {
+          const recIdx = d.options.findIndex((o) => o.rec);
+          const input = document.querySelector('#d' + i + 'o' + recIdx);
+          if (input) input.checked = true;
+          const note = document.querySelector('textarea[data-note="' + i + '"]');
+          if (note) note.value = "";
+        });
+        updateSummary();
+      });
+
+      // ---------- Export ----------
+      function buildMarkdown() {
+        const today = "2026-05-23";
+        let md = "# Mutual Mesh — Sky's decisions (" + today + ")\n\n";
+        md += "Source: Morgan interactive status report. Recommended = team's pick.\n\n";
+        DECISIONS.forEach((d, i) => {
+          const recIdx = d.options.findIndex((o) => o.rec);
+          const sel = document.querySelector('input[name="d' + i + '"]:checked');
+          const ji = sel ? Number(sel.value) : recIdx;
+          const chosen = d.options[ji];
+          const followed = ji === recIdx;
+          const note = (document.querySelector('textarea[data-note="' + i + '"]').value || "").trim();
+          md += "## " + d.code + " — " + d.title + "\n";
+          md += "- **Choice:** " + chosen.ol.replace(/<[^>]+>/g, "") + (followed ? "  _(recommended)_" : "  _(changed from recommendation)_") + "\n";
+          if (!followed) md += "- **Team had recommended:** " + d.options[recIdx].ol.replace(/<[^>]+>/g, "") + "\n";
+          if (note) md += "- **Note:** " + note + "\n";
+          md += "\n";
+        });
+        md += "---\n_Generated from the interactive report. No external sends; paste into Claude Code or a qa-report to action._\n";
+        return md;
+      }
+      const modal = document.getElementById("exportModal");
+      document.getElementById("exportBtn").addEventListener("click", () => {
+        document.getElementById("exportText").value = buildMarkdown();
+        document.getElementById("copyMsg").textContent = "";
+        if (typeof modal.showModal === "function") modal.showModal();
+      });
+      document.getElementById("closeModal").addEventListener("click", () => modal.close());
+      document.getElementById("copyBtn").addEventListener("click", async () => {
+        const ta = document.getElementById("exportText");
+        ta.select();
+        try { await navigator.clipboard.writeText(ta.value); document.getElementById("copyMsg").textContent = "Copied ✓"; }
+        catch (e) { document.execCommand("copy"); document.getElementById("copyMsg").textContent = "Copied ✓"; }
+      });
+
+      // ---------- Charts ----------
+      const C = { ink: "#eef3fb", soft: "#8295b4", line: "#2a3a5c", teal: "#2dd4bf", indigo: "#818cf8", amber: "#fbbf24", green: "#34d399", rose: "#fb7185", red: "#f87171" };
+      Chart.defaults.color = C.soft;
+      Chart.defaults.font.family = "-apple-system, Segoe UI, Roboto, sans-serif";
+      Chart.defaults.font.size = 12;
+
+      new Chart(document.getElementById("roadmap"), {
+        type: "bar",
+        data: {
+          labels: ["C0 Foundation", "C1 Auth Gate", "C2 Feed", "C3 Add+Photo", "C4 Claim", "C5 Admin", "C6 Profile+Delete", "C7 Ship"],
+          datasets: [{ label: "Status", data: [1, 1, 0.12, 0.05, 0.05, 0.02, 0.02, 0.02],
+            backgroundColor: (c) => (c.dataIndex <= 1 ? C.green : "rgba(129,140,248,0.30)"),
+            borderColor: (c) => (c.dataIndex <= 1 ? C.green : C.indigo), borderWidth: 1, borderRadius: 6 }],
+        },
+        options: { indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => (c.dataIndex <= 1 ? "Shipped ✓" : "Planned") } } },
+          scales: { x: { display: false, max: 1, grid: { color: C.line } }, y: { grid: { display: false }, ticks: { color: C.ink } } } },
+      });
+
+      new Chart(document.getElementById("tests"), {
+        type: "line",
+        data: { labels: ["Phase 0a", "Push 2", "Cycle 1"],
+          datasets: [{ label: "Tests", data: [47, 51, 91], borderColor: C.teal, backgroundColor: "rgba(45,212,191,0.15)",
+            fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: C.teal, borderWidth: 3 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: C.line } }, x: { grid: { display: false } } } },
+      });
+
+      new Chart(document.getElementById("decpie"), {
+        type: "doughnut",
+        data: { labels: ["Approved (D3–D10, S1–S8)", "Edited (D1, D2)", "Questions answered (Q1–Q4)"],
+          datasets: [{ data: [16, 2, 4], backgroundColor: [C.green, C.amber, C.indigo], borderColor: "#16223a", borderWidth: 3 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "62%",
+          plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 12 } } } },
+      });
+
+      new Chart(document.getElementById("schema"), {
+        type: "bar",
+        data: { labels: ["Tables", "RPCs", "RLS policies", "Triggers"],
+          datasets: [{ data: [6, 7, 14, 3], backgroundColor: [C.indigo, C.teal, C.amber, C.rose], borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: C.line } }, x: { grid: { display: false }, ticks: { color: C.ink } } } },
+      });
+
+      new Chart(document.getElementById("threats"), {
+        type: "bar",
+        data: { labels: ["Negligible/Zero", "Low", "Medium (accepted/partial)"],
+          datasets: [{ label: "Threats", data: [6, 12, 3],
+            backgroundColor: [C.green, C.teal, C.amber], borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false },
+            tooltip: { callbacks: { afterLabel: (c) => c.dataIndex === 2 ? "I4 backup retention, S3 handle impersonation, S1 credential theft" : "" } } },
+          scales: { y: { beginAtZero: true, grid: { color: C.line }, title: { display: true, text: "residual after mitigation" } }, x: { grid: { display: false }, ticks: { color: C.ink } } } },
+      });
+
+      new Chart(document.getElementById("friction"), {
+        type: "bar",
+        data: { labels: ["Empty marketplace", "Virality → doxxing", "No bulk-post", "No-recourse no-show", "No categories", "SMS would exclude", "Push leak risk", "Verification wait"],
+          datasets: [{ label: "Severity", data: [5, 5, 4, 4, 3.5, 4, 4, 3],
+            backgroundColor: (c) => (c.raw >= 5 ? C.red : c.raw >= 4 ? C.amber : C.indigo), borderRadius: 5 }] },
+        options: { indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => "Severity " + c.raw + " / 5" } } },
+          scales: { x: { beginAtZero: true, max: 5, grid: { color: C.line } }, y: { grid: { display: false }, ticks: { color: C.ink, font: { size: 11 } } } } },
+      });
+    </script>
+  </body>
+</html>

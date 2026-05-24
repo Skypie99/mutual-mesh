@@ -64,3 +64,49 @@ export function describeGate(input: GateInput): string {
   }
   return 'verified — home';
 }
+
+// ============================================================================
+// Cycle 1 — fuller routing including loading + complete-profile states.
+// Used by App.tsx Gate component (Loop 14). Pure, testable.
+// ============================================================================
+
+export type Cycle1GateInput = {
+  /** AuthProvider has not yet resolved getSession() */
+  loading: boolean;
+  session: GateSession;
+  /** Slice of public.users for the current user. null = not yet loaded or row missing. */
+  profile: {
+    handle: string;
+    is_verified: boolean;
+  } | null;
+};
+
+export type Cycle1GateRoute =
+  | 'splash' // booting OR session arrived but profile still hydrating
+  | 'sign-in' // no session
+  | 'complete-profile' // signup step 3 — handle still 'pending-XXX'
+  | 'wait' // profile complete, !is_verified
+  | 'home'; // profile complete, is_verified
+
+/** A user whose handle still starts with `pending-` hasn't finished signup. */
+export function isProfilePending(handle: string): boolean {
+  return handle.startsWith('pending-');
+}
+
+/**
+ * Decide which root component the Gate should render.
+ *
+ * Pure function. App.tsx adds a "splashDismissed" UX-only state on top so a
+ * fast boot doesn't flash; that's not part of this routing logic.
+ *
+ * Default-conservative: anything ambiguous routes to 'splash' or 'wait',
+ * never to 'home'. We never optimistically expose marketplace UI.
+ */
+export function decideGateRoute(input: Cycle1GateInput): Cycle1GateRoute {
+  if (input.loading) return 'splash';
+  if (!input.session) return 'sign-in';
+  if (input.profile === null) return 'splash';
+  if (isProfilePending(input.profile.handle)) return 'complete-profile';
+  if (input.profile.is_verified !== true) return 'wait';
+  return 'home';
+}
