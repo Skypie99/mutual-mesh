@@ -5,7 +5,7 @@
  * should pipe `error` through `userFacingErrorMessage()` before display.
  *
  * Coverage:
- *   - listResources()          — paginated, filtered to status='available'
+ *   - listResources(page?)     — cursor-paginated (PAGE_SIZE=20), filtered to status='available'
  *   - getResourceDetail(id)    — SECURITY DEFINER RPC; gates contact_handle per claim status
  *   - createResource(input)    — INSERT; trigger sets created_at + status
  *   - claimResource(id)        — calls claim_resource RPC (atomic per PRD §3)
@@ -13,13 +13,18 @@
  *   - listMyPosts(uid)         — caller's own posts
  *   - listMyClaims(uid)        — caller's claimed (status='reserved')
  *
- * **Hard cap:** every list query uses .limit(500). Cursor pagination is
- * Cycle 7 work — see CLAUDE.md gotcha #6 (AccessMap learned the hard way).
+ * **Pagination:** listResources uses PAGE_SIZE=20 with Supabase .range() for
+ * cursor pagination. page=0 → rows 0–19, page=1 → rows 20–39, etc. The return
+ * shape includes `hasMore` so callers know when to stop requesting more pages.
+ * Replaces the former .limit(500) hard cap (Cycle 7 — CLAUDE.md gotcha #6).
  */
 
 import { supabase } from './supabase';
 import { userFacingErrorMessage } from './errors';
 import type { ResourceCategory } from '@/types/database';
+
+/** Number of resources fetched per page in the marketplace feed. */
+export const PAGE_SIZE = 20;
 
 const LIST_LIMIT = 500;
 
@@ -28,8 +33,16 @@ const LIST_LIMIT = 500;
 // ============================================================================
 
 /**
- * Fetch up to LIST_LIMIT available resources, newest first.
+ * Fetch one page of available resources, newest first.
  * Filtered to status='available' for the marketplace feed.
+ *
+ * @param page - Zero-based page index. Page 0 → rows 0–19, page 1 → rows 20–39.
+ *               Defaults to 0.
+ *
+ * Returns `{ data, error, hasMore }`:
+ *   - `data`    — array of resource rows (may be empty on the last page)
+ *   - `error`   — Supabase PostgrestError or null
+ *   - `hasMore` — true when exactly PAGE_SIZE rows were returned (another page exists)
  *
  * JORDAN BLOCKING CONDITION 2 (web gate 2026-05-25-jordan-web-gate.md):
  * contact_handle is intentionally excluded from this list query. It must
@@ -39,15 +52,24 @@ const LIST_LIMIT = 500;
  * If you need to add columns here, list them explicitly. Do NOT switch back
  * to select('*').
  */
-export async function listResources() {
-  return supabase
+export async function listResources(page = 0) {
+  const from = page * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data, error } = await supabase
     .from('resources')
     .select(
       'id, name, description, pickup_text, postal_prefix, city, photo_url, category, status, posted_by, claimed_by, confirmed_at, confirmed_by, created_at, status_changed_at',
     )
     .eq('status', 'available')
     .order('created_at', { ascending: false })
-    .limit(LIST_LIMIT);
+    .range(from, to);
+
+  return {
+    data: data ?? [],
+    error,
+    hasMore: (data?.length ?? 0) === PAGE_SIZE,
+  };
 }
 
 /**
