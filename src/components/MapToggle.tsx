@@ -29,11 +29,7 @@ type MapToggleProps = {
 
 export function MapToggle({ value, onChange }: MapToggleProps) {
   return (
-    <View
-      accessibilityRole="tablist"
-      accessibilityLabel="View mode"
-      className="flex-row gap-2"
-    >
+    <View accessibilityRole="tablist" accessibilityLabel="View mode" className="flex-row gap-2">
       <SegmentButton
         label="List"
         selected={value === 'list'}

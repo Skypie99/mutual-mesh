@@ -22,12 +22,12 @@ Baseline was **172 tests in 13 suites** per CLAUDE.md, but the working tree actu
 
 After this audit landed **+51 jest tests** (+1 new suite, +50 cases across 8 existing suites) and **+10 named PASS assertions** in `supabase/__tests__/rls.sql` covering the three new Phase 2/2.5 RPCs (`confirm_pickup`, `complete_onboarding`, `prune_expired_resources` extension):
 
-| Metric          | Before | After  | Delta   |
-| --------------- | ------ | ------ | ------- |
-| Jest tests      | 172    | 223    | **+51** |
-| Jest suites     | 13     | 15     | **+2**  |
-| RLS PASS labels | 12     | 22     | **+10** |
-| Toolchain       | green  | green  | —       |
+| Metric          | Before | After | Delta   |
+| --------------- | ------ | ----- | ------- |
+| Jest tests      | 172    | 223   | **+51** |
+| Jest suites     | 13     | 15    | **+2**  |
+| RLS PASS labels | 12     | 22    | **+10** |
+| Toolchain       | green  | green | —       |
 
 Coverage map below identifies remaining MEDIUM/LOW gaps for a future cycle (notably: photo-pipeline `uploadResourcePhoto` end-to-end + `useResources` hook need component-level testing — both blocked on `@testing-library/react-native` install, deferred since Cycle 1).
 
@@ -35,28 +35,28 @@ Coverage map below identifies remaining MEDIUM/LOW gaps for a future cycle (nota
 
 ## 4. What Shipped (Checkpoints)
 
-| Output                                                | Purpose                                                            |
-| ----------------------------------------------------- | ------------------------------------------------------------------ |
-| `src/__tests__/onboardingCopy.test.ts` (NEW; 12 cases) | Pins shape + privacy-load-bearing copy invariants for Phase 2 #8.  |
-| `src/__tests__/handleValidator.test.ts` (+6 cases)    | Hyphenated reserved (`mutual-mesh`), trailing-whitespace, empty input on `looksLikeRealName`. |
-| `src/__tests__/errors.test.ts` (+9 cases)             | `.message` non-string defensive paths; PGRST/JWT case-insensitivity. |
-| `src/__tests__/resourcesRealtime.test.ts` (+7 cases)  | `filterAvailable` non-string status guard; empty-deltas no-op; empty-input safety. |
-| `src/__tests__/pickupConfirm.test.ts` (+2 cases)      | Both-roles edge case (JSDoc "claimant wins"); unknown-status defensive. |
-| `src/__tests__/categories.test.ts` (+3 cases)         | Full-set parity; case-sensitive filter set; idempotent toggle round-trip. |
-| `src/__tests__/categoryStorage.test.ts` (+4 cases)    | All-five round-trip; nested-array/object stripping; empty-string parse. |
-| `src/__tests__/handleGenerator.test.ts` (+5 cases)    | Suffix 0–9999 bound; suggestion count boundaries; wordlist parity. |
-| `src/__tests__/verification.test.ts` (+3 cases)       | loading=true wins over session; `pending-` boundary; verified→demoted with onboarding=true. |
-| `supabase/__tests__/rls.sql` (+10 PASS labels)        | T9 (`confirm_pickup` 6 scenarios), T10 (`complete_onboarding` 3 scenarios), T11 (`prune_expired_resources` extension 4 scenarios). |
-| `qa-reports/phase-4-gary-coverage-audit.md` (this file) | The audit + gap map.                                              |
+| Output                                                  | Purpose                                                                                                                            |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `src/__tests__/onboardingCopy.test.ts` (NEW; 12 cases)  | Pins shape + privacy-load-bearing copy invariants for Phase 2 #8.                                                                  |
+| `src/__tests__/handleValidator.test.ts` (+6 cases)      | Hyphenated reserved (`mutual-mesh`), trailing-whitespace, empty input on `looksLikeRealName`.                                      |
+| `src/__tests__/errors.test.ts` (+9 cases)               | `.message` non-string defensive paths; PGRST/JWT case-insensitivity.                                                               |
+| `src/__tests__/resourcesRealtime.test.ts` (+7 cases)    | `filterAvailable` non-string status guard; empty-deltas no-op; empty-input safety.                                                 |
+| `src/__tests__/pickupConfirm.test.ts` (+2 cases)        | Both-roles edge case (JSDoc "claimant wins"); unknown-status defensive.                                                            |
+| `src/__tests__/categories.test.ts` (+3 cases)           | Full-set parity; case-sensitive filter set; idempotent toggle round-trip.                                                          |
+| `src/__tests__/categoryStorage.test.ts` (+4 cases)      | All-five round-trip; nested-array/object stripping; empty-string parse.                                                            |
+| `src/__tests__/handleGenerator.test.ts` (+5 cases)      | Suffix 0–9999 bound; suggestion count boundaries; wordlist parity.                                                                 |
+| `src/__tests__/verification.test.ts` (+3 cases)         | loading=true wins over session; `pending-` boundary; verified→demoted with onboarding=true.                                        |
+| `supabase/__tests__/rls.sql` (+10 PASS labels)          | T9 (`confirm_pickup` 6 scenarios), T10 (`complete_onboarding` 3 scenarios), T11 (`prune_expired_resources` extension 4 scenarios). |
+| `qa-reports/phase-4-gary-coverage-audit.md` (this file) | The audit + gap map.                                                                                                               |
 
 ## 5. What's Proposed (Not Applied)
 
-| Proposal                                                      | File path                  | What it does                              | Impact                                       | Rollback documented?       |
-| ------------------------------------------------------------- | -------------------------- | ----------------------------------------- | -------------------------------------------- | -------------------------- |
-| Node 20 matrix entry (default) + Node 22 trial                | `.github/workflows/ci.yml` | Catches Node-22 incompatibility early     | Lower; matrix CI cost ~2× per PR             | Yes — single-line revert   |
-| `expo doctor` step in lint job                                | `.github/workflows/ci.yml` | Catches Expo SDK/package drift            | Catches gotchas like wrong `expo-*` versions | Yes — single-step revert   |
-| Install `@testing-library/react-native` (component coverage)  | `package.json`             | Unblocks component-level tests            | Adds ~5MB dev dep; needed for many MEDIUMs   | Yes — `npm uninstall`      |
-| `jest --coverage` threshold (e.g. 80% on `src/lib/**`)        | `jest.config.js`           | Fails CI when coverage regresses on pure helpers | Trips PRs that ship logic without tests | Yes — drop one config key |
+| Proposal                                                     | File path                  | What it does                                     | Impact                                       | Rollback documented?      |
+| ------------------------------------------------------------ | -------------------------- | ------------------------------------------------ | -------------------------------------------- | ------------------------- |
+| Node 20 matrix entry (default) + Node 22 trial               | `.github/workflows/ci.yml` | Catches Node-22 incompatibility early            | Lower; matrix CI cost ~2× per PR             | Yes — single-line revert  |
+| `expo doctor` step in lint job                               | `.github/workflows/ci.yml` | Catches Expo SDK/package drift                   | Catches gotchas like wrong `expo-*` versions | Yes — single-step revert  |
+| Install `@testing-library/react-native` (component coverage) | `package.json`             | Unblocks component-level tests                   | Adds ~5MB dev dep; needed for many MEDIUMs   | Yes — `npm uninstall`     |
+| `jest --coverage` threshold (e.g. 80% on `src/lib/**`)       | `jest.config.js`           | Fails CI when coverage regresses on pure helpers | Trips PRs that ship logic without tests      | Yes — drop one config key |
 
 Sky approves before applying. None are required for the test additions in section 4 to be valuable.
 
@@ -66,52 +66,52 @@ Sky approves before applying. None are required for the test additions in sectio
 
 Legend: ✅ tested + covered well · ⚠️ tested but gaps closed in THIS audit · ❌ no test file · n/a not applicable for unit test (React hooks, IO-only)
 
-| Helper file                | Test file                            | Pre-audit coverage | Post-audit coverage | Notes                                                                                                                                                                                                |
-| -------------------------- | ------------------------------------ | ------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `categories.ts`            | `categories.test.ts`                 | ✅                 | ✅                  | Added full-set parity + idempotent toggle round-trip.                                                                                                                                                |
-| `categoryStorage.ts`       | `categoryStorage.test.ts`            | ⚠️                 | ✅                  | Added all-five round-trip + nested-array/object stripping + empty-string parse. AsyncStorage IO paths (`loadFilterFromStorage`/`saveFilterToStorage`) still untested — needs jest mock; MEDIUM-defer. |
-| `contactHandle.ts`         | `contactHandle.test.ts`              | ✅                 | ✅                  | Already exhaustive (8 URL schemes + boundaries + classify).                                                                                                                                          |
-| `errors.ts`                | `errors.test.ts`                     | ⚠️                 | ✅                  | Added non-string `.message` paths + PGRST/JWT case-insensitivity.                                                                                                                                    |
-| `handleGenerator.ts`       | `handleGenerator.test.ts`            | ⚠️                 | ✅                  | Added 0–9999 suffix bound + suggestion-count boundaries. `pick`'s empty-array throw guard is internal — covered by wordlist-sanity tests (length ≥100).                                              |
-| `handleValidator.ts`       | `handleValidator.test.ts`            | ⚠️                 | ✅                  | Added hyphenated reserved (`mutual-mesh`), more impersonation guards, `looksLikeRealName('')` case.                                                                                                  |
-| `onboardingCopy.ts`        | `onboardingCopy.test.ts` (NEW)       | ❌                 | ✅                  | NO TESTS existed. Added 12 cases: shape + Casey voice rules + Jordan-load-bearing copy contract (each card pins its PRIVACY.md decision).                                                            |
-| `pickupConfirm.ts`         | `pickupConfirm.test.ts`              | ⚠️                 | ✅                  | Added both-roles edge case (JSDoc "claimant wins") + unknown-status defensive.                                                                                                                       |
-| `resources.ts`             | _(none — IO wrapper)_                | n/a                | n/a                 | Pure wrappers over `supabase.from()`/`.rpc()`. Component-level test would need full Supabase mock; deferred until `@testing-library/react-native` lands.                                              |
-| `resourcesRealtime.ts`     | `resourcesRealtime.test.ts`          | ⚠️                 | ✅                  | Added non-string status guard + empty-deltas no-op + empty-input safety.                                                                                                                             |
-| `supabase.ts`              | _(none)_                             | n/a                | n/a                 | Env-init + auth wrappers. Untestable without mocking `@supabase/supabase-js`; MEDIUM-defer.                                                                                                          |
-| `theme.ts`                 | _(none)_                             | n/a                | n/a                 | Static token export; Alex audits contrast separately in `a11y-tokens.md`.                                                                                                                            |
-| `typedConfirmation.ts`     | `typedConfirmation.test.ts`          | ✅                 | ✅                  | Already exhaustive (case-sensitive default + opt-out + whitespace + boundaries).                                                                                                                     |
-| `useReducedMotion.ts`      | `useReducedMotion.test.ts`           | n/a                | n/a                 | React hook — only API surface contract tested; full integration needs RTL.                                                                                                                           |
-| `verification.ts`          | `verification.test.ts`               | ⚠️                 | ✅                  | Added loading-wins + `pending-` boundary + demoted-with-onboarding=true.                                                                                                                             |
-| `verificationQueue.ts`     | `adminQueue.test.ts`                 | ✅                 | ✅                  | Already exhaustive (privacy contract + filter + delta merge + format + relative time).                                                                                                               |
-| `auth.tsx`                 | _(none — React provider)_            | n/a                | n/a                 | Provider with realtime subscription. Would need `@testing-library/react-native`.                                                                                                                     |
-| `photos.ts`                | _(none — Storage IO + ExpoImageMan.)_| n/a                | n/a                 | `stripExifAndCompress` is the testable unit; needs `expo-image-manipulator` mock + real test images. C1 from `phase-1-security-audit-2026-05-24.md` is the active mitigation owner.                  |
-| `policyText.ts`            | `policyText.test.ts`                 | ✅                 | ✅                  | Already covered (4 cases). Not part of cycle-1 baseline doc, present in tree.                                                                                                                        |
+| Helper file            | Test file                             | Pre-audit coverage | Post-audit coverage | Notes                                                                                                                                                                                                 |
+| ---------------------- | ------------------------------------- | ------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `categories.ts`        | `categories.test.ts`                  | ✅                 | ✅                  | Added full-set parity + idempotent toggle round-trip.                                                                                                                                                 |
+| `categoryStorage.ts`   | `categoryStorage.test.ts`             | ⚠️                 | ✅                  | Added all-five round-trip + nested-array/object stripping + empty-string parse. AsyncStorage IO paths (`loadFilterFromStorage`/`saveFilterToStorage`) still untested — needs jest mock; MEDIUM-defer. |
+| `contactHandle.ts`     | `contactHandle.test.ts`               | ✅                 | ✅                  | Already exhaustive (8 URL schemes + boundaries + classify).                                                                                                                                           |
+| `errors.ts`            | `errors.test.ts`                      | ⚠️                 | ✅                  | Added non-string `.message` paths + PGRST/JWT case-insensitivity.                                                                                                                                     |
+| `handleGenerator.ts`   | `handleGenerator.test.ts`             | ⚠️                 | ✅                  | Added 0–9999 suffix bound + suggestion-count boundaries. `pick`'s empty-array throw guard is internal — covered by wordlist-sanity tests (length ≥100).                                               |
+| `handleValidator.ts`   | `handleValidator.test.ts`             | ⚠️                 | ✅                  | Added hyphenated reserved (`mutual-mesh`), more impersonation guards, `looksLikeRealName('')` case.                                                                                                   |
+| `onboardingCopy.ts`    | `onboardingCopy.test.ts` (NEW)        | ❌                 | ✅                  | NO TESTS existed. Added 12 cases: shape + Casey voice rules + Jordan-load-bearing copy contract (each card pins its PRIVACY.md decision).                                                             |
+| `pickupConfirm.ts`     | `pickupConfirm.test.ts`               | ⚠️                 | ✅                  | Added both-roles edge case (JSDoc "claimant wins") + unknown-status defensive.                                                                                                                        |
+| `resources.ts`         | _(none — IO wrapper)_                 | n/a                | n/a                 | Pure wrappers over `supabase.from()`/`.rpc()`. Component-level test would need full Supabase mock; deferred until `@testing-library/react-native` lands.                                              |
+| `resourcesRealtime.ts` | `resourcesRealtime.test.ts`           | ⚠️                 | ✅                  | Added non-string status guard + empty-deltas no-op + empty-input safety.                                                                                                                              |
+| `supabase.ts`          | _(none)_                              | n/a                | n/a                 | Env-init + auth wrappers. Untestable without mocking `@supabase/supabase-js`; MEDIUM-defer.                                                                                                           |
+| `theme.ts`             | _(none)_                              | n/a                | n/a                 | Static token export; Alex audits contrast separately in `a11y-tokens.md`.                                                                                                                             |
+| `typedConfirmation.ts` | `typedConfirmation.test.ts`           | ✅                 | ✅                  | Already exhaustive (case-sensitive default + opt-out + whitespace + boundaries).                                                                                                                      |
+| `useReducedMotion.ts`  | `useReducedMotion.test.ts`            | n/a                | n/a                 | React hook — only API surface contract tested; full integration needs RTL.                                                                                                                            |
+| `verification.ts`      | `verification.test.ts`                | ⚠️                 | ✅                  | Added loading-wins + `pending-` boundary + demoted-with-onboarding=true.                                                                                                                              |
+| `verificationQueue.ts` | `adminQueue.test.ts`                  | ✅                 | ✅                  | Already exhaustive (privacy contract + filter + delta merge + format + relative time).                                                                                                                |
+| `auth.tsx`             | _(none — React provider)_             | n/a                | n/a                 | Provider with realtime subscription. Would need `@testing-library/react-native`.                                                                                                                      |
+| `photos.ts`            | _(none — Storage IO + ExpoImageMan.)_ | n/a                | n/a                 | `stripExifAndCompress` is the testable unit; needs `expo-image-manipulator` mock + real test images. C1 from `phase-1-security-audit-2026-05-24.md` is the active mitigation owner.                   |
+| `policyText.ts`        | `policyText.test.ts`                  | ✅                 | ✅                  | Already covered (4 cases). Not part of cycle-1 baseline doc, present in tree.                                                                                                                         |
 
 ### RLS / RPC coverage map (`supabase/`)
 
-| RPC / surface                       | Defined in                | RLS test in `supabase/__tests__/rls.sql` | Status                                                                |
-| ----------------------------------- | ------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
-| `consume_invite_token`              | `schema.sql`              | _(none)_                                 | MEDIUM-defer (bcrypt fixtures needed; integration territory).         |
-| `approve_user`                      | `schema.sql`              | _(implicit via T5 verification_log)_     | LOW (covered by side-effect test).                                    |
-| `reject_user`                       | `schema.sql`              | _(none — depends on auth.users delete)_  | MEDIUM-defer.                                                         |
-| `delete_my_account`                 | `schema.sql`              | T-CONF-9 (added in this audit)           | ✅ covered by new pickup-confirm cascade test (ON DELETE SET NULL).   |
-| `claim_resource`                    | `schema.sql`              | T7                                       | ✅ existing.                                                          |
-| `touch_my_last_active`              | `schema.sql`              | _(none)_                                 | LOW (simple UPDATE; defensive only).                                  |
-| `prune_expired_resources` (orig.)   | `schema.sql` / mig 003    | _(none — cron-only)_                     | Now partially covered via T11 / mig 007.                              |
-| **`confirm_pickup`** (mig 005)      | `migrations/005_*.sql`    | **T9 / T-CONF-1, 3, 4, 6, 7, 9** ✅ NEW  | Added 6 of the 10 suggested scenarios.                                |
-| **`complete_onboarding`** (mig 006) | `migrations/006_*.sql`    | **T10 / T15a, b, d** ✅ NEW              | Added 3 of the 4 suggested scenarios (T15c "unauthenticated" requires JWT clearing — defer). |
-| **`prune_expired_resources`** ext.  | `migrations/007_*.sql`    | **T11 / T-PRUNE-1, 2, 3, 6** ✅ NEW      | Added 4 of the 6 suggested scenarios.                                 |
+| RPC / surface                       | Defined in             | RLS test in `supabase/__tests__/rls.sql` | Status                                                                                       |
+| ----------------------------------- | ---------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `consume_invite_token`              | `schema.sql`           | _(none)_                                 | MEDIUM-defer (bcrypt fixtures needed; integration territory).                                |
+| `approve_user`                      | `schema.sql`           | _(implicit via T5 verification_log)_     | LOW (covered by side-effect test).                                                           |
+| `reject_user`                       | `schema.sql`           | _(none — depends on auth.users delete)_  | MEDIUM-defer.                                                                                |
+| `delete_my_account`                 | `schema.sql`           | T-CONF-9 (added in this audit)           | ✅ covered by new pickup-confirm cascade test (ON DELETE SET NULL).                          |
+| `claim_resource`                    | `schema.sql`           | T7                                       | ✅ existing.                                                                                 |
+| `touch_my_last_active`              | `schema.sql`           | _(none)_                                 | LOW (simple UPDATE; defensive only).                                                         |
+| `prune_expired_resources` (orig.)   | `schema.sql` / mig 003 | _(none — cron-only)_                     | Now partially covered via T11 / mig 007.                                                     |
+| **`confirm_pickup`** (mig 005)      | `migrations/005_*.sql` | **T9 / T-CONF-1, 3, 4, 6, 7, 9** ✅ NEW  | Added 6 of the 10 suggested scenarios.                                                       |
+| **`complete_onboarding`** (mig 006) | `migrations/006_*.sql` | **T10 / T15a, b, d** ✅ NEW              | Added 3 of the 4 suggested scenarios (T15c "unauthenticated" requires JWT clearing — defer). |
+| **`prune_expired_resources`** ext.  | `migrations/007_*.sql` | **T11 / T-PRUNE-1, 2, 3, 6** ✅ NEW      | Added 4 of the 6 suggested scenarios.                                                        |
 
 ### Components flagged in audits — regression-test status
 
-| Component               | Bug found in                                          | Regression-test status                                                                  |
-| ----------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `Card.tsx`              | Alex a11y: pressable cards now `minHeight: 44`        | NOT tested (component-level; deferred until `@testing-library/react-native`).            |
-| `TextField.tsx`         | Alex loop-8: multiline `textAlignVertical: 'top'`     | NOT tested (component-level).                                                            |
-| `ConfirmationModal.tsx` | Alex a11y P1-9: typed-confirmation friction           | ✅ INDIRECT — `typedConfirmation.ts` predicate has 13 tests covering the case-sensitive load-bearing property. |
-| `ErrorBoundary.tsx`     | Will/Steve: catches render errors                     | ✅ static method tested (full integration deferred).                                     |
-| `StatusPill.tsx`        | Phase 2 #7: new `completed` variant                   | ✅ INDIRECT — status enum extension validated by `pickupConfirm.test.ts` round-trip on `'completed'`. |
+| Component               | Bug found in                                      | Regression-test status                                                                                         |
+| ----------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `Card.tsx`              | Alex a11y: pressable cards now `minHeight: 44`    | NOT tested (component-level; deferred until `@testing-library/react-native`).                                  |
+| `TextField.tsx`         | Alex loop-8: multiline `textAlignVertical: 'top'` | NOT tested (component-level).                                                                                  |
+| `ConfirmationModal.tsx` | Alex a11y P1-9: typed-confirmation friction       | ✅ INDIRECT — `typedConfirmation.ts` predicate has 13 tests covering the case-sensitive load-bearing property. |
+| `ErrorBoundary.tsx`     | Will/Steve: catches render errors                 | ✅ static method tested (full integration deferred).                                                           |
+| `StatusPill.tsx`        | Phase 2 #7: new `completed` variant               | ✅ INDIRECT — status enum extension validated by `pickupConfirm.test.ts` round-trip on `'completed'`.          |
 
 **Component-level coverage is the largest deferred gap.** It's the most expensive (needs `@testing-library/react-native` + jest-expo native mocking) and the lowest-yield per test (each component touches multiple integration concerns). Proposed for Phase 5.
 
@@ -123,12 +123,12 @@ Current `.github/workflows/ci.yml` runs three jobs on Node 20 only: typecheck, l
 
 ### Verification: current CI covers all required gates ✅
 
-| Required gate | Job   | Step                | Status |
-| ------------- | ----- | ------------------- | ------ |
-| typecheck     | typecheck | `npm run typecheck` | ✅     |
-| lint          | lint  | `npm run lint`      | ✅     |
-| format:check  | lint  | `npm run format:check` | ✅  |
-| test          | test  | `npm test -- --ci --coverage` | ✅ |
+| Required gate | Job       | Step                          | Status |
+| ------------- | --------- | ----------------------------- | ------ |
+| typecheck     | typecheck | `npm run typecheck`           | ✅     |
+| lint          | lint      | `npm run lint`                | ✅     |
+| format:check  | lint      | `npm run format:check`        | ✅     |
+| test          | test      | `npm test -- --ci --coverage` | ✅     |
 
 ### Proposal A: Node 20 matrix (default) + Node 22 trial
 
@@ -170,13 +170,13 @@ Neither proposal is applied in this audit. Sky merges after read.
 
 ## 8. Toolchain status (verification gate)
 
-| Gate         | Command                | Pre-audit | Post-audit | Notes                                                                              |
-| ------------ | ---------------------- | --------- | ---------- | ---------------------------------------------------------------------------------- |
-| typecheck    | `npm run typecheck`    | ✅        | ✅         | No new types added; existing `Pick<ResourceRow, ...>` patterns reused.             |
-| lint         | `npm run lint`         | ✅        | ✅         | New test files conform to existing eslint pattern.                                 |
-| test         | `npm test`             | 172 ✅    | 223 ✅     | +51 tests; suite count 13 → 15.                                                    |
-| format:check | `npm run format:check` | ✅        | ✅         | Ran `npm run format` on new files before declaring done.                           |
-| RLS (SQL)    | `supabase/__tests__/rls.sql` | 12 PASS labels | 22 PASS labels | New T9/T10/T11 blocks meant to run against a STAGING project; not part of CI.    |
+| Gate         | Command                      | Pre-audit      | Post-audit     | Notes                                                                         |
+| ------------ | ---------------------------- | -------------- | -------------- | ----------------------------------------------------------------------------- |
+| typecheck    | `npm run typecheck`          | ✅             | ✅             | No new types added; existing `Pick<ResourceRow, ...>` patterns reused.        |
+| lint         | `npm run lint`               | ✅             | ✅             | New test files conform to existing eslint pattern.                            |
+| test         | `npm test`                   | 172 ✅         | 223 ✅         | +51 tests; suite count 13 → 15.                                               |
+| format:check | `npm run format:check`       | ✅             | ✅             | Ran `npm run format` on new files before declaring done.                      |
+| RLS (SQL)    | `supabase/__tests__/rls.sql` | 12 PASS labels | 22 PASS labels | New T9/T10/T11 blocks meant to run against a STAGING project; not part of CI. |
 
 Note: the RLS SQL file is intentionally **not** wired into CI per existing project convention (it requires a staging Supabase project, which CI doesn't have credentials for). Sky runs it manually after schema changes per `supabase/__tests__/rls.sql` header.
 

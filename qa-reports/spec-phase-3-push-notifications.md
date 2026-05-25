@@ -15,23 +15,23 @@ are appended to the DFS list at the bottom with Quinn's recommended defaults.
 
 ### Summary of AC changes
 
-| Change | Steve finding | Where in this spec |
-|--------|----------------|--------------------|
-| AC-2 — server-side assertion location anchored to Edge Function | H1 | AC-2 text + Tests section |
-| AC-2 — trigger 3 + 4 titles changed to "You have an update" | H4 | AC-2 trigger map |
-| AC-3 — auto-revoke when all preferences flip OFF | H2 | AC-3 text + new behavior on update_push_preferences |
-| AC-4 — REWRITTEN: no client-side per-token revoke; UPSERT-by-platform | C2 | AC-4 + RPC contracts |
-| AC-5 — `push_delivery_log` reuses existing `cron_log` schema (job_name/rows_affected/success/error_text); packed-error pattern from migrations 003/007 | H3 | AC-5 |
-| AC-9 — REWRITTEN: Expo Push API disclosed as a thin proxy; no analytics SDKs | C1 | AC-9 + "Trust boundary" section |
-| AC-10 — recipient_id SERVER-DERIVED ONLY (never from client payload) | C3 | AC-10 |
-| AC-13 (NEW) — explicit Expo Push disclosure in microcopy + outreach materials | C1 | AC-13 |
-| AC-14 (NEW) — defense-in-depth check inside Edge Function for recipient authority | C3 | AC-14 |
-| AC-15 (NEW) — per-recipient-per-trigger rate-limits (20/h, 10/h, 1/day, 1/day) | M2 | AC-15 |
-| AC-12 — added Expo API key Edge Function secret discipline | M1 | AC-12 |
-| AC-12 — added CI grep enforcement for token logging | M3 | AC-12 |
-| New "Trust boundary" section explicitly listing Apple APNs, Google FCM, Expo Push | C1 | Section after AC-15 |
-| PROPOSED PRIVACY.md D8 amendment text | C1 | Bottom of file (PROPOSED, Jordan + Sky approve) |
-| "Schema corrections needed" section flagging required migration 010 | C2 + H3 | Bottom of file |
+| Change                                                                                                                                                 | Steve finding | Where in this spec                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | --------------------------------------------------- |
+| AC-2 — server-side assertion location anchored to Edge Function                                                                                        | H1            | AC-2 text + Tests section                           |
+| AC-2 — trigger 3 + 4 titles changed to "You have an update"                                                                                            | H4            | AC-2 trigger map                                    |
+| AC-3 — auto-revoke when all preferences flip OFF                                                                                                       | H2            | AC-3 text + new behavior on update_push_preferences |
+| AC-4 — REWRITTEN: no client-side per-token revoke; UPSERT-by-platform                                                                                  | C2            | AC-4 + RPC contracts                                |
+| AC-5 — `push_delivery_log` reuses existing `cron_log` schema (job_name/rows_affected/success/error_text); packed-error pattern from migrations 003/007 | H3            | AC-5                                                |
+| AC-9 — REWRITTEN: Expo Push API disclosed as a thin proxy; no analytics SDKs                                                                           | C1            | AC-9 + "Trust boundary" section                     |
+| AC-10 — recipient_id SERVER-DERIVED ONLY (never from client payload)                                                                                   | C3            | AC-10                                               |
+| AC-13 (NEW) — explicit Expo Push disclosure in microcopy + outreach materials                                                                          | C1            | AC-13                                               |
+| AC-14 (NEW) — defense-in-depth check inside Edge Function for recipient authority                                                                      | C3            | AC-14                                               |
+| AC-15 (NEW) — per-recipient-per-trigger rate-limits (20/h, 10/h, 1/day, 1/day)                                                                         | M2            | AC-15                                               |
+| AC-12 — added Expo API key Edge Function secret discipline                                                                                             | M1            | AC-12                                               |
+| AC-12 — added CI grep enforcement for token logging                                                                                                    | M3            | AC-12                                               |
+| New "Trust boundary" section explicitly listing Apple APNs, Google FCM, Expo Push                                                                      | C1            | Section after AC-15                                 |
+| PROPOSED PRIVACY.md D8 amendment text                                                                                                                  | C1            | Bottom of file (PROPOSED, Jordan + Sky approve)     |
+| "Schema corrections needed" section flagging required migration 010                                                                                    | C2 + H3       | Bottom of file                                      |
 
 **Three CRITICAL blockers (C1, C2, C3) resolved at the spec level.** Dana will
 need to ship a patch migration 010 to correct the schema (see "Schema
@@ -171,11 +171,11 @@ The growth-strategy 90-day target — **2-3 seeded communities, 30-60 successful
 
 This is a privacy-load-bearing surface and mirrors CLAUDE.md gotcha #8:
 
-| Layer       | What enforces it                                                                                       | What happens if breached                |
-| ----------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------- |
-| Client      | `push.ts` helper checks user's `push_preferences` before registering token; refuses to call RPC if all OFF | Server-side RPCs reject anyway          |
-| Server RPC  | `register_push_token` requires the caller to have at least one `push_preferences.* = true`             | Returns error; no row inserted          |
-| Edge Function | `deliver_notification` re-checks the recipient's `push_preferences` immediately before send         | No payload sent; cron_log row written  |
+| Layer         | What enforces it                                                                                           | What happens if breached              |
+| ------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Client        | `push.ts` helper checks user's `push_preferences` before registering token; refuses to call RPC if all OFF | Server-side RPCs reject anyway        |
+| Server RPC    | `register_push_token` requires the caller to have at least one `push_preferences.* = true`                 | Returns error; no row inserted        |
+| Edge Function | `deliver_notification` re-checks the recipient's `push_preferences` immediately before send                | No payload sent; cron_log row written |
 
 If a stale token exists from a previous opt-in (e.g., user toggled all OFF after a delivery was queued), the Edge Function's pre-send re-check is the last line of defense. Verified by Steve in integration testing.
 
@@ -186,7 +186,7 @@ If a stale token exists from a previous opt-in (e.g., user toggled all OFF after
 - **Payload sent to Expo:** title-only (one of 3 fixed strings — see AC-2; triggers 3 & 4 share the same string), `body: ""`, `data.route` from a 4-value fixed set, `data.id` is a UUID. **No resource name, no handle, no content. Expo sees routing metadata, not content.**
 - **Expo's documented behavior:** retains payloads only during delivery; drops after. Jordan re-verifies against Expo's current privacy policy at review time and notes any drift.
 - **`package.json` audit** (at Cycle 7 ship-readiness per PRIVACY.md D8) re-confirms no analytics or third-party push SDK ever crept in.
-- **PRIVACY.md D8 amendment proposed** (see bottom of this spec) — D8 forbids third-party *analytics/observability* SDKs that egress user-behavior data; the proposed amendment clarifies that D8 does NOT forbid a third-party message-proxy service that receives minimum-payload routing data we control. Jordan + Sky approve.
+- **PRIVACY.md D8 amendment proposed** (see bottom of this spec) — D8 forbids third-party _analytics/observability_ SDKs that egress user-behavior data; the proposed amendment clarifies that D8 does NOT forbid a third-party message-proxy service that receives minimum-payload routing data we control. Jordan + Sky approve.
 - Verified by Jordan in privacy review (FULL) + Steve in code review.
 
 ### AC-10: Notification → in-app deep link is safe + recipient SERVER-DERIVED (Steve C3 fix)
@@ -267,16 +267,17 @@ If a stale token exists from a previous opt-in (e.g., user toggled all OFF after
 
 Every party in the push-delivery path that can see message metadata. This is the honest list; it appears in the Privacy Policy and Casey's outreach materials.
 
-| Party                  | What they see                                            | Retention                                                            | Disclosed where                                       |
-| ---------------------- | -------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------- |
-| Mutual Mesh (us)       | All payload + recipient_id + delivery success/failure    | `cron_log` aggregates only (no user_id); per-user `push_tokens` row  | Profile microcopy + Privacy Policy + outreach copy    |
-| Expo Push (proxy)      | Title-only string + `data.route` + `data.id` (UUID)      | "During delivery only" per Expo's documented behavior                | AC-13 microcopy + Privacy Policy + Casey outreach     |
-| Apple APNS             | Title-only string + `data.route` + `data.id` (UUID)     | "During delivery only" per Apple's documented behavior               | Privacy Policy                                        |
-| Google FCM             | Title-only string + `data.route` + `data.id` (UUID)     | "During delivery only" per Google's documented behavior              | Privacy Policy                                        |
-| Device OS              | Title-only string at lockscreen; full payload in-app    | OS-managed (varies by user's settings)                               | Privacy Policy                                        |
-| Anyone with device access | Title-only string at lockscreen (uniform across triggers per H4) | Until user dismisses                                                 | Privacy Policy (Mara persona-specific section)        |
+| Party                     | What they see                                                    | Retention                                                           | Disclosed where                                    |
+| ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
+| Mutual Mesh (us)          | All payload + recipient_id + delivery success/failure            | `cron_log` aggregates only (no user_id); per-user `push_tokens` row | Profile microcopy + Privacy Policy + outreach copy |
+| Expo Push (proxy)         | Title-only string + `data.route` + `data.id` (UUID)              | "During delivery only" per Expo's documented behavior               | AC-13 microcopy + Privacy Policy + Casey outreach  |
+| Apple APNS                | Title-only string + `data.route` + `data.id` (UUID)              | "During delivery only" per Apple's documented behavior              | Privacy Policy                                     |
+| Google FCM                | Title-only string + `data.route` + `data.id` (UUID)              | "During delivery only" per Google's documented behavior             | Privacy Policy                                     |
+| Device OS                 | Title-only string at lockscreen; full payload in-app             | OS-managed (varies by user's settings)                              | Privacy Policy                                     |
+| Anyone with device access | Title-only string at lockscreen (uniform across triggers per H4) | Until user dismisses                                                | Privacy Policy (Mara persona-specific section)     |
 
 **What NONE of these parties see** (load-bearing — this is the privacy contract):
+
 - The resource name
 - The claimant's handle
 - The poster's handle
@@ -341,12 +342,12 @@ Two surfaces. No new screen file; the Profile screen gets a new section.
 
 ### Component reuse map
 
-| Used component                                      | Where                                                     |
-| --------------------------------------------------- | --------------------------------------------------------- |
-| `Toggle` (NEW — DFS-7 if doesn't exist yet)         | Per-trigger preference rows                               |
-| `Button` (secondary variant)                        | "Disable all notifications"                               |
-| `FlashBanner`                                       | "Notifications enabled" / "Notifications disabled"        |
-| `LoadingSkeleton`                                   | Brief skeleton while preferences load                     |
+| Used component                              | Where                                              |
+| ------------------------------------------- | -------------------------------------------------- |
+| `Toggle` (NEW — DFS-7 if doesn't exist yet) | Per-trigger preference rows                        |
+| `Button` (secondary variant)                | "Disable all notifications"                        |
+| `FlashBanner`                               | "Notifications enabled" / "Notifications disabled" |
+| `LoadingSkeleton`                           | Brief skeleton while preferences load              |
 
 Toggle component: if `src/components/Toggle.tsx` doesn't exist yet (check during build), Shamus surfaces it to Dani via a `qa-reports/feature-*.md` proposal first per CLAUDE.md role-lane rule. Toggle should be a thin wrapper on `Pressable` + animated marker, NativeWind tokens, and respect `useReducedMotion`.
 
@@ -405,6 +406,7 @@ The default value is critical (AC-1): every existing user and every new user sta
 ### What Apple/Google see
 
 Per AC-2, the payload Apple/Google receive contains:
+
 - `title` — a fixed generic string per trigger (**3 unique values total** across the whole app — triggers 3 & 4 share "You have an update" per Steve H4)
 - `body` — empty
 - `data.route` — a screen name from a fixed set (4 possible values)
@@ -430,6 +432,7 @@ Expo's push API receives the same payload. Per Expo's documented model, they do 
 ```
 
 **Forbidden payload shapes:**
+
 - `body` with any non-empty string
 - `data` containing `handle`, `resource_name`, `description`, `category`, `postal_prefix`, `pickup_text`, `contact_handle`, `claimant_handle`
 - `data` containing the user's email or any auth-side field
@@ -452,6 +455,7 @@ const { data, error } = await supabase.rpc('register_push_token', {
 ```
 
 **Response shape:**
+
 - `data: true` on success.
 - `error: PostgrestError` on failure. Known error.message values:
   - `"Not authenticated"` — session expired.
@@ -477,6 +481,7 @@ const { data, error } = await supabase.rpc('revoke_push_token');
 ```
 
 **Response shape:**
+
 - `data: true` on success.
 - `error: PostgrestError` on failure (typically network).
 
@@ -488,6 +493,7 @@ const { data, error } = await supabase.rpc('revoke_push_token');
 ### Edge Function: `deliver_notification(trigger TEXT, recipient_id UUID, caller_user_id UUID, route_id UUID DEFAULT NULL)`
 
 **Auth:** Service-role-only. Called by:
+
 - `claim_resource()` RPC (existing — extended to call this on success) for trigger 1
 - `confirm_pickup()` RPC (Phase 2 — extended) for trigger 2
 - `approve_user()` RPC (existing) for trigger 3
@@ -513,13 +519,13 @@ NEVER called by the client directly. The Edge Function has its own privileged Su
 
 ### Error mapping (for `userFacingErrorMessage` consumption)
 
-| `error.message`                       | User-facing message                            | Recovery                             |
-| ------------------------------------- | ---------------------------------------------- | ------------------------------------ |
-| `"Not authenticated"`                 | `"Your session ended. Please sign in again."`  | Sign out + route to SignIn           |
-| `"No push preferences enabled"`       | (silent — UI already shows OFF state)          | None                                 |
-| `"Invalid platform"`                  | `"Couldn't detect your device type."`          | Generic retry                        |
-| Network / 5xx                         | `"Couldn't reach the server. Try again."`     | Retry button on FlashBanner          |
-| Anything else                         | `"Something went wrong. Please try again."`   | Generic                              |
+| `error.message`                 | User-facing message                           | Recovery                    |
+| ------------------------------- | --------------------------------------------- | --------------------------- |
+| `"Not authenticated"`           | `"Your session ended. Please sign in again."` | Sign out + route to SignIn  |
+| `"No push preferences enabled"` | (silent — UI already shows OFF state)         | None                        |
+| `"Invalid platform"`            | `"Couldn't detect your device type."`         | Generic retry               |
+| Network / 5xx                   | `"Couldn't reach the server. Try again."`     | Retry button on FlashBanner |
+| Anything else                   | `"Something went wrong. Please try again."`   | Generic                     |
 
 ## Tests (Gary writes)
 

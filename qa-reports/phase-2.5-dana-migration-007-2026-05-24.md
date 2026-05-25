@@ -13,11 +13,11 @@
 
 Single migration file that closes Quinn AC-8 and the PRIVACY.md D7 retention promise for the new `completed` lifecycle state that landed in migration 005. The nightly `prune_expired_resources()` cron job now sweeps a third batch of rows in addition to the two it already handles:
 
-| Branch | Predicate | Origin |
-|---|---|---|
-| (a) stale reserved | `status='reserved' AND status_changed_at < now() - 30 days` | schema.sql + migration 003 (unchanged) |
-| (b) stale available | `status='available' AND created_at < now() - 30 days` | schema.sql + migration 003 (unchanged) |
-| (c) **completed (NEW)** | `status='completed' AND confirmed_at IS NOT NULL AND confirmed_at < now() - 30 days` | **migration 007 (this file)** |
+| Branch                  | Predicate                                                                            | Origin                                 |
+| ----------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
+| (a) stale reserved      | `status='reserved' AND status_changed_at < now() - 30 days`                          | schema.sql + migration 003 (unchanged) |
+| (b) stale available     | `status='available' AND created_at < now() - 30 days`                                | schema.sql + migration 003 (unchanged) |
+| (c) **completed (NEW)** | `status='completed' AND confirmed_at IS NOT NULL AND confirmed_at < now() - 30 days` | **migration 007 (this file)**          |
 
 Implementation pattern is the same snapshot-then-sweep that migration 003 established: temp tables capture the IDs + photo paths, a single combined storage `DELETE` removes all photos across both batches, then row deletes happen per-batch so per-branch counts are visible. The `cron_log` row format extends migration 003's `storage_deleted=<N>` into `storage_deleted=<N>;completed_deleted=<M>` so any future parser can pull both numbers (and the per-batch breakdown is visible to Sky when reviewing the dashboard).
 
@@ -41,13 +41,13 @@ No schema changes, no new columns, no new tables, no new indexes (migration 005'
 
 ## How the format change interacts with existing observability
 
-| Field | Pre-007 (after migration 003) | Post-007 |
-|---|---|---|
-| `cron_log.success` | `true` on green run, `false` on failure | Same |
-| `cron_log.rows_affected` | Count of stale rows deleted | Count of stale + completed rows deleted (sum) |
-| `cron_log.error_text` (success) | `storage_deleted=<N>` | `storage_deleted=<N>;completed_deleted=<M>` |
-| `cron_log.error_text` (failure) | `SQLERRM` | Same |
-| 36h freshness alert | Keys off `success + ran_at`, ignores row counts | Same |
+| Field                           | Pre-007 (after migration 003)                   | Post-007                                      |
+| ------------------------------- | ----------------------------------------------- | --------------------------------------------- |
+| `cron_log.success`              | `true` on green run, `false` on failure         | Same                                          |
+| `cron_log.rows_affected`        | Count of stale rows deleted                     | Count of stale + completed rows deleted (sum) |
+| `cron_log.error_text` (success) | `storage_deleted=<N>`                           | `storage_deleted=<N>;completed_deleted=<M>`   |
+| `cron_log.error_text` (failure) | `SQLERRM`                                       | Same                                          |
+| 36h freshness alert             | Keys off `success + ran_at`, ignores row counts | Same                                          |
 
 Any future parser written against the old `storage_deleted=<N>` format keeps working — the new format is a superset (the prefix `storage_deleted=<N>` still appears at the start of the string).
 
@@ -108,6 +108,7 @@ If Sky strongly prefers per-batch storage counts, the alternative is straightfor
 Out of scope but noting it here so it's not forgotten: as of migration 007, `schema.sql`'s `prune_expired_resources()` body (lines 430-449) is now THREE migrations stale (003 added storage sweep; 005 added the `completed` state; 007 added completed-row pruning). Anyone bootstrapping a fresh Supabase project from `schema.sql` alone would get the original two-branch sweep without storage cascade — not what we want.
 
 Options:
+
 - (a) **Leave it.** Sky applies migrations after schema.sql when setting up a new project. This is the documented flow.
 - (b) **Regenerate schema.sql at a known checkpoint.** `pg_dump --schema-only` from a fully migrated Supabase project; commit as the new schema.sql. Done at end of Phase 3 or before Tier-1 invite as a clean baseline.
 

@@ -1,4 +1,5 @@
 # Phase 3+4 Security Sweep — Steve
+
 **Date:** 2026-05-24  
 **Scope:** Phase 3 + 4 code (pushNotifications.ts, pushPreferences.ts, errorReporting.ts, mapHelpers.ts, i18n.ts, Toggle.tsx, PrivacyPolicyScreen.tsx, TermsOfServiceScreen.tsx, supabase/migrations/010_fix_push_token_unique.sql)  
 **Auditor:** Steve (Security Engineer)  
@@ -8,13 +9,13 @@
 
 ## Findings Summary
 
-| # | Severity | File | Line(s) | Title | Fix |
-|---|----------|------|---------|-------|-----|
-| F1 | HIGH | `src/lib/pushNotifications.ts` | 30–32 + `migrations/009` + `migrations/010` | Server-side preference gate is documented but not implemented | Add `is_verified` + preference check to `register_push_token` RPC |
-| F2 | HIGH | `src/lib/errorReporting.ts` | 98–168 | PII heuristic gap: Expo push token format not caught | Add bracket-aware regex variant to `PII_HEURISTICS` |
-| F3 | HIGH | `src/lib/errorReporting.ts` | 116–120 | PII heuristic gap: `apikey: <value>` HTTP header format not caught | Extend token regex to match colon-delimited header format |
-| F4 | HIGH | `supabase/migrations/009_push_notifications.sql` | 272 + `migrations/010` line 171–210 | Unbounded `expo_token TEXT` — no max-length constraint | Add `CHECK (length(p_expo_token) <= 4096)` in the RPC and a column-level `CHECK` |
-| F5 | HIGH | `src/lib/policyText.ts` | 117, 186, 226 | Real email address hardcoded in user-facing UI text | Replace with a role-based or alias address before public launch; flag as DECISION FOR SKY |
+| #   | Severity | File                                             | Line(s)                                     | Title                                                              | Fix                                                                                       |
+| --- | -------- | ------------------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| F1  | HIGH     | `src/lib/pushNotifications.ts`                   | 30–32 + `migrations/009` + `migrations/010` | Server-side preference gate is documented but not implemented      | Add `is_verified` + preference check to `register_push_token` RPC                         |
+| F2  | HIGH     | `src/lib/errorReporting.ts`                      | 98–168                                      | PII heuristic gap: Expo push token format not caught               | Add bracket-aware regex variant to `PII_HEURISTICS`                                       |
+| F3  | HIGH     | `src/lib/errorReporting.ts`                      | 116–120                                     | PII heuristic gap: `apikey: <value>` HTTP header format not caught | Extend token regex to match colon-delimited header format                                 |
+| F4  | HIGH     | `supabase/migrations/009_push_notifications.sql` | 272 + `migrations/010` line 171–210         | Unbounded `expo_token TEXT` — no max-length constraint             | Add `CHECK (length(p_expo_token) <= 4096)` in the RPC and a column-level `CHECK`          |
+| F5  | HIGH     | `src/lib/policyText.ts`                          | 117, 186, 226                               | Real email address hardcoded in user-facing UI text                | Replace with a role-based or alias address before public launch; flag as DECISION FOR SKY |
 
 ---
 
@@ -34,6 +35,7 @@ The JSDoc comment in `pushNotifications.ts` explicitly documents a three-layer e
 > Layer 3: Edge Function re-checks preferences before send.
 
 Layer 2 is **not implemented** in either migration. The `register_push_token` function in migration 009 (lines 391–428) and migration 010 (lines 171–210) only check:
+
 - `auth.uid()` is not NULL (authenticated)
 - `p_expo_token` is not empty
 - `p_platform` is a valid value
@@ -45,6 +47,7 @@ Additionally, there is **no `is_verified` check** in the RPC. An authenticated b
 **Risk:** Without Layer 2, the only runtime guard against a verified user opting out on the server and then receiving notifications is the Edge Function's pre-send re-check (Layer 3, per spec AC-8). That is the correct last-line defense, but the documentation claims a Layer 2 that does not exist. A stale or compromised client could register tokens for opted-out users. Unverified users should not be push targets.
 
 **Fix:**
+
 1. In a `migration/011_register_push_token_pref_gate.sql`, add to `register_push_token`:
    ```sql
    -- Verify caller is verified
@@ -68,6 +71,7 @@ Additionally, there is **no `is_verified` check** in the RPC. An authenticated b
 
 **Description:**  
 The token heuristic regex at line 118 is:
+
 ```
 /((?:\b(?:access_)?token|\bapi[_-]?key|\bjwt|\bsecret|\bauth(?:orization)?|Bearer\s+|\bkey)\s*=?\s*)[A-Za-z0-9\-_.~+/=]{16,}/gi
 ```
@@ -80,6 +84,7 @@ Expo tokens are treated as non-credentials in the spec (DFS-1), but they are sti
 
 **Fix:**  
 Add a fifth heuristic entry to `PII_HEURISTICS`:
+
 ```ts
 {
   label: 'expo_token',
@@ -87,6 +92,7 @@ Add a fifth heuristic entry to `PII_HEURISTICS`:
   replacement: '[REDACTED_TOKEN]',
 },
 ```
+
 Place it before the generic token heuristic so the more specific pattern fires first.
 
 ---
@@ -104,6 +110,7 @@ In practice, the anon key would only appear in an error-report payload if a netw
 
 **Fix:**  
 Extend the token regex to also match colon-space separators, or add a second entry specifically for HTTP header format:
+
 ```ts
 {
   label: 'http_header_token',
@@ -111,6 +118,7 @@ Extend the token regex to also match colon-space separators, or add a second ent
   replacement: `$&`.replace(/[A-Za-z0-9\-_.~+/=]{16,}$/, REDACTED_TOKEN),
 }
 ```
+
 (Exact replacement string needs a function form — use `String.prototype.replace` with a callback in practice.)
 
 ---
@@ -123,6 +131,7 @@ Extend the token regex to also match colon-space separators, or add a second ent
 The `expo_token` column is declared as `TEXT NOT NULL` (migration 009, line 272) with no `CHECK` constraint on length. The RPC `register_push_token` in both migrations only validates `length(p_expo_token) > 0` — no upper bound.
 
 Real Expo push tokens are approximately 50–80 characters. An authenticated user can call `register_push_token` with an arbitrarily long string (e.g., 1 MB), which will:
+
 1. Be inserted into the `push_tokens` table, consuming disk space.
 2. Potentially propagate to the `deliver_notification` Edge Function, which would then attempt to send to an invalid token.
 3. Accumulate in the `push_tokens` table until the stale-token cleanup cron runs (60-day window).
@@ -131,17 +140,21 @@ This is a denial-of-wallet / storage-abuse vector since Supabase bills on storag
 
 **Fix:**  
 Add to `register_push_token` in migration 011:
+
 ```sql
 IF length(p_expo_token) > 4096 THEN
   RAISE EXCEPTION 'Token too long';
 END IF;
 ```
+
 Also add a column-level CHECK to the table definition (or via a migration ALTER):
+
 ```sql
 ALTER TABLE public.push_tokens
   ADD CONSTRAINT push_tokens_expo_token_length
     CHECK (length(expo_token) <= 4096);
 ```
+
 Note: Expo tokens are currently ~64 chars, so even 512 chars would be a safe cap. Using 4096 gives headroom for format evolution.
 
 ---
@@ -154,6 +167,7 @@ Note: Expo tokens are currently ~64 chars, so even 512 chars would be a safe cap
 The `PRIVACY_POLICY_TEXT` and `TERMS_OF_SERVICE_TEXT` constants hard-code `skylerhalisky@gmail.com` in three places as the public contact address for privacy requests, abuse reports, and general disputes. These strings are shipped in the app bundle and rendered directly to users in `PrivacyPolicyScreen` and `TermsOfServiceScreen`.
 
 Consequences:
+
 1. **Harassment / spam surface:** any published app exposes this email to scraping by malicious actors. A privacy-first app with marginalized-community users is a higher-than-average target.
 2. **Personal email conflation:** mixing Sky's personal Gmail with the project's legal-contact role is a PIPEDA risk. Personal accounts lack audit logging, retention controls, and role separation.
 3. **Drift risk:** if Sky ever changes email, the policy text is outdated and the user has no valid contact path — a PIPEDA compliance failure.
@@ -161,6 +175,7 @@ Consequences:
 The `policyText.test.ts` asserts `NOT LEGAL ADVICE` is the first line, but there is no test guarding this email address. A routine text edit could silently change it.
 
 **Fix:**
+
 1. **DECISION FOR SKY:** Register a dedicated contact address before launch (e.g., `privacy@mutualmesh.ca` or a ProtonMail alias). The policy text must use the project role address, not Sky's personal Gmail.
 2. Externalize the contact address to an env-driven or config-driven constant (`CONTACT_EMAIL`) so it can be updated without a release.
 3. Add a CI assertion in `policyText.test.ts` that the email present matches the expected contact address constant.
@@ -170,28 +185,28 @@ The `policyText.test.ts` asserts `NOT LEGAL ADVICE` is the first line, but there
 
 ## No-Issue Items (reviewed, clean)
 
-| File | Area | Result |
-|------|------|--------|
-| `pushPreferences.ts` | Default-OFF posture, `hasAnyTriggerEnabled`, `shouldDeliverFor`, `mergePushPreferences` master-OFF cascade | Clean — all defaults correctly off; logic is sound |
-| `pushNotifications.ts` | Token not logged (AC-12 compliance) | Clean — no `console.log(token)` present |
-| `pushNotifications.ts` | `requestPermission` — just-in-time prompt, no provisional/carPlay/criticalAlerts | Clean |
-| `errorReporting.ts` | Opt-in default `DEFAULT_OPT_IN = false` | Clean — correct privacy default |
-| `errorReporting.ts` | PII strip → truncate ordering | Clean — strips full text before truncation; correct |
-| `errorReporting.ts` | Email, postal full, postal FSA, handle heuristics | Clean for their intended patterns |
-| `errorReporting.ts` | Anon key in Authorization header — Bearer prefix IS caught by regex | Acceptable — Bearer form caught; apikey colon-form gap noted in F3 |
-| `mapHelpers.ts` | GPS-free, no `expo-location`, hardcoded city center default | Clean — no location data |
-| `mapHelpers.ts` | `clampRegionZoom` — MIN_DELTA enforcement (Jordan 2.1) | Clean |
-| `i18n.ts` | No server-side language lookup, locale stored device-local only | Clean |
-| `i18n.ts` | ICU MessageFormat used for catalogs; no `innerHTML` or `eval` | Clean — RN Text renders strings as text, no XSS vector |
-| `Toggle.tsx` | No data handling; pure UI; no console output | Clean |
-| `PrivacyPolicyScreen.tsx` | Renders `PRIVACY_POLICY_TEXT` constant in RN `Text`; no WebView | Clean — no XSS injection vector |
-| `TermsOfServiceScreen.tsx` | Same as above | Clean |
-| `migration/010` | `auth.uid()` NULL check in both RPCs | Clean |
-| `migration/010` | Platform enum check `IN ('ios', 'android', 'web')` | Clean |
-| `migration/010` | Duplicate-row cleanup before constraint add | Clean — correct data migration |
-| `migration/010` | `SECURITY DEFINER` with `SET search_path = public, auth` | Clean — search_path locked, no schema injection |
-| `migration/010` | `revoke_push_token()` deletes ALL caller rows — no cross-user delete possible | Clean |
-| `migration/010` | GRANT EXECUTE TO authenticated (not anon) | Clean |
+| File                       | Area                                                                                                       | Result                                                             |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `pushPreferences.ts`       | Default-OFF posture, `hasAnyTriggerEnabled`, `shouldDeliverFor`, `mergePushPreferences` master-OFF cascade | Clean — all defaults correctly off; logic is sound                 |
+| `pushNotifications.ts`     | Token not logged (AC-12 compliance)                                                                        | Clean — no `console.log(token)` present                            |
+| `pushNotifications.ts`     | `requestPermission` — just-in-time prompt, no provisional/carPlay/criticalAlerts                           | Clean                                                              |
+| `errorReporting.ts`        | Opt-in default `DEFAULT_OPT_IN = false`                                                                    | Clean — correct privacy default                                    |
+| `errorReporting.ts`        | PII strip → truncate ordering                                                                              | Clean — strips full text before truncation; correct                |
+| `errorReporting.ts`        | Email, postal full, postal FSA, handle heuristics                                                          | Clean for their intended patterns                                  |
+| `errorReporting.ts`        | Anon key in Authorization header — Bearer prefix IS caught by regex                                        | Acceptable — Bearer form caught; apikey colon-form gap noted in F3 |
+| `mapHelpers.ts`            | GPS-free, no `expo-location`, hardcoded city center default                                                | Clean — no location data                                           |
+| `mapHelpers.ts`            | `clampRegionZoom` — MIN_DELTA enforcement (Jordan 2.1)                                                     | Clean                                                              |
+| `i18n.ts`                  | No server-side language lookup, locale stored device-local only                                            | Clean                                                              |
+| `i18n.ts`                  | ICU MessageFormat used for catalogs; no `innerHTML` or `eval`                                              | Clean — RN Text renders strings as text, no XSS vector             |
+| `Toggle.tsx`               | No data handling; pure UI; no console output                                                               | Clean                                                              |
+| `PrivacyPolicyScreen.tsx`  | Renders `PRIVACY_POLICY_TEXT` constant in RN `Text`; no WebView                                            | Clean — no XSS injection vector                                    |
+| `TermsOfServiceScreen.tsx` | Same as above                                                                                              | Clean                                                              |
+| `migration/010`            | `auth.uid()` NULL check in both RPCs                                                                       | Clean                                                              |
+| `migration/010`            | Platform enum check `IN ('ios', 'android', 'web')`                                                         | Clean                                                              |
+| `migration/010`            | Duplicate-row cleanup before constraint add                                                                | Clean — correct data migration                                     |
+| `migration/010`            | `SECURITY DEFINER` with `SET search_path = public, auth`                                                   | Clean — search_path locked, no schema injection                    |
+| `migration/010`            | `revoke_push_token()` deletes ALL caller rows — no cross-user delete possible                              | Clean                                                              |
+| `migration/010`            | GRANT EXECUTE TO authenticated (not anon)                                                                  | Clean                                                              |
 
 ---
 
@@ -211,4 +226,4 @@ The `policyText.test.ts` asserts `NOT LEGAL ADVICE` is the first line, but there
 
 ---
 
-*Steve — Security Engineer. Read-only audit. No code modified. Findings escalated per CLAUDE.md qa-reports convention.*
+_Steve — Security Engineer. Read-only audit. No code modified. Findings escalated per CLAUDE.md qa-reports convention._

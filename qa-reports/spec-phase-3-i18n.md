@@ -233,14 +233,14 @@ All existing screens render in the user's locale. Example: HomeScreen in French:
 
 ### Component reuse map
 
-| Used component                                      | Where                                                     |
-| --------------------------------------------------- | --------------------------------------------------------- |
-| `IntlProvider` (from react-intl)                    | Wraps `<App>` — provides locale + messages                |
-| `FormattedMessage` (from react-intl)                | Inline string render                                      |
-| `FormattedDate` / `FormattedTime` / `FormattedRelativeTime` | Date/time formatting                              |
-| `formatMessage()` (imperative API from react-intl)  | Accessibility labels + dynamic strings                    |
-| `RadioGroup` (NEW or reuse)                         | Language picker in Profile                                |
-| `Button` (secondary)                                | "Reset to device language"                                |
+| Used component                                              | Where                                      |
+| ----------------------------------------------------------- | ------------------------------------------ |
+| `IntlProvider` (from react-intl)                            | Wraps `<App>` — provides locale + messages |
+| `FormattedMessage` (from react-intl)                        | Inline string render                       |
+| `FormattedDate` / `FormattedTime` / `FormattedRelativeTime` | Date/time formatting                       |
+| `formatMessage()` (imperative API from react-intl)          | Accessibility labels + dynamic strings     |
+| `RadioGroup` (NEW or reuse)                                 | Language picker in Profile                 |
+| `Button` (secondary)                                        | "Reset to device language"                 |
 
 New components: if `RadioGroup` doesn't exist (likely doesn't), Shamus files a `qa-reports/feature-radiogroup-component.md` proposal with Dani + Alex before building.
 
@@ -256,13 +256,13 @@ This section is privacy-light. Translations are copy. PRIVACY.md is unaffected b
 
 ### What is INTENTIONALLY excluded
 
-| Field                                       | Why excluded                                                                                   |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Field                                          | Why excluded                                                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Per-user language preference on `public.users` | Quinn's recommendation: device locale + AsyncStorage override is enough. DFS-4 may add it for push. |
-| AI-translation of any string                | NEVER. AC-9 hard rule.                                                                          |
-| Language detection from user-generated content | NEVER. We don't sniff a user's messages or resource descriptions to guess their language.    |
-| Reverse-translation to verify accuracy       | NEVER. Translation review is done by humans (AC-9), not by round-tripping through software.   |
-| Language as a marketing-segmentation field   | NEVER. We don't segment users by language for any purpose.                                     |
+| AI-translation of any string                   | NEVER. AC-9 hard rule.                                                                              |
+| Language detection from user-generated content | NEVER. We don't sniff a user's messages or resource descriptions to guess their language.           |
+| Reverse-translation to verify accuracy         | NEVER. Translation review is done by humans (AC-9), not by round-tripping through software.         |
+| Language as a marketing-segmentation field     | NEVER. We don't segment users by language for any purpose.                                          |
 
 ### Translation file format (English example)
 

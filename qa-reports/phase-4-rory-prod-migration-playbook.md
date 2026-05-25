@@ -56,6 +56,7 @@ Apply files in this exact order. Each file is idempotent (CREATE IF NOT EXISTS /
 **Why:** True isolation from staging. A separate organization (not just a separate project inside the staging org) ensures (a) billing isolation, (b) no shared API keys, (c) no chance a staging dashboard mis-click hits production.
 
 **Do:**
+
 1. Log into <https://supabase.com/dashboard>.
 2. Click "New organization." Name: `mutual-mesh-prod`. Region: `ca-central-1` (Montreal — Canadian data residency; matches Jordan's privacy posture).
 3. Inside the new org, click "New project." Name: `mutual-mesh-production`. Region: `ca-central-1`. DB password: generate fresh, store in 1Password (NOT in any repo, NOT in `.env`, NOT pasted into chat).
@@ -69,6 +70,7 @@ Apply files in this exact order. Each file is idempotent (CREATE IF NOT EXISTS /
 **Rollback:** Delete the project from Settings → General → "Delete project". No external state is created at this step; deletion is clean. (Note: org deletion is a separate, slower operation; delete the project first, then the org if you want full teardown.)
 
 **EAS profile pointer:**
+
 - `production` profile in `eas.json` uses `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from this new project.
 - `development` and `preview` profiles continue to point at **staging**. Do NOT update them.
 
@@ -129,6 +131,7 @@ If Steve has shipped 008 by the time Sky runs this playbook, apply it in slot 8 
 
 **Rollback for Step 2:**
 Each migration ships with a `-- ROLLBACK:` comment block at the bottom (Dana's convention). If a migration partially fails:
+
 1. Read the error in the SQL Editor output.
 2. Open the migration file, scroll to the `-- ROLLBACK:` block.
 3. Paste and run the rollback SQL.
@@ -144,6 +147,7 @@ If a migration cannot be cleanly rolled back (rare — happens only if you ran i
 **Why:** Enables Postgres realtime CDC on `public.resources` so the marketplace feed can subscribe to live changes. This is a separate file because realtime publication membership is not RLS — it's a Postgres-level publication that the Supabase Realtime worker reads from.
 
 **Do:**
+
 1. SQL Editor → paste full contents of `supabase/realtime.sql`.
 2. Run.
 3. Verify:
@@ -154,9 +158,11 @@ If a migration cannot be cleanly rolled back (rare — happens only if you ran i
    Expect at least `public.resources` in the output.
 
 **Rollback:**
+
 ```sql
 ALTER PUBLICATION supabase_realtime DROP TABLE public.resources;
 ```
+
 This stops realtime broadcasts without affecting any data.
 
 ---
@@ -166,6 +172,7 @@ This stops realtime broadcasts without affecting any data.
 **Why:** PRIVACY.md D4 and Steve C1: `resource-photos` MUST be private (`public = false`). Public buckets bypass RLS — any URL anyone constructs hits the file. Our model relies on signed URLs gated by `is_verified = true`.
 
 **Do:**
+
 1. Dashboard → Storage → Buckets. Verify `resource-photos` exists.
    - If it doesn't exist, create it: name `resource-photos`, **Public = OFF**, file size limit 10 MB (matches `MAX_BYTES` in the exif-strip function), allowed MIME types `image/jpeg, image/png`.
 2. Click the bucket → Configuration → confirm "Public bucket" is OFF.
@@ -191,6 +198,7 @@ This stops realtime broadcasts without affecting any data.
 **Why:** `protect_admin_flags` trigger blocks `UPDATE … SET is_admin = true` from the `authenticated` role. Only the `service_role` (used by Supabase dashboard SQL Editor, by definition) can bypass the trigger. This is a one-time bootstrap; after Sky exists as admin, future admins are promoted via the in-app Admin UI.
 
 **Do:**
+
 1. Sign Sky up via the production app (built from `production` EAS profile — see release runbook Step 4). Complete the 3-step signup flow. Sky's row exists in `public.users` with a `pending-XXX` handle, `is_verified = false`, `is_admin = false`.
 2. In the Supabase dashboard SQL Editor, find Sky's auth UUID:
    ```sql
@@ -210,9 +218,11 @@ This stops realtime broadcasts without affecting any data.
    Expect: `is_verified = t, is_admin = t`.
 
 **Rollback:**
+
 ```sql
 UPDATE public.users SET is_verified = false, is_admin = false WHERE id = 'PASTE-SKY-UUID-HERE';
 ```
+
 Or, in extreme case, delete the row and re-signup.
 
 ---
@@ -222,6 +232,7 @@ Or, in extreme case, delete the row and re-signup.
 **Why:** `verification_log` (S8) and `cron_log` (S6) are Sky-only-SELECT, gated by a `public.config` row keyed `sky_uuid`. Without this row, even Sky cannot read the audit log.
 
 **Do:**
+
 1. SQL Editor:
    ```sql
    INSERT INTO public.config (key, value)
@@ -240,9 +251,11 @@ Or, in extreme case, delete the row and re-signup.
    Expect: a number (0 is fine; production hasn't approved anyone yet). If you get a permission-denied, the config row is wrong.
 
 **Rollback:**
+
 ```sql
 DELETE FROM public.config WHERE key = 'sky_uuid';
 ```
+
 This removes Sky's audit-log access but doesn't break anything else; you can re-insert at any time.
 
 ---
@@ -283,9 +296,11 @@ This removes Sky's audit-log access but doesn't break anything else; you can re-
    Expect either 500 with `download_failed` (function reached, file doesn't exist) or 200 (function reached, processed). 401 means your secret is wrong; 404 means the function wasn't deployed.
 
 **Rollback:**
+
 ```
 supabase functions delete exif-strip --project-ref YOUR-PRODUCTION-PROJECT-REF
 ```
+
 Then immediately disable the Storage webhook (Step 8 rollback) — otherwise new uploads will retry against a missing function and pile up errors.
 
 ---
@@ -295,6 +310,7 @@ Then immediately disable the Storage webhook (Step 8 rollback) — otherwise new
 **Why:** The function only runs if Storage events trigger it. Storage webhooks are configured in the Supabase dashboard, not in code.
 
 **Do:**
+
 1. Dashboard → Database → Webhooks → Create a new hook.
 2. Name: `resource-photos-exif-strip`.
 3. Table: `storage.objects`.
@@ -316,6 +332,7 @@ Then immediately disable the Storage webhook (Step 8 rollback) — otherwise new
     - Optional deep verification: SSH-equivalent download the raw bytes and run `exiftool` on them — expect "No EXIF data" or only width/height/encoder metadata.
 
 **Rollback:**
+
 1. Dashboard → Database → Webhooks → find `resource-photos-exif-strip` → Disable (don't delete; you may want to re-enable after a fix).
 2. Re-enable: same path, click Enable.
 
@@ -326,6 +343,7 @@ Then immediately disable the Storage webhook (Step 8 rollback) — otherwise new
 **Why:** Steve's `supabase/__tests__/rls.sql` exercises every RLS policy. Running it against production would (a) create test users in production, (b) write to production tables. We need to verify against a separate test project that mirrors the production schema.
 
 **Do:**
+
 1. Create a third Supabase project: `mutual-mesh-rls-test` (same org as production is fine — it's still isolated).
 2. Apply Steps 2 + 3 against this test project (schema + all migrations + realtime).
 3. Open `supabase/__tests__/rls.sql` — read the "How to run" comment block at the top.
@@ -344,6 +362,7 @@ Then immediately disable the Storage webhook (Step 8 rollback) — otherwise new
 **Why:** End-to-end verification that the production project actually works for a normal user flow. Catches misconfigurations that per-step verification misses (e.g., realtime not flowing, signed URLs returning 403, claim RPC erroring).
 
 **Do (Sky executes from the production EAS build):**
+
 1. **Signup as a brand-new user** (use a second email; NOT Sky's primary):
    - Open the production app.
    - Sign up → enter email → receive OTP → enter OTP → choose a generated handle → land in WaitingRoom.
@@ -403,11 +422,11 @@ There's nothing to roll back — if anything in this step fails, surface to Morg
 
 ## EAS profile pointers (for cross-reference with `eas.json`)
 
-| Profile | Supabase project | Bundle ID | Channel | Distribution |
-|---|---|---|---|---|
-| `development` | staging | `com.mutualmesh.app` | `development` | EAS Internal (sim + device) |
-| `preview` | staging | `com.mutualmesh.app` | `preview` | TestFlight + Play Internal |
-| `production` | **production (this playbook)** | `com.mutualmesh.app` | `production` | App Store + Play Store |
+| Profile       | Supabase project               | Bundle ID            | Channel       | Distribution                |
+| ------------- | ------------------------------ | -------------------- | ------------- | --------------------------- |
+| `development` | staging                        | `com.mutualmesh.app` | `development` | EAS Internal (sim + device) |
+| `preview`     | staging                        | `com.mutualmesh.app` | `preview`     | TestFlight + Play Internal  |
+| `production`  | **production (this playbook)** | `com.mutualmesh.app` | `production`  | App Store + Play Store      |
 
 The `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in each profile's `env` block control which Supabase project that build talks to. The keys themselves are NOT secrets (RLS gates them); the placeholders in `eas.json` exist so the project can be cloned without secrets leaking, and Sky fills the real values locally before the first build.
 

@@ -125,6 +125,7 @@ Approved. Note that DFS-4 option (b) — "tap polygon → zoom into a deeper map
 AC-12 specifies the FSA polygon GeoJSON is bundled at build time, filtered to Toronto + Hamilton + Vancouver (Casey's seed plan). Adding a new city later requires a rebuild.
 
 The license of the source data matters:
+
 - **Statistics Canada Postal Code Boundary File** is available under the Open Government Licence – Canada (OGL-Canada 2.0), which permits unrestricted use including commercial, with an attribution requirement.
 - **Canada Post FSA boundaries** — Canada Post sells FSA polygon data commercially; using their data requires a license. We should NOT use Canada Post's data without a paid license.
 
@@ -238,18 +239,18 @@ This makes the map render usage explicit in the inventory rather than hidden in 
 
 ## Summary table
 
-| Concern # | Topic | Verdict | Blocking? |
-| --------- | ----- | ------- | --------- |
-| 1 | Tile provider leaks request metadata | Address via PRIVACY.md amendment + microcopy + DFS-MAP-1 | BLOCKING (3 sub-conditions) |
-| 2 | FSA-radius = smallest precision, never street-level zoom | APPROVED with two BLOCKING sub-conditions (tile-style configuration + small-cell suppression) | BLOCKING |
-| 3 | Screen-reader alternative is non-negotiable | APPROVED, recommend future-feature rule | NO |
-| 4 | Offline behavior — graceful fallback, no tile-request queue | APPROVED with one BLOCKING sub-condition (no-retry verification) | BLOCKING |
-| 5 | `expo-location` never imported | APPROVED, harden with CI grep test | NO |
-| 6 | Aggregation client-side, no new server query | APPROVED with JOIN-not-separate-query check | NO |
-| 7 | Color gradient single-dimension only | APPROVED | NO |
-| 8 | Tap-polygon → filtered LIST | APPROVED | NO |
-| 9 | GeoJSON license — Statistics Canada vs Canada Post | Resolve via DFS-MAP-2 | NO (DECISION) |
-| 10 | Map opt-in, default List | APPROVED | NO |
+| Concern # | Topic                                                       | Verdict                                                                                       | Blocking?                   |
+| --------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------- |
+| 1         | Tile provider leaks request metadata                        | Address via PRIVACY.md amendment + microcopy + DFS-MAP-1                                      | BLOCKING (3 sub-conditions) |
+| 2         | FSA-radius = smallest precision, never street-level zoom    | APPROVED with two BLOCKING sub-conditions (tile-style configuration + small-cell suppression) | BLOCKING                    |
+| 3         | Screen-reader alternative is non-negotiable                 | APPROVED, recommend future-feature rule                                                       | NO                          |
+| 4         | Offline behavior — graceful fallback, no tile-request queue | APPROVED with one BLOCKING sub-condition (no-retry verification)                              | BLOCKING                    |
+| 5         | `expo-location` never imported                              | APPROVED, harden with CI grep test                                                            | NO                          |
+| 6         | Aggregation client-side, no new server query                | APPROVED with JOIN-not-separate-query check                                                   | NO                          |
+| 7         | Color gradient single-dimension only                        | APPROVED                                                                                      | NO                          |
+| 8         | Tap-polygon → filtered LIST                                 | APPROVED                                                                                      | NO                          |
+| 9         | GeoJSON license — Statistics Canada vs Canada Post          | Resolve via DFS-MAP-2                                                                         | NO (DECISION)               |
+| 10        | Map opt-in, default List                                    | APPROVED                                                                                      | NO                          |
 
 **BLOCKER count: 4 clusters (Concern 1.1/1.2/1.3; Concern 2.1/2.2; Concern 4.1; Concern 9 is a DECISION, not a blocker).**
 **PRIVACY.md edits proposed: 3 (1 new tile-provider subsection + 1 inventory clarification + 1 new D12 decision).**

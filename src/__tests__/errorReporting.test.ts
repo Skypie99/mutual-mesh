@@ -129,8 +129,7 @@ describe('stripPii — expo_token heuristic', () => {
   });
 
   it('redacts multiple Expo tokens in one string', () => {
-    const input =
-      'tokens: ExponentPushToken[AAA111] and ExponentPushToken[BBB222]';
+    const input = 'tokens: ExponentPushToken[AAA111] and ExponentPushToken[BBB222]';
     const output = stripPii(input);
     expect((output.match(/\[REDACTED_TOKEN\]/g) ?? []).length).toBe(2);
     expect(output).not.toContain('ExponentPushToken[');
@@ -172,9 +171,7 @@ describe('stripPii — http_header_token heuristic', () => {
 
 describe('stripPii — email heuristic', () => {
   it('redacts a plain email', () => {
-    expect(stripPii('user alice@example.com signed in')).toBe(
-      `user ${REDACTED_EMAIL} signed in`,
-    );
+    expect(stripPii('user alice@example.com signed in')).toBe(`user ${REDACTED_EMAIL} signed in`);
   });
 
   it('redacts multiple emails in one string', () => {
@@ -239,9 +236,7 @@ describe('stripPii — handle heuristic', () => {
   });
 
   it('redacts our generated adjective-noun-NNNN handle shape', () => {
-    expect(stripPii('user happy-koala-1234 conflict')).toBe(
-      `user ${REDACTED_HANDLE} conflict`,
-    );
+    expect(stripPii('user happy-koala-1234 conflict')).toBe(`user ${REDACTED_HANDLE} conflict`);
   });
 
   it('does not redact short identifiers below the handle length floor', () => {

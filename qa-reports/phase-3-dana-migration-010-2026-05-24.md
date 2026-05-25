@@ -75,6 +75,7 @@ Sky applies via the Supabase dashboard SQL editor. Numbered, copy-paste-able:
    one DROP FUNCTION, two GRANT EXECUTE. No errors.
 
 6. Verify the constraint swap:
+
    ```sql
    -- Old constraint should NOT exist:
    SELECT 1 FROM pg_constraint
@@ -90,6 +91,7 @@ Sky applies via the Supabase dashboard SQL editor. Numbered, copy-paste-able:
    ```
 
 7. Smoke-test token rotation (as an authenticated test user):
+
    ```sql
    -- Register an iOS token
    SELECT public.register_push_token('ExponentPushToken[aaa111]', 'ios');

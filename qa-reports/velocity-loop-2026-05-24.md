@@ -9,6 +9,7 @@
 ## 1. Dependency Graph
 
 nodes:
+
 - `steve/fix-types#1` (Steve, fix typecheck — update database.ts + resources.ts for Phase 2+3 types)
 - `shamus/map-screen#1` (Shamus, build ResourceMapScreen + map helpers + i18n setup)
 - `dana/migration-010#1` (Dana, write migration 010 — fix push_tokens UNIQUE constraint)
@@ -16,6 +17,7 @@ nodes:
 - `steve/sweep#1` (Steve, security sweep on all Phase 3+4 code)
 
 edges:
+
 - `steve/fix-types#1` → `shamus/map-screen#1` (gate: typecheck must be green before Shamus builds)
 - `steve/fix-types#1` → `gary/verify-green#1` (gate: types fixed first)
 - `shamus/map-screen#1` → `gary/verify-green#1` (data: new code needs test verification)
@@ -35,6 +37,7 @@ edges:
 - {node: none, why: n/a, unblock: n/a, type: n/a}
 
 No blocked nodes. All prerequisites are met:
+
 - .git/index.lock is CLEARED (verified this cycle)
 - Quinn's push spec revision COMPLETED (803 lines, all C1/C2/C3 resolved)
 - Jordan's Phase 3 reviews all landed (APPROVED_WITH_CONDITIONS)
@@ -51,6 +54,7 @@ No blocked nodes. All prerequisites are met:
 ## 5. Duplication Report
 
 No duplications detected this cycle. Prior 7 days of qa-reports surveyed (30 files in qa-reports/). Confirmed: no role is being asked to repeat shipped work. Specifically:
+
 - Push code already shipped by Shamus — this cycle does NOT rebuild push, only fixes types
 - Gary's coverage audit already landed (+51 tests) — this cycle does NOT re-audit, only verifies green
 - Map + i18n were NOT completed by prior agents — confirmed by file absence (no MapScreen, no i18n files)
@@ -59,20 +63,20 @@ No duplications detected this cycle. Prior 7 days of qa-reports surveyed (30 fil
 
 ## Current State Summary
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| Tests | 309 passing / 18 suites | GREEN |
-| Typecheck | 11 errors | RED — Phase 2+3 types not in database.ts |
-| Lint | green | |
-| Migrations | 002-009 as files | Sky applies; 010 needed for push fix |
-| .git/index.lock | CLEARED | Will can commit |
-| Screens | 12 | Missing: MapScreen |
-| Phase 3 Push | Code shipped, types broken | Spec revised, migration 010 pending |
-| Phase 3 Map | NOT BUILT | Jordan approved, spec exists |
-| Phase 3 i18n | NOT BUILT | Jordan approved, spec exists |
-| Phase 4 Error Reporting | Shipped | errorReporting.ts + migration 008 |
-| Phase 4 EAS/Release | Shipped | eas.json + runbook + playbook |
-| Phase 4 Policy/ToS | Shipped | PrivacyPolicyScreen + TermsOfServiceScreen |
+| Metric                  | Value                      | Notes                                      |
+| ----------------------- | -------------------------- | ------------------------------------------ |
+| Tests                   | 309 passing / 18 suites    | GREEN                                      |
+| Typecheck               | 11 errors                  | RED — Phase 2+3 types not in database.ts   |
+| Lint                    | green                      |                                            |
+| Migrations              | 002-009 as files           | Sky applies; 010 needed for push fix       |
+| .git/index.lock         | CLEARED                    | Will can commit                            |
+| Screens                 | 12                         | Missing: MapScreen                         |
+| Phase 3 Push            | Code shipped, types broken | Spec revised, migration 010 pending        |
+| Phase 3 Map             | NOT BUILT                  | Jordan approved, spec exists               |
+| Phase 3 i18n            | NOT BUILT                  | Jordan approved, spec exists               |
+| Phase 4 Error Reporting | Shipped                    | errorReporting.ts + migration 008          |
+| Phase 4 EAS/Release     | Shipped                    | eas.json + runbook + playbook              |
+| Phase 4 Policy/ToS      | Shipped                    | PrivacyPolicyScreen + TermsOfServiceScreen |
 
 ## Typecheck Errors (11 total — all type definition gaps)
 

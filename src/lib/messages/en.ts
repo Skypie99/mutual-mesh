@@ -70,8 +70,7 @@ const en: MessageCatalog = {
   'detail.contact.warning':
     'This handle is provided by the poster. Verify before sharing personal details.',
   'detail.claim.button': 'Claim this item',
-  'detail.claim.hint':
-    'Reserves this item for you and reveals the poster\'s contact handle.',
+  'detail.claim.hint': "Reserves this item for you and reveals the poster's contact handle.",
   'detail.claim.modal.title': 'Claim this item?',
   'detail.claim.modal.body':
     "Once you claim, the poster's contact handle is revealed to you. They'll see your handle too. Other users can't claim it after that.",
@@ -86,18 +85,15 @@ const en: MessageCatalog = {
   // Add resource
   // ──────────────────────────────────────────────────────────────────────────
   'addResource.title': 'Post a resource',
-  'addResource.photoNotice':
-    'Photos uploaded here have all metadata removed automatically.',
+  'addResource.photoNotice': 'Photos uploaded here have all metadata removed automatically.',
   'addResource.name.label': 'What is it?',
   'addResource.name.hint': "e.g., 'Sensitive baby formula, unopened'",
   'addResource.description.label': 'Details',
-  'addResource.description.hint':
-    'Quantity, expiry, allergens, anything a recipient should know.',
+  'addResource.description.hint': 'Quantity, expiry, allergens, anything a recipient should know.',
   'addResource.pickup.label': 'Pickup info',
   'addResource.pickup.hint': 'Where and when. Be as specific or vague as you want.',
   'addResource.contact.label': 'Contact handle (revealed only on claim)',
-  'addResource.contact.hint':
-    'Signal handle, Proton email, or any handle you trust. No links.',
+  'addResource.contact.hint': 'Signal handle, Proton email, or any handle you trust. No links.',
   'addResource.photo.label': 'Photo (optional)',
   'addResource.photo.metadataNotice':
     'All metadata (location, device, time) is stripped before upload.',
@@ -109,8 +105,7 @@ const en: MessageCatalog = {
   'addResource.submitting': 'Posting…',
   'addResource.cancel': 'Cancel',
   'addResource.error.post': 'Could not post your resource.',
-  'addResource.error.photoPerm':
-    'Photo library permission denied. You can post without a photo.',
+  'addResource.error.photoPerm': 'Photo library permission denied. You can post without a photo.',
 
   // ──────────────────────────────────────────────────────────────────────────
   // Profile
@@ -126,20 +121,18 @@ const en: MessageCatalog = {
   'profile.errorReporting.hint': 'No personal data — only crash counts.',
   'profile.signOut': 'Sign out',
   'profile.deleteAccount': 'Delete my account',
-  'profile.deleteAccount.hint':
-    'Permanently deletes your account, posts, and active claims.',
+  'profile.deleteAccount.hint': 'Permanently deletes your account, posts, and active claims.',
   'profile.deleteAccount.modal.title': 'Delete your account?',
   'profile.deleteAccount.modal.body':
     'This removes your account, your posts, and your claims from Mutual Mesh immediately. ' +
     'Honest disclosure: Supabase keeps automatic backups for ~7 days, so the data is technically ' +
-    'recoverable from a backup during that window. We cannot scrub backups — that\'s a platform limit. ' +
+    "recoverable from a backup during that window. We cannot scrub backups — that's a platform limit. " +
     'You can sign up again with the same email later if you want.',
   'profile.deleteAccount.modal.confirm': 'Yes, delete',
   'profile.deleteAccount.modal.cancel': 'Cancel',
   'profile.deleteAccount.error': 'Could not delete your account.',
   'profile.language.title': 'Language',
-  'profile.language.description':
-    'Sets the language of the app. Defaults to your device language.',
+  'profile.language.description': 'Sets the language of the app. Defaults to your device language.',
   'profile.language.reset': 'Reset to device language',
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -170,8 +163,7 @@ const en: MessageCatalog = {
   'auth.error.resend': 'Could not re-send code.',
   'auth.error.emailRequired': 'Email and password are required.',
   'auth.error.passwordShort': 'Password must be at least 8 characters.',
-  'auth.error.inviteShort':
-    'Invite code looks too short. Double-check what you pasted.',
+  'auth.error.inviteShort': 'Invite code looks too short. Double-check what you pasted.',
   'auth.error.inviteInvalid':
     'That invite code is invalid or already used. Ask the person who gave it to you for a fresh one.',
   'auth.info.checkEmail': 'Check your email for a 6-digit code.',

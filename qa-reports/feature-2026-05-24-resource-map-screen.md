@@ -13,10 +13,12 @@ Built the `ResourceMapScreen` (Phase 3.2) — a privacy-safe, FSA-aggregated nei
 **Privacy posture (Jordan-approved):** FSA-polygon granularity only — never GPS pins, never street-level zoom. Location permission is entirely optional and foreground-only. Exact resource counts are never shown — only privacy-safe bucket labels ("a few", "several", "many").
 
 **Where it lives:** `src/screens/ResourceMapScreen.tsx`. Reachable via:
+
 1. `HomeScreen` → MapToggle "Map" tab → `navigation.navigate('ResourceMap')`
 2. Any future deep-link to `HomeStack → ResourceMap`
 
 **User flow:**
+
 1. User is on the Feed; sees the MapToggle at the top.
 2. Taps "Map" → navigates to `ResourceMapScreen`.
 3. Screen fetches resources via `useResources` and groups them by FSA client-side.
@@ -29,6 +31,7 @@ Built the `ResourceMapScreen` (Phase 3.2) — a privacy-safe, FSA-aggregated nei
 10. Tapping "List" in MapToggle → `navigation.navigate('Feed')`.
 
 **Components & data:**
+
 - `useResources` hook (same as HomeScreen — no new queries)
 - `groupResourcesByFSA` + `fsaMapSummary` + `fsaAccessibilityLabel` from `fsaAggregation.ts`
 - `BUCKET_FILL_COLORS_LIGHT/DARK`, `DEFAULT_REGION`, `clampRegionZoom` from `mapHelpers.ts`
@@ -40,6 +43,7 @@ Built the `ResourceMapScreen` (Phase 3.2) — a privacy-safe, FSA-aggregated nei
 - `expo-location` — dynamic require with inline type shim (graceful fallback if not installed)
 
 **Accessibility plan (implemented):**
+
 - `MapToggle` has `tablist`/`tab` roles (built into component)
 - Map container: `accessibilityRole="image"` + `accessibilityLabel` = map summary string
 - FSA chips: `accessibilityRole="button"`, full label from `fsaAccessibilityLabel()`, `accessibilityHint`
@@ -50,6 +54,7 @@ Built the `ResourceMapScreen` (Phase 3.2) — a privacy-safe, FSA-aggregated nei
 - "Center on me" button: `accessibilityState={{ busy: locating }}` while GPS active
 
 **Assumptions:**
+
 1. `expo-location` is not yet installed — used `require()` with an inline type shim so tsc passes. When installed, the button will work live.
 2. `react-native-maps` is not yet installed — `MAP_LIBRARY_INSTALLED = false` renders the chip-list fallback. Flip to `true` when installed.
 3. `onSelectFsa` in the nav passes `fsa` back — but `Feed` route has no filter param yet. Simplified to `navigate('Feed')` (full list). FSA filtering is Phase 4 scope.
@@ -75,11 +80,11 @@ Built the `ResourceMapScreen` (Phase 3.2) — a privacy-safe, FSA-aggregated nei
 
 **Files modified:**
 
-| File | Change |
-|---|---|
-| `src/screens/ResourceMapScreen.tsx` | Full rewrite — FSA chips, preview Modal sheet, center-on-me, MapToggle, useResources internal fetch, react-native-maps flag |
-| `src/screens/HomeScreen.tsx` | Added `MapToggle` import + `onOpenMap` prop + toggle render above feed |
-| `src/navigation/RootNavigator.tsx` | Wired `onOpenMap → navigate('ResourceMap')` on HomeScreen; removed stale `resources={[]}` prop from ResourceMapScreen (now self-fetching) |
+| File                                | Change                                                                                                                                    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/screens/ResourceMapScreen.tsx` | Full rewrite — FSA chips, preview Modal sheet, center-on-me, MapToggle, useResources internal fetch, react-native-maps flag               |
+| `src/screens/HomeScreen.tsx`        | Added `MapToggle` import + `onOpenMap` prop + toggle render above feed                                                                    |
+| `src/navigation/RootNavigator.tsx`  | Wired `onOpenMap → navigate('ResourceMap')` on HomeScreen; removed stale `resources={[]}` prop from ResourceMapScreen (now self-fetching) |
 
 **Key new patterns:**
 
@@ -92,33 +97,46 @@ Built the `ResourceMapScreen` (Phase 3.2) — a privacy-safe, FSA-aggregated nei
 ## Proposals (NOT applied — need your review)
 
 ### Install expo-location
+
 When ready for the "Center on me" button to work:
+
 ```bash
 npx expo install expo-location
 ```
+
 Then add to `app.json` permissions:
+
 ```json
 {
   "expo": {
     "plugins": [
-      ["expo-location", {
-        "locationWhenInUseUsageDescription": "Used to center the map on your neighborhood."
-      }]
+      [
+        "expo-location",
+        {
+          "locationWhenInUseUsageDescription": "Used to center the map on your neighborhood."
+        }
+      ]
     ]
   }
 }
 ```
+
 No code changes needed — the dynamic require already handles it.
 
 ### Install react-native-maps
+
 When ready for real map tiles:
+
 ```bash
 npx expo install react-native-maps
 ```
+
 Then in `ResourceMapScreen.tsx`:
+
 1. Flip `MAP_LIBRARY_INSTALLED` to `true`
 2. Add at top: `import MapView, { UrlTile } from 'react-native-maps';`
 3. Replace the "Map loading…" placeholder `View` with:
+
 ```tsx
 <MapView
   style={{ flex: 1 }}
@@ -130,13 +148,17 @@ Then in `ResourceMapScreen.tsx`:
   <UrlTile urlTemplate={OSM_TILE_URL} maximumZ={13} />
 </MapView>
 ```
+
 Add `OSM_TILE_URL` import from `mapHelpers.ts`.
 
 ### FSA filter on Feed
+
 `HomeStackParamList.Feed` is currently `undefined`. To support the "See all" CTA filtering the feed by FSA, add:
+
 ```ts
 Feed: { fsaFilter?: string } | undefined;
 ```
+
 And update `HomeScreen` to read `route.params?.fsaFilter` and pass it to `useResources`.
 
 ---

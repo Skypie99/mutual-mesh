@@ -137,7 +137,15 @@ export type Database = {
     Tables: {
       users: {
         Row: UserRow;
-        Insert: Omit<UserRow, 'created_at' | 'last_active_at' | 'is_verified' | 'is_admin' | 'onboarding_complete' | 'push_preferences'> & {
+        Insert: Omit<
+          UserRow,
+          | 'created_at'
+          | 'last_active_at'
+          | 'is_verified'
+          | 'is_admin'
+          | 'onboarding_complete'
+          | 'push_preferences'
+        > & {
           created_at?: string;
           last_active_at?: string;
           is_verified?: boolean;
@@ -180,7 +188,14 @@ export type Database = {
         Row: ResourceRow;
         Insert: Omit<
           ResourceRow,
-          'id' | 'created_at' | 'status_changed_at' | 'status' | 'claimed_by' | 'category' | 'confirmed_at' | 'confirmed_by'
+          | 'id'
+          | 'created_at'
+          | 'status_changed_at'
+          | 'status'
+          | 'claimed_by'
+          | 'category'
+          | 'confirmed_at'
+          | 'confirmed_by'
         > & {
           id?: string;
           created_at?: string;

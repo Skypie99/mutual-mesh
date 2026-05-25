@@ -8,13 +8,13 @@
 
 ## What's in this folder
 
-| File | Purpose | When Sky uses it |
-| --- | --- | --- |
-| `intro-listening-session.md` | Universal first contact template — listening session ask, no pitch | Cold first contact with any Tier-1 partner |
-| `what-this-is-1pager.md` | Community-facing 1-page explainer | AFTER listening session, only if partner asks "what is this?" |
-| `what-we-dont-do.md` | Honest disclaimer of things we deliberately don't do | BEFORE a pilot begins, to disqualify mismatches early |
-| `per-category-tweaks.md` | Per-category tone notes (5 categories) | Read before customizing the intro for any specific partner |
-| `README.md` | This file | When in doubt |
+| File                         | Purpose                                                            | When Sky uses it                                              |
+| ---------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `intro-listening-session.md` | Universal first contact template — listening session ask, no pitch | Cold first contact with any Tier-1 partner                    |
+| `what-this-is-1pager.md`     | Community-facing 1-page explainer                                  | AFTER listening session, only if partner asks "what is this?" |
+| `what-we-dont-do.md`         | Honest disclaimer of things we deliberately don't do               | BEFORE a pilot begins, to disqualify mismatches early         |
+| `per-category-tweaks.md`     | Per-category tone notes (5 categories)                             | Read before customizing the intro for any specific partner    |
+| `README.md`                  | This file                                                          | When in doubt                                                 |
 
 ---
 
@@ -46,14 +46,14 @@ Per `growth-strategy.md`: we don't track partner relationships or user activity 
 
 Columns Casey suggests:
 
-| Column | Notes |
-| --- | --- |
-| Partner name | Real name; private to Sky |
-| Category | One of the 5 in per-category-tweaks |
-| First contact date | When Sky sent the intro |
-| Status | Mirror partners.md statuses (Talking / Interested / Piloting / Live / Paused / Closed) |
-| Last touch date | Most recent contact |
-| Notes | Plain English. What they said. What was hard. What we'd do differently. |
+| Column             | Notes                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| Partner name       | Real name; private to Sky                                                              |
+| Category           | One of the 5 in per-category-tweaks                                                    |
+| First contact date | When Sky sent the intro                                                                |
+| Status             | Mirror partners.md statuses (Talking / Interested / Piloting / Live / Paused / Closed) |
+| Last touch date    | Most recent contact                                                                    |
+| Notes              | Plain English. What they said. What was hard. What we'd do differently.                |
 
 `community/partners.md` in the repo only tracks status + learnings — no real contact info, no email addresses, no phone numbers. The repo is git-committed and could be seen by future contributors; the spreadsheet is private to Sky.
 

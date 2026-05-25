@@ -256,14 +256,14 @@ After claim, in addition to the existing contact_handle reveal:
 
 ### Component reuse map
 
-| Used component                                      | Where                                                     |
-| --------------------------------------------------- | --------------------------------------------------------- |
-| `Button` (primary)                                  | "Open chat with poster" / "Send"                          |
-| `TextField` / `TextInput`                           | Message composer                                          |
-| `EmptyState`                                        | Brand new chat                                            |
-| `FlashBanner`                                       | Rate-limit notice / network errors                        |
-| `Card` (or new `MessageBubble`)                     | Per-message render — Shamus + Dani decide                  |
-| `LoadingSkeleton`                                   | Initial chat-load placeholder                             |
+| Used component                  | Where                                     |
+| ------------------------------- | ----------------------------------------- |
+| `Button` (primary)              | "Open chat with poster" / "Send"          |
+| `TextField` / `TextInput`       | Message composer                          |
+| `EmptyState`                    | Brand new chat                            |
+| `FlashBanner`                   | Rate-limit notice / network errors        |
+| `Card` (or new `MessageBubble`) | Per-message render — Shamus + Dani decide |
+| `LoadingSkeleton`               | Initial chat-load placeholder             |
 
 New components: `MessageBubble` (likely) — Shamus files a `qa-reports/feature-messagebubble.md` proposal with Dani before building (left-aligned vs right-aligned, color tinting, deleted-state rendering, timestamp positioning).
 
@@ -357,18 +357,18 @@ ALTER TABLE public.rate_limit_log ENABLE ROW LEVEL SECURITY;
 
 ### What is INTENTIONALLY excluded
 
-| Field                                       | Why excluded                                                                                   |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Attachments (images, files, voice)          | AC-12 — out of scope forever.                                                                  |
-| Per-message location coordinates            | Never collected.                                                                                |
-| Link previews / URL unfurling               | Out of scope; would add third-party fetch surface.                                              |
-| Reactions (emoji, like)                     | Out of scope for v1; UX bloat for a coordination tool.                                          |
-| Threading / replies                         | Out of scope; chat is linear coordination, not Slack.                                           |
-| Group chats (more than 2 participants)      | Out of scope; the post-claim contract is 1:1 (poster + claimant).                              |
-| Encryption keys per user                    | E2EE deferred to v2 with full crypto review (DFS-3).                                            |
-| Cross-claim message search                  | Out of scope; the user can scroll the per-claim chat.                                          |
-| Admin moderation tools                      | Out of scope; admins do not read chat content (Section 5 AC-2).                                |
-| Message editing                             | Out of scope for v1; delete-and-resend is the workaround. Re-evaluate post-launch.             |
+| Field                                  | Why excluded                                                                       |
+| -------------------------------------- | ---------------------------------------------------------------------------------- |
+| Attachments (images, files, voice)     | AC-12 — out of scope forever.                                                      |
+| Per-message location coordinates       | Never collected.                                                                   |
+| Link previews / URL unfurling          | Out of scope; would add third-party fetch surface.                                 |
+| Reactions (emoji, like)                | Out of scope for v1; UX bloat for a coordination tool.                             |
+| Threading / replies                    | Out of scope; chat is linear coordination, not Slack.                              |
+| Group chats (more than 2 participants) | Out of scope; the post-claim contract is 1:1 (poster + claimant).                  |
+| Encryption keys per user               | E2EE deferred to v2 with full crypto review (DFS-3).                               |
+| Cross-claim message search             | Out of scope; the user can scroll the per-claim chat.                              |
+| Admin moderation tools                 | Out of scope; admins do not read chat content (Section 5 AC-2).                    |
+| Message editing                        | Out of scope for v1; delete-and-resend is the workaround. Re-evaluate post-launch. |
 
 ### The `read_at` column
 
@@ -392,6 +392,7 @@ const { data, error } = await supabase.rpc('send_message', {
 ```
 
 **Response shape:**
+
 - `data: <message_id_uuid>` on success.
 - `error: PostgrestError` on failure. Known error.message values:
   - `"Not authenticated"` — session expired.
@@ -448,16 +449,16 @@ Per AC-7 here: if the recipient is currently ACTIVE on ChatScreen for the same c
 
 ### Error mapping (for `userFacingErrorMessage` consumption)
 
-| `error.message`                       | User-facing message                            | Recovery                             |
-| ------------------------------------- | ---------------------------------------------- | ------------------------------------ |
-| `"Not authenticated"`                 | `"Your session ended. Please sign in again."`  | Sign out + route to SignIn           |
-| `"Forbidden: not a participant"`      | `"You're not part of this conversation."`     | Pop to Home                          |
-| `"Rate limited"`                      | `"You're sending too fast. Try again in a minute."` | FlashBanner; input stays         |
-| `"Empty body"`                        | (silent — Send button is disabled anyway)      | UI prevents                          |
-| `"Body too long"`                     | `"Message is too long. Trim to 1000 characters."` | Counter on input                  |
-| `"Chat closed"`                       | `"This chat is closed because pickup is complete."` | Input disabled                  |
-| Network / 5xx                         | `"Couldn't reach the server. Try again."`     | Retry; input stays                   |
-| Anything else                         | `"Something went wrong. Please try again."`   | Generic                              |
+| `error.message`                  | User-facing message                                 | Recovery                   |
+| -------------------------------- | --------------------------------------------------- | -------------------------- |
+| `"Not authenticated"`            | `"Your session ended. Please sign in again."`       | Sign out + route to SignIn |
+| `"Forbidden: not a participant"` | `"You're not part of this conversation."`           | Pop to Home                |
+| `"Rate limited"`                 | `"You're sending too fast. Try again in a minute."` | FlashBanner; input stays   |
+| `"Empty body"`                   | (silent — Send button is disabled anyway)           | UI prevents                |
+| `"Body too long"`                | `"Message is too long. Trim to 1000 characters."`   | Counter on input           |
+| `"Chat closed"`                  | `"This chat is closed because pickup is complete."` | Input disabled             |
+| Network / 5xx                    | `"Couldn't reach the server. Try again."`           | Retry; input stays         |
+| Anything else                    | `"Something went wrong. Please try again."`         | Generic                    |
 
 ## Tests (Gary writes)
 

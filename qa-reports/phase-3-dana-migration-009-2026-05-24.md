@@ -49,7 +49,7 @@ explicit invocation.
    - `update_push_preferences(p_prefs JSONB) RETURNS JSONB` — shallow
      JSONB merge; returns merged result.
 5. **Index** `push_tokens_user_last_used_idx ON (user_id, last_used_at
-   DESC)` — supports cleanup cron AND future per-user device-listing.
+DESC)` — supports cleanup cron AND future per-user device-listing.
 6. **`prune_stale_push_tokens()` + pg_cron job at 03:30 UTC** — deletes
    tokens older than 60 days; logs aggregate count to `cron_log` per spec
    AC-5 (no per-recipient identifiers).
@@ -61,7 +61,7 @@ explicit invocation.
 ### Privacy & security alignment
 
 - **PRIVACY.md D6 (delete-cascade honesty):** `user_id` has `ON DELETE
-  CASCADE`. The existing `delete_my_account()` (schema.sql L365-392)
+CASCADE`. The existing `delete_my_account()` (schema.sql L365-392)
   cascades through `auth.users → public.users → push_tokens` automatically.
   No new code path needed; the cascade is structural.
 - **PRIVACY.md D8 (no third-party SDKs):** This migration adds NO npm
@@ -104,7 +104,7 @@ Sky applies via the Supabase dashboard SQL editor. Numbered, copy-paste-able:
    editor.
 5. Run. Expected output: one `CREATE TABLE`, one `CREATE INDEX`, one
    `ALTER TABLE` (add column), four `CREATE POLICY`, four `CREATE OR
-   REPLACE FUNCTION` (3 RPCs + cleanup), four `GRANT EXECUTE`, one
+REPLACE FUNCTION` (3 RPCs + cleanup), four `GRANT EXECUTE`, one
    `DO` block (cron schedule). No errors.
 6. Verify the cron job is registered:
    ```sql
@@ -219,7 +219,7 @@ Reasoning vs other candidates documented in the migration header
 (DECISIONS #8). Easy retune if Sky prefers 30, 90, or another window.
 
 - [ ] Approve 60 days (default ship)
-- [ ] Push back — change to N days: _____
+- [ ] Push back — change to N days: **\_**
 
 ### DFS-MIG9-6: Server-side preference-on enforcement in register_push_token
 
@@ -263,8 +263,8 @@ notifications.md` §"RPC contracts → Edge Function".
 
 1. **No live database touched.** This migration is FILES ONLY. The Mutual
    Mesh project has no production users yet (`STATUS line in CLAUDE.md
-   says "Schema is a FILE — not yet applied to any live Supabase
-   project"`); apply timing is at Sky's discretion.
+says "Schema is a FILE — not yet applied to any live Supabase
+project"`); apply timing is at Sky's discretion.
 2. **Migration ordering:** This is 009. Migration 008 exists in the
    directory but was not read for this work — Dana confirmed via `ls` that
    001-007 cover the existing schema chain; 008's contents do not affect
@@ -283,7 +283,7 @@ notifications.md` §"RPC contracts → Edge Function".
    Function). Jordan's FULL review of the Edge Function (when deployed)
    is where the title-only rule is finally locked.
 5. **Existing user migration:** The `ADD COLUMN ... DEFAULT '{"enabled":
-   false}'` is non-locking in recent Postgres (>11) — applies the default
+false}'` is non-locking in recent Postgres (>11) — applies the default
    without rewriting the table. Confirmed; no apply-time table lock
    expected even at scale.
 
@@ -311,7 +311,7 @@ notifications.md` §"RPC contracts → Edge Function".
 - Schema context: `/Users/skypie/MutualMesh/supabase/schema.sql`
 - Pattern references:
   `/Users/skypie/MutualMesh/supabase/migrations/005_pickup_confirmation.sql`
-  +  `/Users/skypie/MutualMesh/supabase/migrations/007_prune_completed_resources.sql`
+  - `/Users/skypie/MutualMesh/supabase/migrations/007_prune_completed_resources.sql`
 
 ---
 

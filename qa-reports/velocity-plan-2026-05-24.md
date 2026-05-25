@@ -50,6 +50,7 @@ This velocity session will ship proposals for three sequential MutualMesh cycles
 **Per-feature nodes** (each entry = role-step pair on its role-prefixed branch):
 
 **Cycle 2 — Marketplace Feed:**
+
 - `quinn/product-cycle-2#step-1 (Quinn, light spec polish)`
 - `dani/design-cycle-2#step-1 (Dani, ResourceCard variant audit + FAB design spec)`
 - `dana/data-cycle-2#step-1 (Dana, src/lib/resources.ts listResources + realtime wrapper)`
@@ -62,6 +63,7 @@ This velocity session will ship proposals for three sequential MutualMesh cycles
 - `dani/design-compile-cycle-2#step-1 (Dani Design Compiler 7-layer COMMIT/BLOCK/POLISH/ESCALATE)`
 
 **Cycle 3 — Add Resource + Photo Upload:**
+
 - `quinn/product-cycle-3#step-1 (Quinn, light spec polish — photo flow + contact_handle entry)`
 - `dani/design-cycle-3#step-1 (Dani, AddResourceScreen form layout + photo affordance + handle warning UI)`
 - `dana/data-cycle-3#step-1 (Dana, src/lib/photos.ts EXIF strip + upload + Storage RLS path-scheme exercise)`
@@ -75,14 +77,17 @@ This velocity session will ship proposals for three sequential MutualMesh cycles
 - `dani/design-compile-cycle-3#step-1 (Dani Design Compiler 7-layer)`
 
 **Mid-session QA checkpoint** (after Cycle 2 + 3, BEFORE Cycle 4):
+
 - `gary/test-mid#step-1 (Gary, unit tests: resourcesRealtime merge + EXIF strip + handleValidator usage + claim_resource wrapper readiness)`
 - `peter/perf-mid#step-1 (Peter, perf: pagination cap usage, photo upload size cost, FlatList realtime render cost, query plan review)`
 
 **Mid-session clean-code pass:**
+
 - `steve/qa-clean#step-1 (Steve, clean-code sweep on Cycle 2+3 — Const. 6.7 premature-abstraction + Const. 6.8 drive-by violations; behavior-preserving)`
 - `peter/perf-clean#step-1 (Peter, second perf pass on Dana's query patterns — propose indexes, batching, RPC consolidation)`
 
 **Cycle 4 — Resource Detail + Atomic Claim** (gated on D-V-1 resolution):
+
 - `quinn/product-cycle-4#step-1 (Quinn, light spec polish — claim flow + contact reveal copy)`
 - `dani/design-cycle-4#step-1 (Dani, ResourceDetailScreen layout + claim CTA + post-claim reveal state)`
 - `dana/data-cycle-4#step-1 (Dana, src/lib/resources.ts claimResource wrapper for supabase.rpc('claim_resource'))`
@@ -93,6 +98,7 @@ This velocity session will ship proposals for three sequential MutualMesh cycles
 - `dani/design-compile-cycle-4#step-1 (Dani Design Compiler 7-layer)`
 
 **Final safety sweep** (across whole integration branch):
+
 - `steve/qa-final#step-1 (Steve, final security & robustness pass across integration)`
 - `alex/a11y-final#step-1 (Alex, final WCAG 2.2 AA across all UI — Const. 7.5 BLOCKER if violated)`
 - `gary/test-final#step-1 (Gary, typecheck + lint + jest all GREEN + CI workflow runs locally)`
@@ -102,6 +108,7 @@ This velocity session will ship proposals for three sequential MutualMesh cycles
 **Edges** (`type` ∈ {data, gate, safety, merge}):
 
 Cycle 2:
+
 - `quinn/product-cycle-2#step-1 → dani/design-cycle-2#step-1 (gate: spec-ready)`
 - `dani/design-cycle-2#step-1 → dana/data-cycle-2#step-1 (gate: design-spec-ready)`
 - `dana/data-cycle-2#step-1 → jordan/privacy-cycle-2#step-1 (data: schema-touched-by-code)`
@@ -114,6 +121,7 @@ Cycle 2:
 - `dani/design-compile-cycle-2#step-1 → [Cycle 3 start] (gate: COMMIT decision required to advance)`
 
 Cycle 3:
+
 - `[Cycle 2 compile COMMIT] → quinn/product-cycle-3#step-1 (gate: prev-cycle-done)`
 - `quinn/product-cycle-3#step-1 → dani/design-cycle-3#step-1 (gate: spec-ready)`
 - `dani/design-cycle-3#step-1 → dana/data-cycle-3#step-1 (gate: design-spec-ready)`
@@ -127,16 +135,19 @@ Cycle 3:
 - `alex/a11y-cycle-3#step-1 → dani/design-compile-cycle-3#step-1 (gate: a11y-pass-ready)`
 
 Mid-session:
+
 - `dani/design-compile-cycle-3#step-1 → gary/test-mid#step-1 (gate: COMMIT decision required to enter checkpoint)`
 - `gary/test-mid#step-1 → peter/perf-mid#step-1 (safety: tests-green)`
 - `peter/perf-mid#step-1 → steve/qa-clean#step-1 (safety: perf-baseline-known)`
 - `steve/qa-clean#step-1 → peter/perf-clean#step-1 (safety: clean-code-ready)`
 
 Cycle 4 (gated on D-V-1):
+
 - `peter/perf-clean#step-1 → quinn/product-cycle-4#step-1 (gate: mid-session-checkpoint-clean + D-V-1-resolved)`
 - (subsequent edges follow the same Quinn → Dani → Dana → Jordan → Shamus → Steve → Alex → Design Compiler pattern)
 
 Final sweep:
+
 - `dani/design-compile-cycle-4#step-1 → steve/qa-final#step-1 (gate: all-cycles-compiled)`
 - `steve/qa-final#step-1 → alex/a11y-final#step-1 (safety: final-security-clean)`
 - `alex/a11y-final#step-1 → gary/test-final#step-1 (safety: WCAG-AA-clean — Const. 7.5 BLOCKER if not)`
@@ -169,11 +180,11 @@ Final sweep:
 
 **Jordan trigger map (per Const. 7.6 + `commands/jordan.md` v1.11.4):**
 
-| Cycle | Feature | T1 location | T2 disability | T3 PII beyond auth | T4 RLS/auth/session | T5 external API | T6 new persistence | Verdict |
-|---|---|---|---|---|---|---|---|---|
-| 2 | Marketplace Feed | — | — | ✓ (read user-supplied content) | ✓ (exercise verified-only RLS) | — | — | 2 triggers, expected APPROVE |
-| 3 | Add Resource + Photo | ✓ (pickup_text — but D3 postal-prefix-only and user controls granularity) | — | ✓ (contact_handle + photo) | — (RLS exists from Cycle 1) | — | ✓ (Storage bucket first write) | 3 triggers, HEAVY review |
-| 4 | Resource Detail + Claim | — | — | ✓ (contact_handle reveal on claim) | ✓ (RPC RLS exercise) | — | — | 2 triggers, expected APPROVE |
+| Cycle | Feature                 | T1 location                                                               | T2 disability | T3 PII beyond auth                 | T4 RLS/auth/session            | T5 external API | T6 new persistence             | Verdict                      |
+| ----- | ----------------------- | ------------------------------------------------------------------------- | ------------- | ---------------------------------- | ------------------------------ | --------------- | ------------------------------ | ---------------------------- |
+| 2     | Marketplace Feed        | —                                                                         | —             | ✓ (read user-supplied content)     | ✓ (exercise verified-only RLS) | —               | —                              | 2 triggers, expected APPROVE |
+| 3     | Add Resource + Photo    | ✓ (pickup_text — but D3 postal-prefix-only and user controls granularity) | —             | ✓ (contact_handle + photo)         | — (RLS exists from Cycle 1)    | —               | ✓ (Storage bucket first write) | 3 triggers, HEAVY review     |
+| 4     | Resource Detail + Claim | —                                                                         | —             | ✓ (contact_handle reveal on claim) | ✓ (RPC RLS exercise)           | —               | —                              | 2 triggers, expected APPROVE |
 
 ### 4.3 Blocked Nodes
 
@@ -203,6 +214,7 @@ Final sweep:
 **No duplications detected this cycle.**
 
 Reasoning:
+
 - The in-flight `privacy/auto-2026-05-24-jordan-phase3` branch is adding **Phase 2+** features (onboarding tour, resource categories, pickup confirmation, i18n spec, map spec, push-notifications spec, admin queue, policies/TOS) — these are Cycle 5+ scope per `FEATURES.md`, separate from the Cycle 2/3/4 work in this velocity session.
 - Cycles 2, 3, 4 specs in `FEATURES.md` lines 41–71 have not been built yet (Cycle 1 is on main; Cycles 2–7 are roadmap).
 - No prior `cycle-velocity-*.md` or `velocity-plan-*.md` exists in qa-reports.
@@ -216,6 +228,7 @@ Reasoning:
 
 **Source spec:** `FEATURES.md:41–51`
 **Files Shamus writes** (new or modified, all on `feat/auto-mutualmesh-2026-05-24`):
+
 - `src/screens/HomeScreen.tsx` — FlatList of `resources` where `status='available'`, FAB → AddResource (Cycle 3), loading + empty + error states
 - `src/components/ResourceCard.tsx` — image (signed URL), name, status pill, press → ResourceDetail (Cycle 4)
 - `src/lib/resources.ts` (Dana) — `listResources()`, `subscribeResourcesRealtime()` channel adapter
@@ -229,6 +242,7 @@ Reasoning:
 
 **Source spec:** `FEATURES.md:53–61`
 **Files Shamus writes** (new or modified):
+
 - `src/screens/AddResourceScreen.tsx` — form (name 64ch / description 280ch / pickup_text 280ch / contact_handle 64ch validated), photo picker integration, submit flow
 - `src/lib/photos.ts` (Dana) — `pickAndStripPhoto()`, `uploadResourcePhoto(userId, localUri)` enforcing `<userId>/<ts>.<ext>` Storage path
 - `src/lib/resources.ts` (Dana) — `createResource()` INSERT (posted_by = auth.uid(), status = 'available')
@@ -244,6 +258,7 @@ Reasoning:
 
 **Source spec:** `FEATURES.md:63–71` (NOT Map View)
 **Files Shamus writes** (new or modified):
+
 - `src/screens/ResourceDetailScreen.tsx` — image, name, description, pickup_text, status, Claim button (gated on `status='available' && posted_by !== auth.uid()`)
 - `src/lib/resources.ts` (Dana) — `claimResource(resourceId)` wraps `supabase.rpc('claim_resource', { resource_id })`; returns `{ ok: true, contact_handle } | { ok: false, reason }`
 - `src/__tests__/resources-claim.test.ts` (Steve / Gary) — two-client race simulation (one winner; loser sees `already-reserved`)
@@ -265,7 +280,7 @@ Reasoning:
 - **Jordan can BLOCK any privacy-touching feature** (Const. 7.6) → move to next, surface as DECISION.
 - **NO subagent spawning inside the orchestrator** (Const. 1.1) — exception: Morgan's Phase 0 (≤3 parallel `Explore`).
 - **NEVER modify `main`** — Sky merges.
-- **NEVER touch `~/.claude/**` or `~/ClaudeCorp/.claude/**`** (Const. 12.6 hard exclusion).
+- **NEVER touch `~/.claude/**`or`~/ClaudeCorp/.claude/**`** (Const. 12.6 hard exclusion).
 - **Database types use `type` not `interface`** (`CLAUDE.md` Gotcha #1; AccessMap inherited LEARNINGS).
 - **NativeWind tokens only** — no raw hex, no ad-hoc spacing (Const. 2.2; `CLAUDE.md` Gotcha #2).
 - **EXIF strip mandatory on every photo upload** (`PRIVACY.md` D5; `CLAUDE.md` Gotcha #7).
@@ -290,6 +305,7 @@ Reasoning:
 ## 8. Stop Conditions (per velocity prompt)
 
 Stop cleanly when ANY:
+
 - 3 features complete + safety sweep done + Morgan briefing written.
 - Capacity is low (Const. 8.5.3 — finish current role to green typecheck, run sweep, write briefing).
 - No safe forward work remains (e.g., Jordan blocks the remaining features → triage time).

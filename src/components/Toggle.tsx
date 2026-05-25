@@ -30,7 +30,13 @@ type ToggleProps = {
  *
  * Tokens only — no raw hex (CLAUDE.md #2).
  */
-export function Toggle({ value, onChange, accessibilityLabel, accessibilityHint, disabled }: ToggleProps) {
+export function Toggle({
+  value,
+  onChange,
+  accessibilityLabel,
+  accessibilityHint,
+  disabled,
+}: ToggleProps) {
   const reduceMotion = useReducedMotion();
   // 0 = off, 1 = on. Animated for the marker slide; opacity stays at 1.
   const offset = useRef(new Animated.Value(value ? 1 : 0)).current;

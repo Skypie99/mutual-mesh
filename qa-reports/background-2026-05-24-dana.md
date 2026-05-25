@@ -20,6 +20,7 @@ proposed patches in this report are SQL/TS code blocks for Sky to apply
 deliberately — never auto-applied.
 
 Cycle preconditions checked:
+
 - `~/.claude/BACKGROUND_HALT` absent (cycle proceeds).
 - Recent Dana work scanned: `phase-3-dana-migration-009-2026-05-24.md`
   (push-notifications schema), `phase-2.5-dana-migration-007-2026-05-24.md`
@@ -35,9 +36,9 @@ Cycle preconditions checked:
 [`supabase/schema.sql`](supabase/schema.sql) (Cycle 1).** Every one of
 migrations 002–009 introduces schema shape that the TypeScript layer has
 no knowledge of. Both layers are FILE-ONLY (none applied to a live DB
-yet), but Dana's defining rule from the role brief is *"keeping
+yet), but Dana's defining rule from the role brief is _"keeping
 src/types/database.ts in lockstep with the intended schema using type,
-never interface."* The migration files express the intended schema; the
+never interface."_ The migration files express the intended schema; the
 types are 8 migrations behind.
 
 ### Why this matters before apply (not just after)
@@ -60,16 +61,16 @@ With the types stale:
 
 ### Drift inventory (table-level)
 
-| Migration | What it adds to the database | What's missing from `database.ts` |
-|---|---|---|
-| 002 | `verification_log.decision` enum gains `'demote'`; new auto-suspend cron job (no client-visible signature) | `VerificationDecision` type still 3 values (`'approve'\|'reject'\|'escalate'`); should be 4 |
-| 003 | No new tables/columns. Replaces `delete_my_account()` + `prune_expired_resources()` bodies; signatures unchanged | No type change required ✓ |
-| 004 | `resources.category TEXT NOT NULL DEFAULT 'other' CHECK (food\|hygiene\|baby\|HRT\|other)`; index `resources_category_status_idx` | `ResourceRow` missing `category`; no `ResourceCategory` enum; `Insert` shape doesn't allow `category?` |
-| 005 | `resources.status` CHECK extended to include `'completed'`; new columns `confirmed_at TIMESTAMPTZ`, `confirmed_by UUID`; new RPC `confirm_pickup(p_resource_id UUID) RETURNS BOOLEAN`; partial index `resources_confirmed_idx` | `ResourceStatus` still 2 values; `ResourceRow` missing both new columns; `Functions` map missing `confirm_pickup` |
-| 006 | `users.onboarding_complete BOOLEAN NOT NULL DEFAULT false`; new RPC `complete_onboarding() RETURNS BOOLEAN` | `UserRow` missing `onboarding_complete`; `Functions` map missing `complete_onboarding` (and the deferred `reset_onboarding` flagged in mig 006 header) |
-| 007 | No type-visible change (cron-body extension only) | No type change required ✓ |
-| 008 | New table `public.error_reports` (hash-only); new RPC `log_error(...)` | Entire `error_reports` table absent from `Tables`; `log_error` absent from `Functions` |
-| 009 | New table `public.push_tokens`; new column `users.push_preferences JSONB NOT NULL DEFAULT '{"enabled": false}'`; new RPCs `register_push_token`, `revoke_push_token`, `update_push_preferences` | Entire `push_tokens` table absent; `UserRow` missing `push_preferences`; 3 RPCs absent from `Functions` map |
+| Migration | What it adds to the database                                                                                                                                                                                                   | What's missing from `database.ts`                                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 002       | `verification_log.decision` enum gains `'demote'`; new auto-suspend cron job (no client-visible signature)                                                                                                                     | `VerificationDecision` type still 3 values (`'approve'\|'reject'\|'escalate'`); should be 4                                                            |
+| 003       | No new tables/columns. Replaces `delete_my_account()` + `prune_expired_resources()` bodies; signatures unchanged                                                                                                               | No type change required ✓                                                                                                                              |
+| 004       | `resources.category TEXT NOT NULL DEFAULT 'other' CHECK (food\|hygiene\|baby\|HRT\|other)`; index `resources_category_status_idx`                                                                                              | `ResourceRow` missing `category`; no `ResourceCategory` enum; `Insert` shape doesn't allow `category?`                                                 |
+| 005       | `resources.status` CHECK extended to include `'completed'`; new columns `confirmed_at TIMESTAMPTZ`, `confirmed_by UUID`; new RPC `confirm_pickup(p_resource_id UUID) RETURNS BOOLEAN`; partial index `resources_confirmed_idx` | `ResourceStatus` still 2 values; `ResourceRow` missing both new columns; `Functions` map missing `confirm_pickup`                                      |
+| 006       | `users.onboarding_complete BOOLEAN NOT NULL DEFAULT false`; new RPC `complete_onboarding() RETURNS BOOLEAN`                                                                                                                    | `UserRow` missing `onboarding_complete`; `Functions` map missing `complete_onboarding` (and the deferred `reset_onboarding` flagged in mig 006 header) |
+| 007       | No type-visible change (cron-body extension only)                                                                                                                                                                              | No type change required ✓                                                                                                                              |
+| 008       | New table `public.error_reports` (hash-only); new RPC `log_error(...)`                                                                                                                                                         | Entire `error_reports` table absent from `Tables`; `log_error` absent from `Functions`                                                                 |
+| 009       | New table `public.push_tokens`; new column `users.push_preferences JSONB NOT NULL DEFAULT '{"enabled": false}'`; new RPCs `register_push_token`, `revoke_push_token`, `update_push_preferences`                                | Entire `push_tokens` table absent; `UserRow` missing `push_preferences`; 3 RPCs absent from `Functions` map                                            |
 
 Drift count: **5 tables/columns**, **5 RPC signatures**, **2 enum
 extensions** — all undocumented in the canonical TS type.
@@ -86,20 +87,21 @@ migration that introduced it so a future Dana can audit drift again at
 a glance.
 
 > **How to apply (safely, deliberately):**
->   1. Read the proposal end-to-end.
->   2. On a `data/sync-types-mig-002-009-2026-05-XX` branch, replace the
->      indicated sections of `src/types/database.ts` with the blocks
->      below.
->   3. Run `npm run typecheck` — the canary. If it surfaces breakage
->      in Shamus's Phase 2/3 UI code that was relying on the silent
->      `Partial<Row>` flexibility, that's a real correctness signal
->      worth Morgan-routing before merge.
->   4. Optional: defer the changes corresponding to migrations Sky has
->      not yet applied. Recommended pattern: ship the type extensions
->      as **optional fields** (`category?: ResourceCategory`,
->      `push_preferences?: ...`) until the matching migration is live,
->      then tighten to required. Same approach `database.ts` already
->      uses for `FlagRow.updated_at` in AccessMap (lines 25-28).
+>
+> 1. Read the proposal end-to-end.
+> 2. On a `data/sync-types-mig-002-009-2026-05-XX` branch, replace the
+>    indicated sections of `src/types/database.ts` with the blocks
+>    below.
+> 3. Run `npm run typecheck` — the canary. If it surfaces breakage
+>    in Shamus's Phase 2/3 UI code that was relying on the silent
+>    `Partial<Row>` flexibility, that's a real correctness signal
+>    worth Morgan-routing before merge.
+> 4. Optional: defer the changes corresponding to migrations Sky has
+>    not yet applied. Recommended pattern: ship the type extensions
+>    as **optional fields** (`category?: ResourceCategory`,
+>    `push_preferences?: ...`) until the matching migration is live,
+>    then tighten to required. Same approach `database.ts` already
+>    uses for `FlagRow.updated_at` in AccessMap (lines 25-28).
 
 ### Section A — extend enums
 
@@ -184,12 +186,12 @@ export type ResourceRow = {
 // raw text never lands here.
 export type ErrorReportRow = {
   id: string;
-  message_hash: string;     // SHA-256 hex of (PII-scrubbed) error message
-  stack_hash: string;       // SHA-256 hex of (PII-scrubbed) stack trace
+  message_hash: string; // SHA-256 hex of (PII-scrubbed) error message
+  stack_hash: string; // SHA-256 hex of (PII-scrubbed) stack trace
   app_version: string;
   platform: 'ios' | 'android' | 'web';
   severity: 'fatal' | 'error' | 'warn';
-  occurrences: number;      // upsert counter — incremented on duplicate (msg, stack)
+  occurrences: number; // upsert counter — incremented on duplicate (msg, stack)
   first_seen_at: string;
   last_seen_at: string;
 };
@@ -333,7 +335,7 @@ intentionally not blocked. Two thoughts:
   `auto_suspend_inactive_admins` (mig 002) but worth documenting
   alongside the migration so a future reader doesn't ask "why does
   this even work?". Proposal: add a one-line `COMMENT ON FUNCTION
-  protect_admin_flags() IS '...'` covering the matrix.
+protect_admin_flags() IS '...'` covering the matrix.
 
 **Proposal (no commit):**
 
@@ -404,7 +406,7 @@ Section F above declares `Returns: PushPreferences`. The migration body
 should match — confirm in `009_push_notifications.sql` that the RPC
 returns the merged JSONB cast back to the same shape. If it returns
 `JSONB` raw, postgrest-js will surface it as `unknown` in the client;
-the type proposal is the *intent* the migration should match.
+the type proposal is the _intent_ the migration should match.
 
 ## DECISIONS FOR SKY
 
@@ -412,13 +414,13 @@ the type proposal is the *intent* the migration should match.
    improvement to MutualMesh's data layer right now. Three apply
    options:
    - (a) Ship the full patch in one PR, all-required fields. Best if
-         Sky plans to apply migrations 002–009 imminently.
+     Sky plans to apply migrations 002–009 imminently.
    - (b) Ship the patch with the staging strategy (Section G) — every
-         post-Cycle-1 field optional. Safer if migrations will land
-         staggered.
+     post-Cycle-1 field optional. Safer if migrations will land
+     staggered.
    - (c) Defer until Sky has applied at least 1 migration to a live
-         DB, then sync types in batches matching the apply order. Most
-         conservative.
+     DB, then sync types in batches matching the apply order. Most
+     conservative.
 2. **Decide on the `confirm_pickup` parameter rename** (`p_resource_id`
    → `resource_id`). Tiny cosmetic followup if yes; nothing to do if no.
 3. **Schedule `010_rls_initplan_optimization.sql`** as a Steve+Dana

@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mutualmesh-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "web", "--", "--port", "$PORT"],
+      "port": 8082,
+      "autoPort": true
+    }
+  ]
+}

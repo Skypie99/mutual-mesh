@@ -10,6 +10,7 @@
 ## 1. Dependency Graph
 
 ### nodes:
+
 - `stabilization/crash-guards#1` (Morgan-directed, all roles, fix crash risks P1-P6)
 - `security/F2-F3#1` (Steve finding, errorReporting.ts — Expo token + HTTP header PII regex)
 - `dana/migration-011#1` (Dana, migration — F1 push gate + F4 max-length constraint)
@@ -21,6 +22,7 @@
 - `shamus/chat-build#1` (Shamus, blocked — needs Sky approval + Jordan BLOCKINGs resolved)
 
 ### edges:
+
 - `stabilization/crash-guards#1` → `security/F2-F3#1` (gate: clean base before adding heuristics)
 - `security/F2-F3#1` → `dana/migration-011#1` (parallel — same security sweep cycle)
 - `security/F2-F3#1` → `gary/verify-365#1` (gate: test count must hold after heuristic additions)
@@ -71,6 +73,7 @@
 No duplications detected this cycle.
 
 Prior 7 days of qa-reports surveyed (2026-05-17 through 2026-05-24, all 30 qa-report files):
+
 - No role was asked to repeat shipped work.
 - Dana's migration 011 is additive to migration 010 (no overlap — 010 fixed the UNIQUE constraint; 011 adds security guards to the RPC).
 - Jordan's chat review is the first privacy review of Phase 3.3 chat — no prior Jordan pass existed on that spec.
@@ -83,12 +86,12 @@ Prior 7 days of qa-reports surveyed (2026-05-17 through 2026-05-24, all 30 qa-re
 
 ### Committed to `feat/resource-map-screen-2026-05-24` (4 commits ahead of main)
 
-| Commit | What |
-|--------|------|
-| `aa8b460` | ResourceMapScreen (Phase 3.2) — FSA-aggregated map, preview sheet, MapToggle, expo-location stub |
-| `579d376` | Feature report for ResourceMapScreen |
+| Commit    | What                                                                                                                         |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `aa8b460` | ResourceMapScreen (Phase 3.2) — FSA-aggregated map, preview sheet, MapToggle, expo-location stub                             |
+| `579d376` | Feature report for ResourceMapScreen                                                                                         |
 | `6a44bcc` | Post-build stabilization — 12 fixes across 26 files (crash guards, a11y roles, type safety, privacy markers, key versioning) |
-| `4d06b6c` | Security fixes F1-F4: 2 new PII heuristics, 6 new tests, migration 011 (push gate + max-length), Jordan chat review |
+| `4d06b6c` | Security fixes F1-F4: 2 new PII heuristics, 6 new tests, migration 011 (push gate + max-length), Jordan chat review          |
 
 **Toolchain at commit `4d06b6c`:** tsc: 0 errors · jest: 365/20 green · lint: 0 errors
 
@@ -106,15 +109,15 @@ Prior 7 days of qa-reports surveyed (2026-05-17 through 2026-05-24, all 30 qa-re
 
 ## Known Risks and Uncertainties
 
-| Risk | Severity | Status |
-|------|----------|--------|
-| F5: Personal email in policyText.ts | HIGH | DECISION FOR SKY — Will can fix the text once address is chosen |
-| push_token `is_verified` gate missing (Layer 2) | HIGH | FIXED in migration 011 — apply via dashboard |
-| Expo push token + HTTP header token not stripped from errors | HIGH | FIXED in commit 4d06b6c |
-| Branch switch mid-session by background Dana agent | LOW | Self-resolved — work recovered and recommitted |
-| expo-location + react-native-maps not installed | MEDIUM | Sky install step — map falls back to chip list UI until installed |
-| Migrations 002-011 not applied to any live instance | CRITICAL | Sky applies via dashboard before any user can sign up |
-| Chat (Phase 3.3) regulatory category change | HIGH | Awaiting Sky sequencing decision — do not build without it |
+| Risk                                                         | Severity | Status                                                            |
+| ------------------------------------------------------------ | -------- | ----------------------------------------------------------------- |
+| F5: Personal email in policyText.ts                          | HIGH     | DECISION FOR SKY — Will can fix the text once address is chosen   |
+| push_token `is_verified` gate missing (Layer 2)              | HIGH     | FIXED in migration 011 — apply via dashboard                      |
+| Expo push token + HTTP header token not stripped from errors | HIGH     | FIXED in commit 4d06b6c                                           |
+| Branch switch mid-session by background Dana agent           | LOW      | Self-resolved — work recovered and recommitted                    |
+| expo-location + react-native-maps not installed              | MEDIUM   | Sky install step — map falls back to chip list UI until installed |
+| Migrations 002-011 not applied to any live instance          | CRITICAL | Sky applies via dashboard before any user can sign up             |
+| Chat (Phase 3.3) regulatory category change                  | HIGH     | Awaiting Sky sequencing decision — do not build without it        |
 
 ---
 

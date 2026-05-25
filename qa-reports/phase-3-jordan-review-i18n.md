@@ -205,16 +205,16 @@ Sky personally approves each language's privacy policy before it ships. Casey co
 
 ## Summary table
 
-| Concern # | Topic | Verdict | Blocking? |
-| --------- | ----- | ------- | --------- |
-| 1 | Privacy-critical strings need three-eyes native-speaker sign-off | APPROVED with BLOCKING (third reviewer per language + lawyer for policy text) | BLOCKING (2 sub-conditions) |
-| 2 | AI-translation hard ban + DFS-7 carve-out | APPROVED, recommend tightening DFS-7 to absolute ban | NO (DECISION) |
-| 3 | Per-user `locale` column metadata | APPROVED with PRIVACY.md edit | NO |
-| 4 | No language detection from user-generated content | APPROVED | NO |
-| 5 | Translator engagement / NDA scope | APPROVED with four tightening points for Casey's NDA draft | NO |
-| 6 | Server-side strings stay English | APPROVED | NO |
-| 7 | Translation file `description` metadata | APPROVED, perf-adjacent (strip from prod bundle) | NO |
-| 8 | Brand name stays English | APPROVED, Casey surfaces any cultural concerns | NO |
+| Concern # | Topic                                                            | Verdict                                                                       | Blocking?                   |
+| --------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------- |
+| 1         | Privacy-critical strings need three-eyes native-speaker sign-off | APPROVED with BLOCKING (third reviewer per language + lawyer for policy text) | BLOCKING (2 sub-conditions) |
+| 2         | AI-translation hard ban + DFS-7 carve-out                        | APPROVED, recommend tightening DFS-7 to absolute ban                          | NO (DECISION)               |
+| 3         | Per-user `locale` column metadata                                | APPROVED with PRIVACY.md edit                                                 | NO                          |
+| 4         | No language detection from user-generated content                | APPROVED                                                                      | NO                          |
+| 5         | Translator engagement / NDA scope                                | APPROVED with four tightening points for Casey's NDA draft                    | NO                          |
+| 6         | Server-side strings stay English                                 | APPROVED                                                                      | NO                          |
+| 7         | Translation file `description` metadata                          | APPROVED, perf-adjacent (strip from prod bundle)                              | NO                          |
+| 8         | Brand name stays English                                         | APPROVED, Casey surfaces any cultural concerns                                | NO                          |
 
 **BLOCKER count: 2 (Concern 1.1, 1.2; the latter is a Cycle 7 gate, not a Phase 3.4 gate, but flagged now).**
 **PRIVACY.md edits proposed: 3 (1 inventory row for locale + 1 new multilingual-maintenance subsection + 1 new D13 decision).**
