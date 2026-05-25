@@ -93,8 +93,8 @@ describe('stripPii — token heuristic', () => {
   });
 
   it('redacts api_key / api-key query params', () => {
-    expect(stripPii('?api_key=abcdef1234567890abcdef')).toContain(REDACTED_TOKEN);
-    expect(stripPii('?api-key=abcdef1234567890abcdef')).toContain(REDACTED_TOKEN);
+    expect(stripPii('?api_key=abcdef1234567890abcdef')).toContain(REDACTED_TOKEN); // gitleaks:allow
+    expect(stripPii('?api-key=abcdef1234567890abcdef')).toContain(REDACTED_TOKEN); // gitleaks:allow
   });
 
   it('redacts Bearer tokens in Authorization header fragments', () => {
