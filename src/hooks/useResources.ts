@@ -50,7 +50,11 @@ export function useResources(): UseResourcesState {
       setError(err.message ?? 'Failed to load listings.');
       setResources([]);
     } else {
-      setResources(data ?? []);
+      // listResources uses an explicit column select that intentionally omits
+      // contact_handle (Jordan blocking condition 2 -- web gate 2026-05-25).
+      // Feed components never access contact_handle, so this cast is safe.
+      // contact_handle is only included in getResourceById (detail screen).
+      setResources((data ?? []) as ResourceRow[]);
     }
     setLoading(false);
   }, []);
