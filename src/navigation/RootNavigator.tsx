@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text, useColorScheme } from 'react-native';
 import { colors } from '@/lib/theme';
+import { useAuth } from '@/lib/auth';
 import type { HomeStackParamList, MainTabParamList } from '@/types/navigation';
 
 import { HomeScreen } from '@/screens/HomeScreen';
@@ -10,6 +11,7 @@ import { ResourceDetailScreen } from '@/screens/ResourceDetailScreen';
 import { ResourceMapScreen } from '@/screens/ResourceMapScreen';
 import { AddResourceScreen } from '@/screens/AddResourceScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
+import { AdminVerificationScreen } from '@/screens/AdminVerificationScreen';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
@@ -63,12 +65,20 @@ function HomeStackNavigator() {
 }
 
 /**
- * Main tab navigator — Home + Profile.
+ * Main tab navigator — Home + (admin-only) Verify + Profile.
  *
  * Tab icons are plain text glyphs in Day-0 (no icon-font dep yet). Dani's
  * icon system lands in a later cycle.
+ *
+ * The "Verify" tab is conditionally rendered only when
+ * `profile.is_admin === true` (AC-1 from spec-cycle-5-admin-verification-ui.md).
+ * Three-layer enforcement: this hides the tab in the UI; RLS and RPC layers
+ * enforce the gate server-side regardless of UI bypass.
  */
 function MainTabNavigator() {
+  const { profile } = useAuth();
+  const isAdmin = profile?.is_admin === true;
+
   return (
     <MainTab.Navigator
       screenOptions={{
@@ -88,6 +98,20 @@ function MainTabNavigator() {
           ),
         }}
       />
+      {isAdmin && (
+        <MainTab.Screen
+          name="VerifyTab"
+          component={AdminVerificationScreen}
+          options={{
+            title: 'Verify',
+            tabBarIcon: ({ color, size }) => (
+              <Text style={{ color, fontSize: size }} accessibilityElementsHidden>
+                ✓
+              </Text>
+            ),
+          }}
+        />
+      )}
       <MainTab.Screen
         name="ProfileTab"
         component={ProfileScreen}
