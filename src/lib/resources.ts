@@ -18,7 +18,7 @@
  */
 
 import { supabase } from './supabase';
-import type { ResourceCategory, ResourceRow } from '@/types/database';
+import type { ResourceCategory } from '@/types/database';
 
 const LIST_LIMIT = 500;
 
@@ -29,11 +29,21 @@ const LIST_LIMIT = 500;
 /**
  * Fetch up to LIST_LIMIT available resources, newest first.
  * Filtered to status='available' for the marketplace feed.
+ *
+ * JORDAN BLOCKING CONDITION 2 (web gate 2026-05-25-jordan-web-gate.md):
+ * contact_handle is intentionally excluded from this list query. It must
+ * only appear post-claim on the detail view (getResourceById ->
+ * ResourceDetailScreen). Never render contact_handle in feed list cards.
+ *
+ * If you need to add columns here, list them explicitly. Do NOT switch back
+ * to select('*').
  */
 export async function listResources() {
   return supabase
     .from('resources')
-    .select('*')
+    .select(
+      'id, name, description, pickup_text, postal_prefix, city, photo_url, category, status, posted_by, claimed_by, confirmed_at, confirmed_by, created_at, status_changed_at',
+    )
     .eq('status', 'available')
     .order('created_at', { ascending: false })
     .limit(LIST_LIMIT);

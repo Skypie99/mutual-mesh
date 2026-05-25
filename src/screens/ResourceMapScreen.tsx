@@ -43,14 +43,13 @@ import {
   BUCKET_FILL_COLORS_DARK,
   BUCKET_FILL_COLORS_LIGHT,
   DEFAULT_REGION,
-  OSM_TILE_URL,
   clampRegionZoom,
   type MapRegion,
 } from '@/lib/mapHelpers';
 import { colors, TOUCH_TARGET_MIN } from '@/lib/theme';
 import { useResources } from '@/hooks/useResources';
 import type { ResourceRow } from '@/types/database';
-import MapView, { UrlTile } from 'react-native-maps';
+import { PlatformMapView } from '@/components/PlatformMapView';
 
 // ============================================================================
 // react-native-maps availability flag
@@ -364,17 +363,15 @@ export function ResourceMapScreen({
         />
       </View>
 
-      {/* MapView — OSM tiles, clamped to FSA zoom, privacy-safe (no GPS pins) */}
+      {/* PlatformMapView -- OSM tiles, clamped to FSA zoom, privacy-safe (no GPS pins).
+          Native: react-native-maps. Web: react-leaflet. Platform split via Metro
+          PlatformMapView.tsx / PlatformMapView.web.tsx. */}
       <View className="flex-1">
-        <MapView
-          style={{ flex: 1 }}
+        <PlatformMapView
           region={region}
           onRegionChangeComplete={(next) => setRegion(clampRegionZoom(next))}
-          accessibilityRole="image"
           accessibilityLabel={summary}
-        >
-          <UrlTile urlTemplate={OSM_TILE_URL} maximumZ={19} flipY={false} />
-        </MapView>
+        />
 
         {/* Center-on-me FAB */}
         <View
