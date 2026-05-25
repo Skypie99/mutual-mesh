@@ -367,7 +367,11 @@ export function ResourceMapScreen({
 
       {/* Empty state — shown over the map when no FSA data is available */}
       {descriptors.length === 0 && !loading && (
-        <View className="absolute inset-0 z-10 items-center justify-center bg-light-bg/80 dark:bg-dark-bg/80">
+        <View
+          className="absolute inset-0 z-10 items-center justify-center bg-light-bg/80 dark:bg-dark-bg/80"
+          accessibilityViewIsModal
+          accessibilityLiveRegion="polite"
+        >
           <EmptyState
             title="No resources on map yet"
             description="Once community members post resources, they'll appear here grouped by neighborhood."
@@ -378,7 +382,10 @@ export function ResourceMapScreen({
       )}
 
       {/* MapView — OSM tiles, clamped to FSA zoom, privacy-safe (no GPS pins) */}
-      <View className="flex-1">
+      <View
+        className="flex-1"
+        importantForAccessibility={descriptors.length === 0 ? 'no-hide-descendants' : 'auto'}
+      >
         <MapView
           style={{ flex: 1 }}
           region={region}
