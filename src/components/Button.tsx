@@ -49,7 +49,9 @@ function variantToClasses(variant: ButtonVariant, disabled: boolean): string {
 }
 
 function labelClass(variant: ButtonVariant, disabled: boolean): string {
-  if (disabled) return 'text-light-text-muted dark:text-dark-text-muted';
+  // Alex a11y 2026-05-25: text-muted on light-border = 4.36:1 — fails 4.5:1 AA normal text.
+  // text-secondary (#4A3D2C) on light-border (#D9CBBA) = 6.62:1 ✓. Dark mode unchanged (was 5.35:1).
+  if (disabled) return 'text-light-text-secondary dark:text-dark-text-muted';
   switch (variant) {
     case 'primary':
       return 'text-light-accent-text dark:text-dark-accent-text';

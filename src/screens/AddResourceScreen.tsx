@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
@@ -30,6 +30,13 @@ type AddResourceScreenProps = {
  *
  * Accessibility: WCAG 2.2 AA throughout — all fields have accessibilityLabel,
  * errors announced via AccessibilityInfo, focus moved to first errored field.
+ *
+ * Alex a11y fixes 2026-05-25 (a11y/auto-2026-05-25-alex-addresource):
+ *   B1 — Keyboard chaining: onSubmitEditing wired for name→description→pickup→contact.
+ *   B2 — Double-announce removed: global error <Text> no longer carries
+ *         accessibilityLiveRegion; AccessibilityInfo.announceForAccessibility is enough.
+ *   B3 — Mounted-ref guard: prevents setState after modal dismiss during inflight request.
+ *   (Button.tsx separately fixed for disabled-label contrast, BLOCKER 1.4.3.)
  */
 export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps) {
   const { user, profile } = useAuth();
@@ -41,8 +48,20 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
   const [error, setError] = useState<string | null>(null);
 
   // Refs for focus management — move focus to first errored field on submit failure.
+  // Also used for keyboard chaining: onSubmitEditing advances to the next field.
   const nameRef = useRef<TextInput>(null);
+  const descriptionRef = useRef<TextInput>(null);
+  const pickupRef = useRef<TextInput>(null);
   const contactRef = useRef<TextInput>(null);
+
+  // Mounted-ref guard — prevents setState on unmounted component if modal is
+  // dismissed during an inflight network request (LEARNINGS:2026-05-23 gotcha #5).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleValidation = validateContactHandle(contactHandle);
   const handleError =
@@ -61,6 +80,7 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
     if (!user) return;
 
     // Inline validation before submit — focus first errored field.
+    // These focus() calls are synchronous (before any await) — safe from unmount race.
     if (name.trim().length === 0) {
       nameRef.current?.focus();
       const msg = 'Please enter a resource name.';
@@ -104,13 +124,18 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
         user.id,
       );
       if (err) throw err;
+      // onPosted dismisses the modal — no setState needed after this point.
       onPosted?.('Your resource was posted');
     } catch (err) {
+      if (!mountedRef.current) return;
       const msg = userFacingErrorMessage(err, 'Could not post your resource. Please try again.');
       setError(msg);
+      // Announce via AccessibilityInfo only — the global error <Text> below does NOT
+      // carry accessibilityLiveRegion (combining both causes double-announce on iOS
+      // VoiceOver; WCAG 4.1.3 BLOCKER B2 fix).
       AccessibilityInfo.announceForAccessibility(msg);
     } finally {
-      setSubmitting(false);
+      if (mountedRef.current) setSubmitting(false);
     }
   };
 
@@ -127,7 +152,9 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           Post a resource
         </Text>
 
-        {/* Field 1 — Resource name */}
+        {/* Field 1 — Resource name.
+            returnKeyType="next" + onSubmitEditing advances focus to description.
+            BLOCKER B1 fix: keyboard chain wired. */}
         <TextField
           ref={nameRef}
           label="Resource name"
@@ -137,12 +164,16 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           maxLength={100}
           autoCapitalize="sentences"
           returnKeyType="next"
+          onSubmitEditing={() => descriptionRef.current?.focus()}
         />
 
-        {/* Field 2 — Description
+        {/* Field 2 — Description (multiline).
             Jordan Condition 2: hint tells users description is visible to all
-            verified members and nudges item-focused copy. */}
+            verified members and nudges item-focused copy.
+            multiline on iOS inserts a newline on Return — platform behaviour.
+            No returnKeyType here; user taps Field 3 or uses the virtual tab-stop. */}
         <TextField
+          ref={descriptionRef}
           label="Description"
           placeholder="Describe the item"
           hint="Describe the item. Visible to all verified members — avoid personal details."
@@ -154,10 +185,13 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           autoCapitalize="sentences"
         />
 
-        {/* Field 3 — Pickup area
+        {/* Field 3 — Pickup area.
             Jordan Condition 1: hint names neighbourhood/intersection/landmark
-            as the recommended granularity; warns against full addresses. */}
+            as the recommended granularity; warns against full addresses.
+            returnKeyType="next" + onSubmitEditing advances focus to contact handle.
+            BLOCKER B1 fix: keyboard chain wired. */}
         <TextField
+          ref={pickupRef}
           label="Pickup area"
           placeholder="e.g. Downtown East Side, near the library"
           hint="Neighbourhood, intersection, or landmark — not your full address"
@@ -166,10 +200,13 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           maxLength={280}
           autoCapitalize="sentences"
           returnKeyType="next"
+          onSubmitEditing={() => contactRef.current?.focus()}
         />
 
-        {/* Field 4 — Contact handle
-            Jordan Condition 3: shortened hint, explicit no-real-name warning. */}
+        {/* Field 4 — Contact handle.
+            Jordan Condition 3: shortened hint, explicit no-real-name warning.
+            returnKeyType="done" + onSubmitEditing triggers form submit.
+            BLOCKER B1 fix: keyboard chain wired to submit. */}
         <TextField
           ref={contactRef}
           label="Contact handle"
@@ -182,12 +219,16 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           autoCorrect={false}
           error={handleError}
           returnKeyType="done"
+          onSubmitEditing={() => void handleSubmit()}
         />
 
-        {/* Global error state */}
+        {/* Global error state — announced by AccessibilityInfo.announceForAccessibility
+            in handleSubmit. No accessibilityLiveRegion here: combining liveRegion with
+            an explicit announceForAccessibility call causes double-announce on iOS
+            VoiceOver (WCAG 4.1.3 BLOCKER B2 fix). Text remains visible for sighted users. */}
         {error && (
           <Text
-            accessibilityLiveRegion="polite"
+            accessibilityRole="text"
             className="text-sm text-light-danger dark:text-dark-danger"
           >
             {error}
