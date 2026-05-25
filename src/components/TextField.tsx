@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { Text, TextInput, View, useColorScheme, type TextInputProps } from 'react-native';
 import { TOUCH_TARGET_MIN, colors } from '@/lib/theme';
 
@@ -18,16 +18,14 @@ type TextFieldProps = TextInputProps & {
  * Alex loop-8: placeholderTextColor pulled from theme tokens (was hardcoded
  * hex); multiline fields use textAlignVertical='top' on Android so caret
  * starts top-left, not center.
+ *
+ * forwardRef added so callers can call .focus() on the underlying TextInput
+ * for a11y focus-management on error (WCAG 2.2 AA — Shamus 2026-05-25).
  */
-export function TextField({
-  label,
-  hint,
-  error,
-  onFocus,
-  onBlur,
-  multiline,
-  ...rest
-}: TextFieldProps) {
+export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
+  { label, hint, error, onFocus, onBlur, multiline, ...rest },
+  ref,
+) {
   const [focused, setFocused] = useState(false);
   const scheme = useColorScheme();
   const palette = scheme === 'dark' ? colors.dark : colors.light;
@@ -43,6 +41,7 @@ export function TextField({
         {label}
       </Text>
       <TextInput
+        ref={ref}
         accessibilityLabel={label}
         accessibilityHint={hint}
         style={{
@@ -75,4 +74,4 @@ export function TextField({
       )}
     </View>
   );
-}
+});
