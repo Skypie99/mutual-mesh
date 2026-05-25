@@ -1,7 +1,7 @@
 # Mutual Mesh — Features Backlog
 
 **Owner:** Quinn (Product Manager)
-**Status:** Updated 2026-05-25 (Quinn Cycle 6 update). Cycles 0–4 complete. Cycle 5 in progress. Cycle 6 acceptance criteria prioritized (BLOCKER/HIGH/MEDIUM). Web demo items added (WEB-1–3). Phase 2–3 extensions shipped.
+**Status:** Updated 2026-05-25 (Quinn Cycle 6 evening update). Cycles 0–4 complete. Cycle 5 in progress. Cycle 6 IN PROGRESS — AC-6.1/6.2/6.3/6.5 on open branches awaiting Sky merge; AC-6.4 DONE. Web demo items: WEB-1 shipped, WEB-2/WEB-3 DONE (awaiting merge), CSP headers DONE (awaiting merge). Phase 2–3 extensions shipped.
 
 ## Conventions
 
@@ -101,11 +101,11 @@
 
 > Priority key: **BLOCKER** = nothing else in Cycle 6 merges until this clears · **HIGH** = must ship with Cycle 6 · **MEDIUM** = ships with Cycle 6 if no time pressure
 
-1. **AC-6.1 — Handle edit flow** _(Priority: HIGH — Shamus building 2026-05-25 tonight)_: A verified user can tap "Edit handle" on ProfileScreen, enter a new value, and have it validated by `handleValidator.ts` (soft-warn on real-name patterns); on save the `public.users.handle` column updates and the UI reflects the new value within one render cycle.
-2. **AC-6.2 — Delete confirms Storage removal** _(Priority: HIGH — Jordan review required before merge, see AC-6.4)_: The `delete_my_account` RPC cascade-deletes all Storage objects at `<userId>/*` in the `resource-photos` bucket (not just DB rows). Gary verifies with a test that the bucket path is empty after RPC execution.
-3. **AC-6.3 — Profile stats accuracy post-claim** _(Priority: MEDIUM)_: After a pickup is confirmed (`status='completed'`), the "Active claims" count on ProfileScreen decrements; a "Completed" count increments. Both reflect DB state within one `loadCounts` call.
-4. **AC-6.4 — Jordan privacy review for Cycle 6 scope** _(Priority: BLOCKER — gates AC-6.2 merge)_: Jordan reviews the full Cycle 6 scope: handle-edit path (no real-name leak), `deleteAccount()` Storage cascade (hard-delete, not soft), and the delete-account modal body matching PRIVACY.md D6 spec (honest disclosure of Supabase 7-day backup window; no promise of immediate purge from backups). Jordan signs off in a qa-report before AC-6.2 merges.
-5. **AC-6.5 — Session + AsyncStorage clear on account delete** _(Priority: HIGH)_: On successful `delete_my_account` RPC, `signOut()` runs, AsyncStorage is cleared, and the gate routes to SignInScreen — no stale auth state remains in memory or on-device storage.
+1. **AC-6.1 — Handle edit flow** 🔄 IN PROGRESS _(Priority: HIGH — branch `feat/mutualmesh-2026-05-25-shamus-profile-handle-edit` open, awaiting Sky merge)_: A verified user can tap "Edit handle" on ProfileScreen, enter a new value, and have it validated by `handleValidator.ts` (soft-warn on real-name patterns); on save the `public.users.handle` column updates and the UI reflects the new value within one render cycle.
+2. **AC-6.2 — Delete confirms Storage removal** 🔄 IN PROGRESS _(Priority: HIGH — branch `feat/mutualmesh-2026-05-25-shamus-ac62-ac65` open, awaiting Sky merge. Jordan APPROVED WITH CONDITIONS — all conditions met.)_: The `delete_my_account` RPC cascade-deletes all Storage objects at `<userId>/*` in the `resource-photos` bucket (not just DB rows). Key finding: migration 003 already had the Storage cascade built. This branch adds: disclosure copy update matching PRIVACY.md D6 spec + JSDoc + AsyncStorage cleanup (AC-6.5). Gary verifies bucket path empty post-RPC.
+3. **AC-6.3 — Profile stats accuracy post-claim** 🔄 IN PROGRESS _(Priority: MEDIUM — branch `data/auto-2026-05-25-dana-ac63-profile-stats` open, awaiting Sky merge)_: After a pickup is confirmed (`status='completed'`), the "Active claims" count on ProfileScreen decrements; a "Completed" count increments. Both reflect DB state within one `loadCounts` call. Fix: `useFocusEffect` to re-fetch on screen focus + narrowed `select('id')` for count queries.
+4. **AC-6.4 — Jordan privacy review for Cycle 6 scope** ✅ DONE _(Priority: BLOCKER — gates AC-6.2 merge. Jordan reviewed 2026-05-25; APPROVED WITH CONDITIONS — all conditions met by AC-6.2 branch.)_: Jordan reviewed the full Cycle 6 scope: handle-edit path (no real-name leak), `deleteAccount()` Storage cascade (hard-delete, not soft), and the delete-account modal body matching PRIVACY.md D6 spec (honest disclosure of Supabase 7-day backup window; no promise of immediate purge from backups). Jordan signed off in qa-report; AC-6.2 BLOCKER gate cleared.
+5. **AC-6.5 — Session + AsyncStorage clear on account delete** 🔄 IN PROGRESS _(Priority: HIGH — included in branch `feat/mutualmesh-2026-05-25-shamus-ac62-ac65`, awaiting Sky merge)_: On successful `delete_my_account` RPC, `signOut()` runs, AsyncStorage is cleared, and the gate routes to SignInScreen — no stale auth state remains in memory or on-device storage.
 
 - **Privacy: HIGH** — Jordan verifies handle-edit path does not leak real names; Jordan verifies deletion is real (hard-delete, not soft). AC-6.4 is the explicit BLOCKER gate.
 
@@ -126,8 +126,10 @@
 Items added to support the live web demo deployment alongside the native build.
 
 - **WEB-1 — Live web demo on Vercel** ✅ SHIPPED: `https://mutual-mesh.vercel.app` — auth-gated (no guest mode); vercel.com project linked to the MutualMesh repo. Intended for stakeholder review and accessibility auditing only; not a production surface for real user data.
-- **WEB-2 — Jordan Condition 4 advisory (expo-location CI check)** 🔄 IN PROGRESS _(Gary adding 2026-05-25 tonight)_: `expo-location` permission requests are a privacy-sensitive surface. Gary adds a CI lint check that flags any new call to `Location.*` or `requestForegroundPermissionsAsync` without a corresponding Jordan qa-report reference. Implements Jordan's Condition 4 from the Phase 3 map review.
-- **WEB-3 — Web a11y audit** 🔄 IN PROGRESS _(Alex 2026-05-25 tonight)_: WCAG 2.2 AA audit of the Vercel web demo — focus order, ARIA labels, color contrast against the web-rendered NativeWind tokens, keyboard navigation. Output: `qa-reports/a11y-web-2026-05-25-alex.md`. Blocker for any public demo link being shared externally.
+- **WEB-2 — Jordan Condition 4 advisory (expo-location CI check)** ✅ DONE _(on branch `qa/auto-2026-05-25-gary-allnight-c1`, awaiting Sky merge)_: `expo-location` permission requests are a privacy-sensitive surface. Gary added a CI lint check that flags any new call to `Location.*` or `requestForegroundPermissionsAsync` without a corresponding Jordan qa-report reference. Implements Jordan's Condition 4 from the Phase 3 map review.
+- **WEB-3 — Web a11y audit + 3 WCAG-A blockers fixed** ✅ DONE _(on branch `a11y/auto-2026-05-25-alex-web`, awaiting Sky merge)_: WCAG 2.2 AA audit of the Vercel web demo — focus order, ARIA labels, color contrast against the web-rendered NativeWind tokens, keyboard navigation. Output: `qa-reports/a11y-web-2026-05-25-alex.md`. 3 WCAG-A blockers identified and fixed in this branch. Blocker for any public demo link being shared externally.
+- **CSP Headers** ✅ DONE _(on branch `release/auto-2026-05-25-rory-csp-headers`, awaiting Sky merge — Steve review done, Rory amending)_: Content-Security-Policy headers wired for the Vercel web deployment. Steve security review complete.
+- **vercel.json CSP** 🔲 NEW _(open PR for Sky review)_: `vercel.json` updated with CSP header configuration. Awaiting Sky review and merge.
 
 ---
 
