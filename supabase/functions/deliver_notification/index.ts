@@ -601,22 +601,50 @@ async function checkRecipientAuthority(
 
   // (c) Resources/claims linkage for trigger 1 & 2.
   //
-  // Trigger 1 (claim_placed): a claim was placed on a resource POSTED by
-  // recipient — the caller must be a verified user who just claimed it.
-  // Trigger 2 (pickup_confirmed): the caller confirmed a pickup on a resource
-  // involving both parties.
+  // H1 FIX (Steve audit 2026-05-25): queries must verify the DIRECTIONAL
+  // relationship on a SINGLE row, not that each ID appears anywhere in the
+  // table independently. The old broad .or() checks could be satisfied by
+  // two unrelated rows, allowing any user with prior activity to trigger
+  // notifications to any other previously-active user.
   //
-  // We verify a row in resources links both IDs in any direction to avoid
-  // tightening the check beyond the spec while still catching misuse.
-  const { data: linkData, error: linkError } = await supabase
-    .from('resources')
-    .select('id')
-    .or(`posted_by.eq.${caller_user_id},claimed_by.eq.${caller_user_id}`)
-    .or(`posted_by.eq.${recipient_id},claimed_by.eq.${recipient_id}`)
-    .limit(1);
+  // Trigger 1 (claim_placed): poster (recipient) gets notified when someone
+  // (caller) claims their resource.
+  //   Verify: a resource WHERE posted_by = recipient AND claimed_by = caller
+  //           AND status = 'reserved' exists on a single row.
+  //
+  // Trigger 2 (pickup_confirmed): claimant (recipient) gets notified when
+  // poster (caller) confirms pickup.
+  //   Verify: a resource WHERE claimed_by = recipient AND posted_by = caller
+  //           AND status IN ('reserved', 'completed') exists on a single row.
 
-  if (linkError) return { data: false, error: linkError };
-  return { data: (linkData?.length ?? 0) > 0, error: null };
+  if (trigger === 'claim_placed') {
+    const { data: linkData, error: linkError } = await supabase
+      .from('resources')
+      .select('id')
+      .eq('posted_by', recipient_id)
+      .eq('claimed_by', caller_user_id)
+      .eq('status', 'reserved')
+      .limit(1);
+
+    if (linkError) return { data: false, error: linkError };
+    return { data: (linkData?.length ?? 0) > 0, error: null };
+  }
+
+  if (trigger === 'pickup_confirmed') {
+    const { data: linkData, error: linkError } = await supabase
+      .from('resources')
+      .select('id')
+      .eq('claimed_by', recipient_id)
+      .eq('posted_by', caller_user_id)
+      .in('status', ['reserved', 'completed'])
+      .limit(1);
+
+    if (linkError) return { data: false, error: linkError };
+    return { data: (linkData?.length ?? 0) > 0, error: null };
+  }
+
+  // Unknown trigger — fail-closed for any future triggers not explicitly handled.
+  return { data: false, error: null };
 }
 
 // ============================================================================
