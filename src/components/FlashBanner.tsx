@@ -92,7 +92,11 @@ function variantClasses(v: FlashVariant): string {
 }
 
 function variantTextClasses(v: FlashVariant): string {
-  // All variants use white text — verified against status colors in Loop 4.
+  // Light mode: all dark-coloured banner backgrounds → white text passes 4.5:1 AA. ✓
+  // Dark mode: all four variants use bright/pastel banner backgrounds where white text
+  // only achieves ~2.1–2.9:1. Switch to dark-mode text (#1A1916, light.text token)
+  // which achieves ≥5.6:1 on every dark-mode banner background. WCAG 1.4.3 AA fix.
+  // (Alex, 2026-05-25 — qa-reports/2026-05-25-alex-flashbanner-contrast.md)
   void v;
-  return 'text-white';
+  return 'text-white dark:text-light-text';
 }
