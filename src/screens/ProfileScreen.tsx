@@ -36,10 +36,7 @@ export function ProfileScreen() {
       setLoading(false);
       return;
     }
-    const [posts, claims] = await Promise.all([
-      listMyPosts(user.id),
-      listMyClaims(user.id),
-    ]);
+    const [posts, claims] = await Promise.all([listMyPosts(user.id), listMyClaims(user.id)]);
     if (!mountedRef.current) return;
     setPostedCount(posts.data?.length ?? 0);
     setClaimedCount(claims.data?.length ?? 0);
@@ -154,10 +151,10 @@ export function ProfileScreen() {
         visible={deleteModalOpen}
         title="Delete your account?"
         body={
-          "This removes your account, your posts, and your claims from Mutual Mesh immediately. " +
-          "Honest disclosure: Supabase keeps automatic backups for ~7 days, so the data is technically " +
+          'This removes your account, your posts, and your claims from Mutual Mesh immediately. ' +
+          'Honest disclosure: Supabase keeps automatic backups for ~7 days, so the data is technically ' +
           "recoverable from a backup during that window. We cannot scrub backups — that's a platform limit. " +
-          "You can sign up again with the same email later if you want."
+          'You can sign up again with the same email later if you want.'
         }
         confirmLabel="Yes, delete"
         cancelLabel="Cancel"

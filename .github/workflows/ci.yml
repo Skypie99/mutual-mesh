@@ -43,3 +43,55 @@ jobs:
           cache: 'npm'
       - run: npm ci --legacy-peer-deps
       - run: npm test -- --ci --coverage
+
+  email-guard:
+    name: email-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject email-sending library imports
+        run: |
+          PATTERNS='nodemailer|@sendgrid/mail|mailgun-js|@mailchimp|client-ses|postmark|sparkpost|resend'
+          if grep -rE "from\s+['\"]($PATTERNS)|require\(['\"]($PATTERNS)" src/ --include="*.ts" --include="*.tsx" -l; then
+            echo "ERROR: Email-sending library import detected. Email is prohibited in this project."
+            exit 1
+          fi
+          echo "OK: No email-sending imports found."
+
+  migration-guard:
+    name: migration-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate migration sequence
+        run: |
+          files=$(ls supabase/migrations/*.sql 2>/dev/null | sort)
+          if [ -z "$files" ]; then echo "OK: No migrations found."; exit 0; fi
+          nums=()
+          for f in $files; do
+            num=$(basename "$f" | grep -oE '^[0-9]+')
+            if [ -z "$num" ]; then
+              echo "ERROR: Malformed migration filename: $(basename $f) (must start with NNN_)"
+              exit 1
+            fi
+            nums+=("$num")
+          done
+          unique=$(printf '%s\n' "${nums[@]}" | sort -u | wc -l | tr -d ' ')
+          total=${#nums[@]}
+          if [ "$unique" -ne "$total" ]; then
+            echo "ERROR: Duplicate migration numbers detected."
+            exit 1
+          fi
+          prev=""
+          for num in $(printf '%s\n' "${nums[@]}" | sort -n); do
+            if [ -n "$prev" ]; then
+              expected=$((10#$prev + 1))
+              actual=$((10#$num))
+              if [ "$actual" -ne "$expected" ]; then
+                echo "ERROR: Migration gap — expected $(printf '%03d' $expected), found $num"
+                exit 1
+              fi
+            fi
+            prev="$num"
+          done
+          echo "OK: Migrations are sequential."
