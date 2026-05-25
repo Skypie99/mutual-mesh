@@ -34,5 +34,6 @@ export type HomeStackParamList = {
 
 export type MainTabParamList = {
   HomeTab: undefined;
+  VerifyTab: undefined;
   ProfileTab: undefined;
 };
