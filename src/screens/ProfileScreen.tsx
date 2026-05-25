@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Switch, Text, View } from 'react-native';
+import { Clipboard, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -235,7 +235,12 @@ export function ProfileScreen() {
                   label={profile?.handle ?? '—'}
                   variant="ghost"
                   onPress={startEditingHandle}
-                  hint="Tap to edit your handle"
+                  onLongPress={() => {
+                    if (!profile?.handle) return;
+                    Clipboard.setString(profile.handle);
+                    setFlash({ message: 'Handle copied!', variant: 'success' });
+                  }}
+                  hint="Tap to edit · Long press to copy"
                 />
               )}
             </View>
