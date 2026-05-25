@@ -6,6 +6,7 @@
  */
 
 import {
+  bucketLabel,
   clampRegionZoom,
   DEFAULT_REGION,
   LAUNCH_CITY_CENTROIDS,
@@ -266,5 +267,27 @@ describe('LAUNCH_CITY_CENTROIDS', () => {
       // FSA codes are 3 chars
       expect(fsa).toHaveLength(3);
     }
+  });
+});
+
+// ============================================================================
+// bucketLabel
+// ============================================================================
+
+describe('bucketLabel', () => {
+  it('light → A few resources available', () => {
+    expect(bucketLabel('light')).toBe('A few resources available');
+  });
+
+  it('medium → Several resources available', () => {
+    expect(bucketLabel('medium')).toBe('Several resources available');
+  });
+
+  it('heavy → Many resources available', () => {
+    expect(bucketLabel('heavy')).toBe('Many resources available');
+  });
+
+  it('none → No resources', () => {
+    expect(bucketLabel('none')).toBe('No resources');
   });
 });

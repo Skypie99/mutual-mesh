@@ -44,6 +44,7 @@ import {
   BUCKET_FILL_COLORS_LIGHT,
   DEFAULT_REGION,
   OSM_TILE_URL,
+  bucketLabel,
   clampRegionZoom,
   type MapRegion,
 } from '@/lib/mapHelpers';
@@ -463,17 +464,6 @@ export function ResourceMapScreen({
       )}
     </SafeAreaView>
   );
-}
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-function bucketLabel(bucket: FsaDescriptor['bucket']): string {
-  if (bucket === 'light') return 'A few resources available';
-  if (bucket === 'medium') return 'Several resources available';
-  if (bucket === 'heavy') return 'Many resources available';
-  return 'No resources';
 }
 
 // ============================================================================
