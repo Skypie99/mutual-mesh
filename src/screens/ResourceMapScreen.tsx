@@ -49,7 +49,7 @@ import {
 import { colors, TOUCH_TARGET_MIN } from '@/lib/theme';
 import { useResources } from '@/hooks/useResources';
 import type { ResourceRow } from '@/types/database';
-import { PlatformMapView } from '@/components/PlatformMapView';
+import { LazyPlatformMapView as PlatformMapView } from '@/components/LazyPlatformMapView';
 
 // ============================================================================
 // react-native-maps availability flag
