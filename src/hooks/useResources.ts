@@ -74,19 +74,15 @@ export function useResources(): UseResourcesState {
   useEffect(() => {
     const channel = supabase
       .channel('resources-feed')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'resources' },
-        (payload) => {
-          if (!mountedRef.current) return;
-          const event = payload as unknown as RealtimeEvent<RealtimeResource>;
-          setResources((current) => {
-            const merged = applyResourceDelta(current as RealtimeResource[], event);
-            // Post-merge filter: drop anything no longer 'available'.
-            return (merged as ResourceRow[]).filter((r) => r.status === 'available');
-          });
-        },
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, (payload) => {
+        if (!mountedRef.current) return;
+        const event = payload as unknown as RealtimeEvent<RealtimeResource>;
+        setResources((current) => {
+          const merged = applyResourceDelta(current as RealtimeResource[], event);
+          // Post-merge filter: drop anything no longer 'available'.
+          return (merged as ResourceRow[]).filter((r) => r.status === 'available');
+        });
+      })
       .subscribe();
 
     return () => {

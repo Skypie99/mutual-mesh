@@ -56,10 +56,7 @@ export async function stripExifAndCompress(localUri: string): Promise<{
  * Throws on RLS rejection, network failure, or quota error. Caller wraps
  * with userFacingErrorMessage for display.
  */
-export async function uploadResourcePhoto(
-  userId: string,
-  localUri: string,
-): Promise<string> {
+export async function uploadResourcePhoto(userId: string, localUri: string): Promise<string> {
   // 1. Strip EXIF + compress
   const { uri: cleanUri } = await stripExifAndCompress(localUri);
 
@@ -77,13 +74,11 @@ export async function uploadResourcePhoto(
   //    - (storage.foldername(name))[1] = auth.uid()::text
   //    - user is verified
   // If any of those fail, we get a 403 here.
-  const { error } = await supabase.storage
-    .from('resource-photos')
-    .upload(path, blob, {
-      contentType: 'image/jpeg',
-      cacheControl: '3600',
-      upsert: false,
-    });
+  const { error } = await supabase.storage.from('resource-photos').upload(path, blob, {
+    contentType: 'image/jpeg',
+    cacheControl: '3600',
+    upsert: false,
+  });
 
   if (error) throw error;
   return path;
