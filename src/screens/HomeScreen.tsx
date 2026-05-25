@@ -133,7 +133,6 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          accessibilityRole="toolbar"
           accessibilityLabel="Filter by category"
           contentContainerStyle={{ gap: 8, paddingBottom: 12, paddingHorizontal: 2 }}
         >
