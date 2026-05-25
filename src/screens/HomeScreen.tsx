@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, Text, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, ScrollView, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { CategoryChip } from '@/components/CategoryChip';
@@ -24,8 +24,12 @@ import type { ResourceCategory, ResourceRow } from '@/types/database';
  *   - loaded + error                         → EmptyState with retry copy
  *   - loaded + items                         → FlatList of ResourceCard
  *
- * Pull-to-refresh wires to the hook's reload(). Realtime updates flow in via
- * the hook's subscription — no manual polling needed.
+ * Pagination:
+ *   - onEndReached fires loadMore() when within 50% of the list end.
+ *   - loadMore() fetches the next PAGE_SIZE=20 batch and appends via the hook.
+ *   - ListFooterComponent shows a small spinner while loadingMore=true.
+ *   - Pull-to-refresh resets to page 0 via reload().
+ *   - Filters are applied client-side across already-fetched pages.
  *
  * MapToggle (Phase 3.2) switches between list and map views. The map view
  * is navigated to as a separate screen in the HomeStack so back-nav works
@@ -39,7 +43,7 @@ type HomeScreenProps = {
 };
 
 export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScreenProps) {
-  const { resources, loading, error, reload } = useResources();
+  const { resources, loading, loadingMore, hasMore, error, reload, loadMore } = useResources();
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilters, setActiveFilters] = useState<ResourceCategory[]>([]);
   const scheme = useColorScheme();
@@ -51,9 +55,10 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
   }, []);
 
   // Derived: filtered resource list from hook output.
-  const filteredResources = activeFilters.length === 0
-    ? resources
-    : resources.filter((r) => matchesActiveFilter(r.category, activeFilters));
+  const filteredResources =
+    activeFilters.length === 0
+      ? resources
+      : resources.filter((r) => matchesActiveFilter(r.category, activeFilters));
 
   const filtersActive = activeFilters.length > 0;
 
@@ -78,6 +83,12 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
     await reload();
     setRefreshing(false);
   }, [reload]);
+
+  const handleEndReached = useCallback(() => {
+    if (hasMore && !loadingMore) {
+      void loadMore();
+    }
+  }, [hasMore, loadingMore, loadMore]);
 
   const keyExtractor = useCallback((item: ResourceRow) => item.id, []);
 
@@ -154,6 +165,19 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
             renderItem={renderItem}
             ListEmptyComponent={ListEmpty}
             contentContainerStyle={{ paddingBottom: 96, flexGrow: 1 }}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? (
+                <View
+                  accessible
+                  className="items-center py-4"
+                  accessibilityLabel="Loading more resources"
+                >
+                  <ActivityIndicator color={accent} />
+                </View>
+              ) : null
+            }
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
