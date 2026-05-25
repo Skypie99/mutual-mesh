@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Button } from '@/components/Button';
@@ -150,34 +150,48 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           error={handleError}
         />
 
-        {/* Photo picker */}
-        <View>
-          <Text className="mb-1 text-sm font-semibold text-light-text dark:text-dark-text">
-            Photo (optional)
-          </Text>
-          <Text className="mb-2 text-xs text-light-text-muted dark:text-dark-text-muted">
-            All metadata (location, device, time) is stripped before upload.
-          </Text>
-          {photoUri ? (
-            <View className="gap-2">
-              <Pressable
-                onPress={pickPhoto}
-                accessibilityLabel="Change photo"
-                className="overflow-hidden rounded-card"
-              >
-                <Image
-                  source={{ uri: photoUri }}
-                  style={{ width: '100%', aspectRatio: 1 }}
-                  resizeMode="cover"
-                  accessibilityLabel="Photo preview"
-                />
-              </Pressable>
-              <Button label="Remove photo" variant="ghost" onPress={() => setPhotoUri(null)} />
-            </View>
-          ) : (
-            <Button label="Add a photo" variant="secondary" onPress={pickPhoto} />
-          )}
-        </View>
+        {/* Photo picker -- disabled on web.
+            expo-image-manipulator is native-only; web photo upload without
+            EXIF strip violates PRIVACY.md D5. Jordan advisory condition,
+            2026-05-25-jordan-web-gate.md. */}
+        {Platform.OS === 'web' ? (
+          <View>
+            <Text className="mb-1 text-sm font-semibold text-light-text dark:text-dark-text">
+              Photo (optional)
+            </Text>
+            <Text className="text-xs text-light-text-muted dark:text-dark-text-muted">
+              Photo upload is not available on web. Use the mobile app to add a photo.
+            </Text>
+          </View>
+        ) : (
+          <View>
+            <Text className="mb-1 text-sm font-semibold text-light-text dark:text-dark-text">
+              Photo (optional)
+            </Text>
+            <Text className="mb-2 text-xs text-light-text-muted dark:text-dark-text-muted">
+              All metadata (location, device, time) is stripped before upload.
+            </Text>
+            {photoUri ? (
+              <View className="gap-2">
+                <Pressable
+                  onPress={pickPhoto}
+                  accessibilityLabel="Change photo"
+                  className="overflow-hidden rounded-card"
+                >
+                  <Image
+                    source={{ uri: photoUri }}
+                    style={{ width: '100%', aspectRatio: 1 }}
+                    resizeMode="cover"
+                    accessibilityLabel="Photo preview"
+                  />
+                </Pressable>
+                <Button label="Remove photo" variant="ghost" onPress={() => setPhotoUri(null)} />
+              </View>
+            ) : (
+              <Button label="Add a photo" variant="secondary" onPress={pickPhoto} />
+            )}
+          </View>
+        )}
 
         {error && (
           <Text

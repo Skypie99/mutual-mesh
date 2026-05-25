@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 import type { Database } from '@/types/database';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -19,25 +20,31 @@ if (!supabaseUrl || !supabaseAnonKey) {
   }
 }
 
+// On web, supabase-js uses localStorage automatically when no storage adapter
+// is provided. On native, hand it AsyncStorage so sessions survive restarts.
+// A single conditional here avoids a separate *.web.ts file.
+// Pattern mirrors AccessMap/src/lib/supabase.ts.
+const authStorage = Platform.OS === 'web' ? undefined : AsyncStorage;
+
 /**
  * Typed Supabase client. Importing `Database` is what gives us .from('users')
  * autocomplete and .insert()/.update() type-safety.
  *
- * AsyncStorage is intentionally unencrypted (matches AccessMap). PRIVACY.md S7
- * disclosure: a stolen/unlocked phone exposes the session. Phase 0b's "Sign
- * out" button is prominent for this reason. v2 may swap for SecureStore.
+ * Web: authStorage is undefined -> supabase-js uses localStorage (Jordan-safe).
+ * Native: AsyncStorage (unencrypted -- see PRIVACY.md S7; Sign-out is prominent).
  */
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: authStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // On web, detect OAuth redirects embedded in the URL hash/query.
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });
 
 // ============================================================================
-// Auth surface — thin wrappers around supabase.auth so screens import a
+// Auth surface -- thin wrappers around supabase.auth so screens import a
 // single named helper instead of reaching into the SDK directly.
 // ============================================================================
 
@@ -52,7 +59,7 @@ export async function signInWithEmail(email: string, password: string) {
 
 /**
  * Sign up with email + password. Supabase sends an OTP / magic link to the
- * email (Q1 — required). User must verify before signInWithEmail will work.
+ * email (Q1 -- required). User must verify before signInWithEmail will work.
  *
  * Note: signUp creates the auth.users row, which triggers handle_new_user(),
  * which creates the public.users row with a placeholder handle. The app must
