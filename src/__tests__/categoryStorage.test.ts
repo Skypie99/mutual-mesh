@@ -1,4 +1,28 @@
-import { FILTER_STORAGE_KEY, parseStoredFilter, serializeFilter } from '@/lib/categoryStorage';
+// ============================================================================
+// AsyncStorage IO mocks — loadFilterFromStorage / saveFilterToStorage
+// The categoryStorage module lazy-requires AsyncStorage via getStorage() so we
+// intercept it with jest.mock at the module level here. The pure-helper tests
+// below do NOT use these mocks — they call the pure functions directly.
+// ============================================================================
+
+const mockGetItem = jest.fn<Promise<string | null>, [string]>();
+const mockSetItem = jest.fn<Promise<void>, [string, string]>();
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: (...args: [string]) => mockGetItem(...args),
+    setItem: (...args: [string, string]) => mockSetItem(...args),
+  },
+}));
+
+import {
+  FILTER_STORAGE_KEY,
+  loadFilterFromStorage,
+  parseStoredFilter,
+  saveFilterToStorage,
+  serializeFilter,
+} from '@/lib/categoryStorage';
 
 describe('FILTER_STORAGE_KEY', () => {
   it('is versioned for future shape changes', () => {
@@ -98,5 +122,99 @@ describe('parseStoredFilter — defense vs adversarial payloads', () => {
   it('returns [] for an empty string (treat as missing)', () => {
     // JSON.parse('') throws — must hit the catch branch.
     expect(parseStoredFilter('')).toEqual([]);
+  });
+});
+
+// ============================================================================
+// Phase 4 Gary — AsyncStorage IO path tests (Gary audit: MEDIUM-defer, landed)
+// These tests mock AsyncStorage at the module boundary (see top of file) so
+// the async IO functions run in pure Jest without a React Native runtime.
+// ============================================================================
+
+describe('loadFilterFromStorage', () => {
+  beforeEach(() => {
+    mockGetItem.mockReset();
+    mockSetItem.mockReset();
+  });
+
+  it('returns parsed categories when AsyncStorage has a valid JSON value', async () => {
+    mockGetItem.mockResolvedValueOnce(JSON.stringify(['food', 'baby']));
+    const result = await loadFilterFromStorage();
+    expect(mockGetItem).toHaveBeenCalledWith(FILTER_STORAGE_KEY);
+    expect(result).toEqual(['food', 'baby']);
+  });
+
+  it('returns [] when the key is missing (null)', async () => {
+    mockGetItem.mockResolvedValueOnce(null);
+    const result = await loadFilterFromStorage();
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] and does not throw when the stored value is malformed JSON', async () => {
+    mockGetItem.mockResolvedValueOnce('not-valid-json{{{');
+    const result = await loadFilterFromStorage();
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] and does not throw when AsyncStorage.getItem rejects (IO error)', async () => {
+    mockGetItem.mockRejectedValueOnce(new Error('disk full'));
+    const result = await loadFilterFromStorage();
+    expect(result).toEqual([]);
+  });
+
+  it('re-orders to canonical CATEGORY_VALUES order on load', async () => {
+    // Stored out-of-order; should come back in canonical order.
+    mockGetItem.mockResolvedValueOnce(JSON.stringify(['HRT', 'food']));
+    const result = await loadFilterFromStorage();
+    expect(result).toEqual(['food', 'HRT']);
+  });
+
+  it('drops unknown category values silently on load', async () => {
+    mockGetItem.mockResolvedValueOnce(JSON.stringify(['food', 'unknownCategory', 'baby']));
+    const result = await loadFilterFromStorage();
+    expect(result).toEqual(['food', 'baby']);
+  });
+});
+
+describe('saveFilterToStorage', () => {
+  beforeEach(() => {
+    mockGetItem.mockReset();
+    mockSetItem.mockReset();
+  });
+
+  it('serializes and writes the filter under the versioned key', async () => {
+    mockSetItem.mockResolvedValueOnce(undefined);
+    await saveFilterToStorage(['food', 'baby']);
+    expect(mockSetItem).toHaveBeenCalledWith(
+      FILTER_STORAGE_KEY,
+      JSON.stringify(['food', 'baby']), // canonical order
+    );
+  });
+
+  it('writes an empty array string when saving an empty filter', async () => {
+    mockSetItem.mockResolvedValueOnce(undefined);
+    await saveFilterToStorage([]);
+    expect(mockSetItem).toHaveBeenCalledWith(FILTER_STORAGE_KEY, '[]');
+  });
+
+  it('normalizes to canonical order before writing (input order is irrelevant)', async () => {
+    mockSetItem.mockResolvedValueOnce(undefined);
+    await saveFilterToStorage(['HRT', 'food']); // reversed input
+    const [, written] = mockSetItem.mock.calls[0]!;
+    // The written string should be byte-equal to canonical order.
+    expect(written).toBe(JSON.stringify(['food', 'HRT']));
+  });
+
+  it('does not throw when AsyncStorage.setItem rejects (IO error swallowed)', async () => {
+    mockSetItem.mockRejectedValueOnce(new Error('storage quota exceeded'));
+    // Must resolve (not reject) — saveFilterToStorage swallows IO errors.
+    await expect(saveFilterToStorage(['food'])).resolves.toBeUndefined();
+  });
+
+  it('saves all five categories in canonical order', async () => {
+    mockSetItem.mockResolvedValueOnce(undefined);
+    await saveFilterToStorage(['other', 'HRT', 'hygiene', 'baby', 'food']);
+    const [, written] = mockSetItem.mock.calls[0]!;
+    expect(written).toBe(JSON.stringify(['food', 'hygiene', 'baby', 'HRT', 'other']));
   });
 });
