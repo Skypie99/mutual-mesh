@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -24,6 +25,8 @@ const MainTab = createBottomTabNavigator<MainTabParamList>();
  * hook; the navigation wiring below stays the same.
  */
 function HomeStackNavigator() {
+  const [postSuccessMessage, setPostSuccessMessage] = useState<string | null>(null);
+
   return (
     <HomeStack.Navigator>
       <HomeStack.Screen name="Feed" options={{ headerShown: false }}>
@@ -32,6 +35,8 @@ function HomeStackNavigator() {
             onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
             onAddResource={() => navigation.navigate('AddResource')}
             onOpenMap={() => navigation.navigate('ResourceMap')}
+            successMessage={postSuccessMessage}
+            onSuccessDismiss={() => setPostSuccessMessage(null)}
           />
         )}
       </HomeStack.Screen>
@@ -54,7 +59,10 @@ function HomeStackNavigator() {
         {({ navigation }) => (
           <AddResourceScreen
             onCancel={() => navigation.goBack()}
-            onPosted={() => navigation.goBack()}
+            onPosted={(msg) => {
+              if (msg) setPostSuccessMessage(msg);
+              navigation.goBack();
+            }}
           />
         )}
       </HomeStack.Screen>

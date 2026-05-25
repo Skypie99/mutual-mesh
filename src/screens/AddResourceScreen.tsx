@@ -9,8 +9,9 @@ import { userFacingErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 
 type AddResourceScreenProps = {
-  /** Called on successful post; parent dismisses the modal. */
-  onPosted?: () => void;
+  /** Called on successful post; parent dismisses the modal.
+   *  Passes an optional success message for the parent to surface (e.g. FlashBanner). */
+  onPosted?: (successMessage?: string) => void;
   onCancel?: () => void;
 };
 
@@ -68,6 +69,15 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
       return;
     }
 
+    // P1-A — empty handle check before deeper validation so users see a clear message.
+    if (contactHandle.trim().length === 0) {
+      contactRef.current?.focus();
+      const msg = 'Add a contact handle — Signal, email alias, or any handle you prefer.';
+      setError(msg);
+      AccessibilityInfo.announceForAccessibility('Please add a contact handle');
+      return;
+    }
+
     if (!handleValidation.ok) {
       contactRef.current?.focus();
       const msg = validationFailureMessage(handleValidation.reason);
@@ -94,7 +104,7 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
         user.id,
       );
       if (err) throw err;
-      onPosted?.();
+      onPosted?.('Your resource was posted');
     } catch (err) {
       const msg = userFacingErrorMessage(err, 'Could not post your resource. Please try again.');
       setError(msg);
@@ -164,7 +174,7 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           ref={contactRef}
           label="Contact handle"
           placeholder="Your preferred contact method"
-          hint="Signal, email alias, or any handle. No real name."
+          hint="Signal, email alias, or any handle. No real name. Only shown to the person who claims your resource."
           value={contactHandle}
           onChangeText={setContactHandle}
           maxLength={100}
@@ -184,7 +194,7 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           </Text>
         )}
 
-        <View className="mt-2 gap-3">
+        <View className="mt-4 gap-3">
           <Button
             label={submitting ? 'Posting…' : 'Post resource'}
             hint="Submits your resource listing to the community feed"
