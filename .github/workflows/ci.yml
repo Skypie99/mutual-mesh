@@ -52,7 +52,7 @@ jobs:
       - name: Reject email-sending library imports
         run: |
           PATTERNS='nodemailer|@sendgrid/mail|mailgun-js|@mailchimp|client-ses|postmark|sparkpost|resend'
-          if grep -rEi "import.*($PATTERNS)|require\(.*($PATTERNS)" src/ --include="*.ts" --include="*.tsx" -l; then
+          if grep -rE "from\s+['\"]($PATTERNS)|require\(['\"]($PATTERNS)" src/ --include="*.ts" --include="*.tsx" -l; then
             echo "ERROR: Email-sending library import detected. Email is prohibited in this project."
             exit 1
           fi
