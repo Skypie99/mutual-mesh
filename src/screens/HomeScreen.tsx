@@ -1,16 +1,19 @@
-import { memo, useCallback, useState } from 'react';
-import { FlatList, RefreshControl, Text, View } from 'react-native';
+import { memo, useCallback, useEffect, useState } from 'react';
+import { FlatList, RefreshControl, ScrollView, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
+import { CategoryChip } from '@/components/CategoryChip';
+import { EmptyFeedState } from '@/components/EmptyFeedState';
 import { EmptyState } from '@/components/EmptyState';
 import { FAB } from '@/components/FAB';
 import { FeedSkeleton } from '@/components/LoadingSkeleton';
 import { MapToggle } from '@/components/MapToggle';
 import { StatusPill } from '@/components/StatusPill';
 import { useResources } from '@/hooks/useResources';
+import { CATEGORY_LABELS, CATEGORY_VALUES, matchesActiveFilter, toggleCategoryInFilter } from '@/lib/categories';
+import { loadFilterFromStorage, saveFilterToStorage } from '@/lib/categoryStorage';
 import { colors } from '@/lib/theme';
-import { useColorScheme } from 'react-native';
-import type { ResourceRow } from '@/types/database';
+import type { ResourceCategory, ResourceRow } from '@/types/database';
 
 /**
  * Home / Feed screen — wired to real Supabase data via useResources.
@@ -38,8 +41,37 @@ type HomeScreenProps = {
 export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScreenProps) {
   const { resources, loading, error, reload } = useResources();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<ResourceCategory[]>([]);
   const scheme = useColorScheme();
   const accent = scheme === 'dark' ? colors.dark.accent : colors.light.accent;
+
+  // Restore persisted filter selection on mount.
+  useEffect(() => {
+    void loadFilterFromStorage().then(setActiveFilters);
+  }, []);
+
+  // Derived: filtered resource list from hook output.
+  const filteredResources = activeFilters.length === 0
+    ? resources
+    : resources.filter((r) => matchesActiveFilter(r.category, activeFilters));
+
+  const filtersActive = activeFilters.length > 0;
+
+  const handleToggleFilter = useCallback(
+    (category: ResourceCategory) => {
+      setActiveFilters((prev) => {
+        const next = toggleCategoryInFilter(prev, category);
+        void saveFilterToStorage(next);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleClearFilters = useCallback(() => {
+    setActiveFilters([]);
+    void saveFilterToStorage([]);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -54,6 +86,17 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
     [onOpenResource],
   );
 
+  const ListEmpty = useCallback(
+    () => (
+      <EmptyFeedState
+        filtersActive={filtersActive}
+        onAddResource={() => onAddResource?.()}
+        onClearFilters={handleClearFilters}
+      />
+    ),
+    [filtersActive, onAddResource, handleClearFilters],
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-light-bg dark:bg-dark-bg">
       <View className="flex-1 px-4 pt-4">
@@ -66,7 +109,7 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
         </Text>
 
         {/* MapToggle — 'list' is always selected here; tapping 'map' navigates away */}
-        <View className="mb-4">
+        <View className="mb-3">
           <MapToggle
             value="list"
             onChange={(next) => {
@@ -74,6 +117,25 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
             }}
           />
         </View>
+
+        {/* Category filter chip row — multi-select; empty = show all */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          accessibilityRole="toolbar"
+          accessibilityLabel="Filter by category"
+          contentContainerStyle={{ gap: 8, paddingBottom: 12, paddingHorizontal: 2 }}
+        >
+          {CATEGORY_VALUES.map((cat) => (
+            <CategoryChip
+              key={cat}
+              label={CATEGORY_LABELS[cat]}
+              selected={activeFilters.includes(cat)}
+              onPress={() => handleToggleFilter(cat)}
+              hint={`Toggle ${CATEGORY_LABELS[cat]} filter`}
+            />
+          ))}
+        </ScrollView>
 
         {loading && resources.length === 0 ? (
           <FeedSkeleton />
@@ -84,21 +146,14 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
             ctaLabel="Try again"
             onCta={() => void reload()}
           />
-        ) : resources.length === 0 ? (
-          // Casey-approved copy per Alex Cycle 1 advisory + Riley friction #1.
-          <EmptyState
-            title="Nothing here yet"
-            description="Your community is just starting. Check back later, or invite a neighbor — every listing makes this more useful for the next person."
-            ctaLabel="Post a resource"
-            onCta={() => onAddResource?.()}
-          />
         ) : (
           <FlatList
-            data={resources}
+            data={filteredResources}
             keyExtractor={keyExtractor}
             ItemSeparatorComponent={Separator}
             renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 96 }}
+            ListEmptyComponent={ListEmpty}
+            contentContainerStyle={{ paddingBottom: 96, flexGrow: 1 }}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -110,7 +165,7 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
           />
         )}
       </View>
-      {resources.length > 0 && <FAB label="Post a resource" onPress={() => onAddResource?.()} />}
+      {filteredResources.length > 0 && <FAB label="Post a resource" onPress={() => onAddResource?.()} />}
     </SafeAreaView>
   );
 }
