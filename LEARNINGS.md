@@ -137,6 +137,58 @@ _Cycle 1 complete. Cycle 2 (Marketplace Feed wired to real Supabase + resourcesR
 
 ---
 
+## 2026-05-24 — Phase 2: CategoryChip + filter pattern (pure-helper split)
+
+Phase 2 extended the marketplace with five categories (food, hygiene, baby, HRT, other) using the same pure-helper discipline as Phase 0a's `resourcesRealtime.ts`. The split lives in two files: `src/lib/categories.ts` (zero React, zero Supabase) and a `CategoryChip` UI component that consumes it.
+
+**The pattern in `src/lib/categories.ts`:**
+
+- `CATEGORY_VALUES` — canonical ordered array of `ResourceCategory` — drives the picker on `AddResourceScreen` and the chip row on `HomeScreen`. Order is stable; Casey's 90-day metrics depend on it.
+- `CATEGORY_LABELS` / `CATEGORY_DESCRIPTIONS` — display strings and a11y hints. Each description is generic and surveillance-safe.
+- `matchesActiveFilter(resourceCategory, activeFilters)` — pure set-membership. Empty `activeFilters` means "show all" (default-on), avoiding an empty-screen surprise when a user toggles off every chip.
+- `toggleCategoryInFilter(filters, category)` — returns a new array in `CATEGORY_VALUES` order by re-emitting via `CATEGORY_VALUES.filter`. Stable ordering matters for `AsyncStorage` serialization and test assertions — an unordered `Set` round-trip produces non-deterministic output.
+
+**Privacy note (DFS-3 / Jordan):** HRT has no special-case branching. The filter and display paths treat it identically to all other values so a screen-reader or analytics consumer watching element-tree traversal cannot infer that any particular category was filtered. Escalate to Jordan before adding any category-specific branching.
+
+Tests for the pure helpers live in `src/__tests__/categories.test.ts`. Unit-test pure helpers first; the `CategoryChip` component test is bonus.
+
+---
+
+## 2026-05-24 — Phase 2: ConfirmationModal — shared primitive across destructive + non-destructive flows
+
+`src/components/ConfirmationModal.tsx` is a single shared primitive used by two very different flows: the pickup/claim confirmation on `ResourceDetailScreen` (non-destructive) and the delete-account confirmation on `ProfileScreen` (destructive). Both call the same component with different prop combinations.
+
+**Why one component, not two:** The only behavioral difference between "confirm pickup" and "confirm deletion" is the `destructive` boolean prop, which swaps the confirm button to the `danger` variant. Everything else — focus trapping, Android back-button handling, backdrop tap, busy state — is identical boilerplate that must not be duplicated.
+
+**A11y baked in:**
+
+- `accessibilityViewIsModal` traps screen-reader focus inside the modal card.
+- `accessibilityRole="alert"` on the title region announces the prompt when it mounts.
+- `onRequestClose={onCancel}` maps Android back gesture to dismiss.
+- Backdrop tap is a `Pressable` that calls `onCancel` unless `busy`. The inner card uses `e.stopPropagation?.()` to prevent backdrop dismissal on card tap.
+
+**The `busy` prop:** disables both buttons during an async `onConfirm` and replaces the confirm label with "Working…". Prevents double-submits — the same pattern used in `AddResourceScreen`'s submit flow. Every modal that wraps an async RPC call must pass `busy` while awaiting.
+
+**Rule for future primitives:** build the "destructive" variant in from the start via a `destructive` boolean, not a separate component. This is cheaper than a `ConfirmationModalDanger` that has to stay in sync.
+
+---
+
+## 2026-05-24 — Phase 2: `complete_onboarding` RPC — idempotent single-column write
+
+`supabase/migrations/006_onboarding_complete.sql` adds the `complete_onboarding()` RPC. It follows the same pattern as `claim_resource` from Cycle 1 but is simpler because there is no concurrent writer race.
+
+**The pattern:**
+
+1. **Security definer.** The RPC runs as `postgres`, bypassing RLS. The client cannot write to `onboarding_complete` directly — no client UPDATE policy exists for that column.
+2. **Idempotent by design.** Calling `complete_onboarding()` when the flag is already `true` is a no-op (the UPDATE matches the row but writes the same value). Load-bearing — the onboarding tour might be dismissed during a network retry.
+3. **No extra query after the RPC.** The client reads `onboarding_complete` from `AuthProvider`'s cached `profile` object, updated via the realtime `user-row-${uid}` subscription. The RPC write triggers a realtime event; no explicit refetch needed.
+
+**Contrast with `claim_resource`:** `claim_resource` uses `SELECT … FOR UPDATE` because two clients can race on the same resource row. `complete_onboarding` only touches the caller's own row and the idempotent outcome is the same regardless of order. Use `FOR UPDATE` only when concurrent writers compete on the same row.
+
+**The companion `reset_onboarding()` RPC** (the "See intro again" link in Profile) was deferred as a DECISION FOR SKY. It is a one-line addition — same structure, `SET onboarding_complete = false`. Add it as migration 006b before Shamus wires the Settings link.
+
+---
+
 ## 2026-05-25 — EXIF strip pipeline: client + server are both load-bearing
 
 The EXIF strip is two layers because neither layer alone is sufficient. The client-side strip in `src/lib/photos.ts` uses `expo-image-manipulator` to re-encode the image at 0.75 quality and max 2048px, which discards the EXIF container as a side effect of re-encoding. That's the first layer. But a forked or tampered client could bypass it — so there's a second layer: a Deno Edge Function at `supabase/functions/exif-strip/index.ts` that fires on every `storage.objects` INSERT via a Storage Webhook, downloads the uploaded file, runs `imagemagick_deno`'s explicit `img.strip()` call, and overwrites the object in place.
@@ -172,3 +224,34 @@ Push notifications touch three separate layers of enforcement and all three must
 **Layer 3 — Edge Function pre-send check.** The `deliver_notification` Edge Function re-reads `push_preferences` from the database before sending to Expo. Even if Layer 2 were bypassed, a token registered for an opted-out user would be caught here. This is the last-line defense.
 
 The privacy rules that apply forever: push notification payloads contain a title (one of four fixed generic strings per trigger, never the resource name) and an empty body. The body-empty contract is enforced by a runtime assertion at the Edge Function layer. The four title strings are reviewed by Jordan before any new trigger is added — the list is not open-ended. Geofence-triggered push is permanently out of scope for any version; the smallest location unit the app communicates is an FSA, and push notifications that fire based on location would violate that contract. See `qa-reports/phase-3-jordan-review-push.md` for the full conditions and `qa-reports/phase-3-4-security-sweep-2026-05-24.md` for Steve's F1–F4 findings.
+
+---
+
+## 2026-05-25 — Phase 3: Web compat layer — Metro platform-specific file resolution
+
+The web build needs a map library that works in a browser; `react-native-maps` does not. The solution uses Metro's built-in platform-specific file resolution rather than runtime `Platform.OS` guards.
+
+**The pattern:**
+
+- `src/components/PlatformMapView.tsx` — native path. Imports `react-native-maps` (`MapView` + `UrlTile`). Metro serves this to iOS/Android builds.
+- `src/components/PlatformMapView.web.tsx` — web path. Imports `react-leaflet` (`MapContainer` + `TileLayer`). Metro serves this when bundling for web.
+
+No shared code between the two files is needed. They export the same `PlatformMapView` function with the same `PlatformMapViewProps` type. The web file imports the type from the native file — safe because TypeScript resolves types at compile time, not at Metro bundle time. The native bundle never includes `react-leaflet`; the web bundle never includes `react-native-maps`.
+
+**The `deltaToZoom` helper in the web file** converts `react-native-maps`' `latitudeDelta` to a Leaflet zoom integer. Clamped to `[2, 13]` — the upper bound reinforces the FSA zoom floor at the Leaflet level (Jordan advisory condition). On web, `onRegionChangeComplete` is intentionally not wired — FSA chip taps drive navigation, not map panning.
+
+**Expo peer-dep note:** `react-leaflet` has a peer dependency conflict with the React 19.1 pin (Expo SDK 54). Vercel's `installCommand` needs `--legacy-peer-deps`. This is in `vercel.json` and is why CI `npm install` also needs the flag (commit `f68eb63`).
+
+**Rule:** prefer platform-specific file resolution (`.native.tsx` / `.web.tsx`) over `Platform.OS === 'web'` guards inside shared files. The guard approach puts dead code in both bundles; file resolution puts zero dead code in either.
+
+---
+
+## 2026-05-25 — Jordan web gate: anon key in web bundle is safe because of RLS posture
+
+When the web build was reviewed (Jordan, 2026-05-25), one concern was the Supabase anon key being visible in the Vercel-deployed bundle. Jordan's ruling: **this is safe for MutualMesh specifically**, but the reasoning is specific to the RLS model.
+
+**Why it's safe:** MutualMesh's RLS policies deny the `anon` role on every table. An unauthenticated request to Supabase — even with the correct anon key — returns zero rows and zero mutations. The resource-photos Storage bucket (`resource-photos`) is **PRIVATE** (not public), so signed URLs require an authenticated session. A web visitor who extracts the anon key from the bundle cannot read resources, cannot list photos, cannot claim items.
+
+**Contrast with AccessMap:** AccessMap's bucket allows public flag-photo reads (photos are the product; public visibility is intentional). MutualMesh's bucket is private because photos contain item details that could reveal sensitive needs. Never relax the bucket's `public = false` without Jordan review.
+
+**The web demo is auth-gated with no guest mode:** `https://mutual-mesh.vercel.app` requires a verified Mutual Mesh account. Jordan's advisory condition (2026-05-25) requires no unauthenticated marketplace browsing — a web visitor cannot see the marketplace without going through the invite-token + verification gate. This is intentional and non-negotiable per PRIVACY.md.

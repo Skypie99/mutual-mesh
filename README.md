@@ -123,3 +123,21 @@ A few pieces are files in the repo but not yet live on any Supabase project. Sky
 - `deliver_notification` Edge Function — in `rory/deliver-notification-edge-fn-2026-05-25` branch.
 
 See `CLAUDE.md` for stack details and full gotchas list.
+
+## Web demo
+
+The app ships a web build powered by [Expo web](https://docs.expo.dev/workflow/web/) + [react-leaflet](https://react-leaflet.js.org/) (for the resource map).
+
+**Live URL:** `https://mutual-mesh.vercel.app`
+
+**Access:** auth-gated — a valid Mutual Mesh account (invite token + Sky verification) is required. There is no guest mode. Jordan's web-gate advisory (2026-05-25) prohibits unauthenticated marketplace browsing.
+
+**Map:** the web map uses `react-leaflet` + OpenStreetMap tiles via `src/components/PlatformMapView.web.tsx`. Metro's platform-specific file resolution serves this file instead of `PlatformMapView.tsx` (which imports `react-native-maps`) on web builds. Both files export the same `PlatformMapView` component and props type.
+
+**Running the web build locally:**
+
+```bash
+npm run web   # starts the Expo web dev server
+```
+
+The Vercel deployment uses `--legacy-peer-deps` in `installCommand` (see `vercel.json`) because react-leaflet has a peer dependency conflict with the React 19.1 pin.
