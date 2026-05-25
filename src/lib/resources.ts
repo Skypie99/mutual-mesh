@@ -18,6 +18,7 @@
  */
 
 import { supabase } from './supabase';
+import { userFacingErrorMessage } from './errors';
 import type { ResourceCategory } from '@/types/database';
 
 const LIST_LIMIT = 500;
@@ -183,4 +184,39 @@ export async function confirmPickup(resourceId: string) {
  */
 export async function completeOnboarding() {
   return supabase.rpc('complete_onboarding');
+}
+
+// ============================================================================
+// Profile self-update (AC-6.1)
+// ============================================================================
+
+/**
+ * Update the authenticated user's handle and/or postal_prefix.
+ *
+ * AC-6.1. Relies on users_self_update RLS policy (schema.sql:498-503).
+ * The protect_admin_flags trigger blocks is_verified/is_admin changes;
+ * handle + postal_prefix are freely updatable by the owner.
+ *
+ * @privacy-note handle is a random adjective-noun display string (not a
+ *   real name per PRIVACY.md D1/D2). postal_prefix is 3-char FSA already
+ *   in the user's public.users row. No new PII collection.
+ */
+export async function updateMyProfile(updates: {
+  handle?: string;
+  postal_prefix?: string;
+}): Promise<{ error: string | null }> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Not signed in.' };
+  }
+
+  const { error } = await supabase.from('users').update(updates).eq('id', user.id);
+
+  if (error) {
+    return { error: userFacingErrorMessage(error, 'Could not save your profile.') };
+  }
+  return { error: null };
 }
