@@ -16,10 +16,10 @@ You can only join Mutual Mesh if someone already in the community gives you an i
 You pick a handle when you sign up. That handle is all other people ever see. We don't collect your real name, and we have no way to connect your handle to your legal identity — not us, not admins, not anyone.
 
 **Verification is done by humans, not algorithms.**
-When you apply, a community admin — a real person embedded in your local network — looks at your account and makes a human call. This usually takes about 24 hours. There's no automated approval score. There's no shadowban. If you're rejected, we'll tell you why.
+When you apply, a community admin — a real person embedded in your local network — looks at your account and makes a human call. This usually takes about 24 hours. There's no automated approval score. There's no shadowban. If you're not approved, your application will be quietly closed. Admins note a reason internally, but the app doesn't send rejection notifications — we can't always reach you before access is removed.
 
 **What admins can see — and what they can't.**
-During verification, an admin sees: your chosen handle, your email, your postal prefix (the first three characters — neighborhood-level, not your street), and whether your invite code was valid. That's it.
+During verification, an admin sees: your chosen handle, your email, your postal prefix (the first three characters — neighborhood-level, not your street), and whether your invite code was valid. The admin app is built to show only these fields — we rely on community accountability, not a technical column lock, to hold that line.
 
 Admins cannot see: your address, your phone number, your real name, any prior posts or claims (you haven't made any yet), IP address, or device info. After they decide, they don't retain access to your data. A second admin reviewing your account sees only the current state — not who reviewed before them or what they thought.
 
@@ -80,7 +80,7 @@ You're a community member with an extra 20 minutes of work a day. That's the who
 Your job is to apply the criteria (see `community/onboarding.md`) and let people in. It's not to protect the community from people who make you uncomfortable or who you don't personally know. If you notice yourself looking for reasons to reject rather than reasons to approve, that's a signal to flag for your coordinator.
 
 **What you see, and only what you see:**
-During verification, you have access to a verified applicant's handle, email, postal prefix, and invite-code status. After you decide, your session ends and you retain no ongoing access to that account's data. You cannot view resource posts, claim history, or contact handles for users you've approved — not through the admin interface, and not through the database (RLS enforces this at the technical layer).
+During verification, you have access to a verified applicant's handle, email, postal prefix, and invite-code status. After you decide, your session ends and you retain no ongoing access to that account's data. You cannot view resource posts, claim history, or contact handles for users you've approved — not through the admin interface. The database allows admin-role reads of the full applicant row — the restriction is enforced by the app, not a column-level lock. If you discover a way to access data outside the admin UI, treat it as a security report, not a feature.
 
 **If you discover an access gap — a way to see data you shouldn't be able to see — treat it as a security report**, not a privilege. File it at privacy@mutualmesh.ca and we'll fix it fast.
 
