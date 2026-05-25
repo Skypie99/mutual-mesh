@@ -226,3 +226,14 @@ export const BUCKET_FILL_COLORS_DARK: Record<FsaCountBucket, string> = {
  */
 export const POLYGON_STROKE_LIGHT = 'rgba(31, 122, 106, 0.6)';
 export const POLYGON_STROKE_DARK = 'rgba(79, 191, 168, 0.6)';
+
+/**
+ * UI-facing label for an FSA bucket — used in chips and preview sheets.
+ * Distinct from FSA_BUCKET_LABEL (accessibility, lowercase) in fsaAggregation.
+ */
+export function bucketLabel(bucket: FsaCountBucket): string {
+  if (bucket === 'light') return 'A few resources available';
+  if (bucket === 'medium') return 'Several resources available';
+  if (bucket === 'heavy') return 'Many resources available';
+  return 'No resources';
+}

@@ -18,7 +18,7 @@
  */
 
 import { supabase } from './supabase';
-import type { ResourceCategory, ResourceRow } from '@/types/database';
+import type { ResourceCategory } from '@/types/database';
 
 const LIST_LIMIT = 500;
 

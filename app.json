@@ -20,6 +20,12 @@
     "web": {
       "bundler": "metro"
     },
-    "plugins": []
+    "plugins": [],
+    "owner": "skypie99",
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
   }
 }

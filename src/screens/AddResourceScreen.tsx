@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { validateContactHandle, validationFailureMessage } from '@/lib/contactHandle';
-import { uploadResourcePhoto } from '@/lib/photos';
+import { uploadResourcePhoto, createSignedResourcePhotoUrl } from '@/lib/photos';
 import { createResource } from '@/lib/resources';
 import { userFacingErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
@@ -23,8 +23,9 @@ type AddResourceScreenProps = {
  *   1. User fills form (name, description, pickup, contact-handle), optionally picks photo
  *   2. On submit:
  *      a. If photo: stripExifAndCompress → upload to resource-photos/<userId>/<ts>.jpg
- *      b. createResource with photo_url=path (server-side createSignedUrl renders later)
- *      c. Trigger sets created_at + status_changed_at; defaults status='available'
+ *      b. Validate signed URL is accessible (createSignedResourcePhotoUrl — null = stop, show error)
+ *      c. createResource with photo_url=path (clients generate signed URLs at view time)
+ *      d. Trigger sets created_at + status_changed_at; defaults status='available'
  *   3. Realtime delivers the INSERT to all subscribed clients; HomeScreen updates without re-fetch
  *
  * Per Deb persona + Casey advisory: photo is OPTIONAL with prominent "Photo optional" hint.
@@ -76,6 +77,18 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
       let photoPath: string | null = null;
       if (photoUri) {
         photoPath = await uploadResourcePhoto(user.id, photoUri);
+        let signedUrl = await createSignedResourcePhotoUrl(photoPath);
+
+        if (!signedUrl) {
+          // Single retry for transient Supabase API hiccups (network blip, edge latency).
+          // A real RLS failure will still return null on the second attempt.
+          await new Promise((r) => setTimeout(r, 300));
+          signedUrl = await createSignedResourcePhotoUrl(photoPath);
+        }
+
+        if (!signedUrl) {
+          throw new Error('Photo uploaded but could not be verified. Please try again.');
+        }
       }
       const { error: err } = await createResource(
         {

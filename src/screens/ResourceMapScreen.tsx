@@ -44,6 +44,7 @@ import {
   BUCKET_FILL_COLORS_LIGHT,
   DEFAULT_REGION,
   OSM_TILE_URL,
+  bucketLabel,
   clampRegionZoom,
   type MapRegion,
 } from '@/lib/mapHelpers';
@@ -100,7 +101,7 @@ export function ResourceMapScreen({
   const resources = resourcesProp && resourcesProp.length > 0 ? resourcesProp : fetchedResources;
 
   // View mode — 'list' is the default per Quinn AC-5 (map is secondary).
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   // Selected FSA for the preview sheet.
   const [selectedFsa, setSelectedFsa] = useState<FsaDescriptor | null>(null);
@@ -364,8 +365,27 @@ export function ResourceMapScreen({
         />
       </View>
 
+      {/* Empty state — shown over the map when no FSA data is available */}
+      {descriptors.length === 0 && !loading && (
+        <View
+          className="absolute inset-0 z-10 items-center justify-center bg-light-bg/80 dark:bg-dark-bg/80"
+          accessibilityViewIsModal
+          accessibilityLiveRegion="polite"
+        >
+          <EmptyState
+            title="No resources on map yet"
+            description="Once community members post resources, they'll appear here grouped by neighborhood."
+            ctaLabel="Switch to list view"
+            onCta={onSwitchToList}
+          />
+        </View>
+      )}
+
       {/* MapView — OSM tiles, clamped to FSA zoom, privacy-safe (no GPS pins) */}
-      <View className="flex-1">
+      <View
+        className="flex-1"
+        importantForAccessibility={descriptors.length === 0 ? 'no-hide-descendants' : 'auto'}
+      >
         <MapView
           style={{ flex: 1 }}
           region={region}
@@ -495,13 +515,7 @@ function FsaChip({ descriptor, fillColor, onPress }: FsaChipProps) {
         </Text>
         <Text className="text-xs text-light-text-muted dark:text-dark-text-muted">
           {/* Bucket label — never shows exact count (Jordan AC-4) */}
-          {descriptor.bucket === 'light'
-            ? 'A few resources available'
-            : descriptor.bucket === 'medium'
-              ? 'Several resources available'
-              : descriptor.bucket === 'heavy'
-                ? 'Many resources available'
-                : 'No resources'}
+          {bucketLabel(descriptor.bucket)}
         </Text>
       </View>
 
@@ -589,11 +603,7 @@ function FsaPreviewSheet({
               style={{ color: palette.textMuted, fontSize: 12, marginTop: 2 }}
               accessibilityLabel={a11yLabel}
             >
-              {descriptor.bucket === 'light'
-                ? 'A few resources available'
-                : descriptor.bucket === 'medium'
-                  ? 'Several resources available'
-                  : 'Many resources available'}
+              {bucketLabel(descriptor.bucket)}
             </Text>
           </View>
 
