@@ -72,9 +72,7 @@ export function HomeScreen({ onOpenResource, onAddResource }: HomeScreenProps) {
             data={resources}
             keyExtractor={(item) => item.id}
             ItemSeparatorComponent={Separator}
-            renderItem={({ item }) => (
-              <ResourceCard item={item} onPress={onOpenResource} />
-            )}
+            renderItem={({ item }) => <ResourceCard item={item} onPress={onOpenResource} />}
             contentContainerStyle={{ paddingBottom: 96 }}
             refreshControl={
               <RefreshControl
