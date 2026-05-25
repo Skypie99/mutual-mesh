@@ -100,6 +100,12 @@ All roles inherit the rule: **escalate anything you're not sure about.** Better 
 
 ---
 
+## Try the web demo
+
+The Mutual Mesh web demo is live at `https://mutual-mesh.vercel.app`. It requires an invite and a verified account — same as the mobile app. If you've been invited to preview the platform and want to use a browser instead of (or alongside) your phone, see [`web-demo.md`](./web-demo.md) for what to expect and how to get started.
+
+---
+
 ## Failure modes we're explicitly trying to avoid
 
 - **Admin power-tripping.** An admin should never feel like a gatekeeper of who's "deserving." Reject only on the criteria above; everything else is a soft yes.
