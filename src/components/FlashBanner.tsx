@@ -66,7 +66,6 @@ export function FlashBanner({
 
   return (
     <Animated.View
-      accessibilityLiveRegion="polite"
       accessibilityRole="alert"
       style={{ opacity }}
       className={`absolute left-4 right-4 top-12 z-50 rounded-card border p-3 ${variantClasses(variant)}`}
