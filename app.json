@@ -18,7 +18,9 @@
       "package": "com.mutualmesh.app"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "lang": "en",
+      "title": "Mutual Mesh"
     },
     "plugins": []
   }
