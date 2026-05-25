@@ -6,7 +6,7 @@
  *
  * Coverage:
  *   - listResources()          — paginated, filtered to status='available'
- *   - getResourceById(id)      — single fetch for detail screen
+ *   - getResourceDetail(id)    — SECURITY DEFINER RPC; gates contact_handle per claim status
  *   - createResource(input)    — INSERT; trigger sets created_at + status
  *   - claimResource(id)        — calls claim_resource RPC (atomic per PRD §3)
  *   - deleteResourceById(id)   — DELETE; RLS enforces posted_by = auth.uid()
@@ -32,7 +32,7 @@ const LIST_LIMIT = 500;
  *
  * JORDAN BLOCKING CONDITION 2 (web gate 2026-05-25-jordan-web-gate.md):
  * contact_handle is intentionally excluded from this list query. It must
- * only appear post-claim on the detail view (getResourceById ->
+ * only appear post-claim on the detail view (getResourceDetail() RPC ->
  * ResourceDetailScreen). Never render contact_handle in feed list cards.
  *
  * If you need to add columns here, list them explicitly. Do NOT switch back
@@ -49,9 +49,30 @@ export async function listResources() {
     .limit(LIST_LIMIT);
 }
 
-/** Single resource by id — for the detail screen. */
-export async function getResourceById(id: string) {
-  return supabase.from('resources').select('*').eq('id', id).maybeSingle();
+/**
+ * Fetch resource detail via the get_resource_detail SECURITY DEFINER RPC.
+ *
+ * This replaces the removed getResourceById select('*') which returned
+ * contact_handle to all verified users regardless of claim status —
+ * violating PRIVACY.md row 11 (Jordan BLOCK 2026-05-25).
+ *
+ * The RPC returns contact_handle ONLY to the poster or claimant; all other
+ * callers receive NULL. This is enforced at the server layer, not the client.
+ *
+ * Returns the first row of the result set (single resource), or null if
+ * no resource was found. contact_handle is typed string | null per Jordan
+ * Condition B — never narrow to string.
+ *
+ * Requires migration 014_get_resource_detail_rpc.sql to be applied first.
+ * File lives on data/auto-2026-05-25-dana-claim-rpc; Sky applies via dashboard.
+ */
+export async function getResourceDetail(resourceId: string) {
+  const { data, error } = await supabase
+    .rpc('get_resource_detail', { p_resource_id: resourceId });
+  if (error) return { data: null, error };
+  // RPC returns a rows array; first item is our resource (or undefined = not found)
+  const row = Array.isArray(data) ? (data[0] ?? null) : (data ?? null);
+  return { data: row, error: null };
 }
 
 /** Posts the current user has created (any status). */
