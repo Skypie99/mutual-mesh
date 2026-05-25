@@ -1,4 +1,5 @@
 # Morgan — Decisions Made on Sky's Behalf
+
 **Date:** 2026-05-25 · **Mode:** ACTIVE (Morgan autonomous loop — expert-consensus decisions)
 **Authority:** Sky directive 2026-05-24: "call the experts for each question and decide for me"
 
@@ -38,6 +39,7 @@
 
 **Mandatory condition before ship (not before build):**
 The existing RLS policy `flags update own` must be replaced with one that:
+
 1. Adds `status = 'open'` to the `USING` clause (not just `WITH CHECK`) — so owners cannot target non-open flags
 2. Restricts `WITH CHECK` to only allow changes to `description`, `category`, `severity`, `context_tags` — blocks self-reassignment of `user_id`, location, `status`, `photo_url`
 
@@ -55,11 +57,11 @@ This migration requires Sky to apply to live Supabase (stops at Constitution Art
 
 ### D5 — Branches Pushed to Origin
 
-| Branch | Repo | Status |
-|---|---|---|
+| Branch                                                 | Repo       | Status               |
+| ------------------------------------------------------ | ---------- | -------------------- |
 | `feat/mutualmesh-2026-05-24-shamus-resourcemap-polish` | MutualMesh | Already on remote ✅ |
-| `data/sync-types-mig-002-009-2026-05-24` | MutualMesh | Pushed ✅ |
-| `a11y/placeholder-sweep-cycle-f` | AccessMap | Pushed ✅ |
+| `data/sync-types-mig-002-009-2026-05-24`               | MutualMesh | Pushed ✅            |
+| `a11y/placeholder-sweep-cycle-f`                       | AccessMap  | Pushed ✅            |
 
 ---
 
@@ -67,11 +69,11 @@ This migration requires Sky to apply to live Supabase (stops at Constitution Art
 
 These cannot be decided by any expert. They require direct Sky action:
 
-| Item | Why stopped | Action |
-|---|---|---|
-| Apply MutualMesh migrations 002–011 | Const. Art. 5: never apply to live DB | Sky: Supabase dashboard → SQL Editor, run in order |
-| Deploy `log-error` Edge Function | Production deployment surface | Sky: `supabase functions deploy log-error` (after migrations) |
-| Apply AccessMap 5 SQL migrations | Const. Art. 5 | Sky: Supabase dashboard → SQL Editor |
-| Merge any branch to main | Const. Art. 1: only Sky merges | Sky: GitHub PR review + merge |
+| Item                                | Why stopped                           | Action                                                        |
+| ----------------------------------- | ------------------------------------- | ------------------------------------------------------------- |
+| Apply MutualMesh migrations 002–011 | Const. Art. 5: never apply to live DB | Sky: Supabase dashboard → SQL Editor, run in order            |
+| Deploy `log-error` Edge Function    | Production deployment surface         | Sky: `supabase functions deploy log-error` (after migrations) |
+| Apply AccessMap 5 SQL migrations    | Const. Art. 5                         | Sky: Supabase dashboard → SQL Editor                          |
+| Merge any branch to main            | Const. Art. 1: only Sky merges        | Sky: GitHub PR review + merge                                 |
 
 **Minimum viable unlock:** Apply MutualMesh migration 008 (`008_error_reports.sql`) first — unblocks error reporting e2e. Remaining migrations can follow in order.

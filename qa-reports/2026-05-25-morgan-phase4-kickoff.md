@@ -11,6 +11,7 @@ drift_risk: low
 ---
 
 # Morgan PM Briefing — Phase 4 Kickoff
+
 **2026-05-25 | Handoff acknowledgment | Phase 2–3 complete → Phase 4 execution**
 
 ---
@@ -18,6 +19,7 @@ drift_risk: low
 ## §1 — Dependency Graph
 
 **nodes:**
+
 - `correction/photo-null` (Morgan, immediate) — stale HIGH issue must be cleared from Phase 4 scope before work begins
 - `rory/push-notif-device-test` (Rory, validation) — end-to-end push notification on real device
 - `rory/error-reporting-e2e` (Rory, validation) — confirm client → log-error Edge Function → DB path fires
@@ -28,14 +30,15 @@ drift_risk: low
 - `dana/type-sync-pr` (Dana, unblocked) — push data/sync-types-mig-002-009-2026-05-24, open PR
 
 **edges:**
-- `correction/photo-null` → *(resolves before Phase 4 scope is finalized — no blocking edge, just a correction)*
-- `shamus/lint-cleanup` → *(independent, no dependencies)*
+
+- `correction/photo-null` → _(resolves before Phase 4 scope is finalized — no blocking edge, just a correction)_
+- `shamus/lint-cleanup` → _(independent, no dependencies)_
 - `dana/type-sync-pr` → `main` (low-risk, 1 commit; Sky reviews before merge)
 - `rory/push-notif-device-test` → `rory/phase4-testflight` (device test must pass before build submission)
 - `rory/error-reporting-e2e` → `rory/phase4-testflight` (observability must be confirmed before release sim)
-- `rory/cron-first-run` → *(monitor only; no action until first fire occurs)*
+- `rory/cron-first-run` → _(monitor only; no action until first fire occurs)_
 - `shamus/resourcemap-polish` → `rory/phase4-testflight` (UX must be stable before release simulation)
-- `rory/phase4-testflight` → *(blocked on Sky decision)*
+- `rory/phase4-testflight` → _(blocked on Sky decision)_
 
 ---
 
@@ -96,32 +99,32 @@ No duplications detected this cycle. Prior 7 days qa-reports surveyed: 2026-05-2
 
 ### Immediate (today, no Sky decision needed)
 
-| # | Task | Owner | Time | Notes |
-|---|------|-------|------|-------|
-| 1 | Confirm photo-null scope (stale or real?) | Sky | 2 min | DECISION_FOR_SKY — determines if Rory audits createSignedResourcePhotoUrl |
-| 2 | Remove ResourceRow unused import | Shamus | 2 min | src/lib/resources.ts:21 |
-| 3 | Push data/sync-types branch + open PR | Dana | 10 min | 1 commit, type sync only |
+| #   | Task                                      | Owner  | Time   | Notes                                                                     |
+| --- | ----------------------------------------- | ------ | ------ | ------------------------------------------------------------------------- |
+| 1   | Confirm photo-null scope (stale or real?) | Sky    | 2 min  | DECISION_FOR_SKY — determines if Rory audits createSignedResourcePhotoUrl |
+| 2   | Remove ResourceRow unused import          | Shamus | 2 min  | src/lib/resources.ts:21                                                   |
+| 3   | Push data/sync-types branch + open PR     | Dana   | 10 min | 1 commit, type sync only                                                  |
 
 ### Validation pass (unblocked)
 
-| # | Task | Owner | Time | Notes |
-|---|------|-------|------|-------|
-| 4 | Push notification end-to-end device test | Rory | 1–2 hr | Physical device required; AC-8 round-trip |
-| 5 | Error reporting e2e: client → Edge Function → DB | Rory | 30 min | Confirm log_error RPC fires and row appears in DB |
-| 6 | Cron job first-run monitor | Rory | passive | Watch; report result after first nightly fire |
+| #   | Task                                             | Owner | Time    | Notes                                             |
+| --- | ------------------------------------------------ | ----- | ------- | ------------------------------------------------- |
+| 4   | Push notification end-to-end device test         | Rory  | 1–2 hr  | Physical device required; AC-8 round-trip         |
+| 5   | Error reporting e2e: client → Edge Function → DB | Rory  | 30 min  | Confirm log_error RPC fires and row appears in DB |
+| 6   | Cron job first-run monitor                       | Rory  | passive | Watch; report result after first nightly fire     |
 
 ### Polish (after validation)
 
-| # | Task | Owner | Time | Notes |
-|---|------|-------|------|-------|
-| 7 | ResourceMapScreen UX polish | Shamus | TBD | Design Compiler gate required (Const. Art. 2.4) |
-| 8 | Onboarding + auth flow review | Shamus | TBD | Ensure no silent failure paths remain |
+| #   | Task                          | Owner  | Time | Notes                                           |
+| --- | ----------------------------- | ------ | ---- | ----------------------------------------------- |
+| 7   | ResourceMapScreen UX polish   | Shamus | TBD  | Design Compiler gate required (Const. Art. 2.4) |
+| 8   | Onboarding + auth flow review | Shamus | TBD  | Ensure no silent failure paths remain           |
 
 ### Release prep (blocked on Sky + validation)
 
-| # | Task | Owner | Time | Notes |
-|---|------|-------|------|-------|
-| 9 | TestFlight: EAS config + first preview build | Rory | 3–4 hr | Sky go-ahead required; depends on items 4–5 passing |
+| #   | Task                                         | Owner | Time   | Notes                                               |
+| --- | -------------------------------------------- | ----- | ------ | --------------------------------------------------- |
+| 9   | TestFlight: EAS config + first preview build | Rory  | 3–4 hr | Sky go-ahead required; depends on items 4–5 passing |
 
 ---
 

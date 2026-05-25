@@ -18,16 +18,16 @@ drift_risk: low
 
 ## §1 — Work Completed This Cycle
 
-| # | Task | Owner | Status | Artifact |
-|---|------|-------|--------|----------|
-| 1 | iMessage to Sky: 2 PRs ready to merge + Dana stale | Morgan | ✅ SENT | — |
-| 2 | Commit untracked QA reports to Shamus branch | Shamus | ✅ DONE | commit 91de2d6 |
-| 3 | Open PR #5 — resourcemap polish | Shamus | ✅ DONE | https://github.com/Skypie99/mutual-mesh/pull/5 |
-| 4 | Design Compiler — ResourceMapScreen (7 layers) | Dani | ✅ COMMIT | qa-reports/2026-05-25_DesignCompile_resourcemap-polish.md |
-| 5 | Commit Design Compiler result to Shamus branch | Morgan | ✅ DONE | commit e208b01 |
-| 6 | Write bucketLabel() unit tests (6 tests) | Gary | ✅ DONE | src/__tests__/mapHelpers.bucketLabel.test.ts |
-| 7 | Run full test suite: 375/375 pass | — | ✅ PASS | — |
-| 8 | Confirm Dana type-sync branch stale | Morgan | ✅ CONFIRMED | VerificationDecision already on main:database.ts |
+| #   | Task                                               | Owner  | Status       | Artifact                                                  |
+| --- | -------------------------------------------------- | ------ | ------------ | --------------------------------------------------------- |
+| 1   | iMessage to Sky: 2 PRs ready to merge + Dana stale | Morgan | ✅ SENT      | —                                                         |
+| 2   | Commit untracked QA reports to Shamus branch       | Shamus | ✅ DONE      | commit 91de2d6                                            |
+| 3   | Open PR #5 — resourcemap polish                    | Shamus | ✅ DONE      | https://github.com/Skypie99/mutual-mesh/pull/5            |
+| 4   | Design Compiler — ResourceMapScreen (7 layers)     | Dani   | ✅ COMMIT    | qa-reports/2026-05-25_DesignCompile_resourcemap-polish.md |
+| 5   | Commit Design Compiler result to Shamus branch     | Morgan | ✅ DONE      | commit e208b01                                            |
+| 6   | Write bucketLabel() unit tests (6 tests)           | Gary   | ✅ DONE      | src/**tests**/mapHelpers.bucketLabel.test.ts              |
+| 7   | Run full test suite: 375/375 pass                  | —      | ✅ PASS      | —                                                         |
+| 8   | Confirm Dana type-sync branch stale                | Morgan | ✅ CONFIRMED | VerificationDecision already on main:database.ts          |
 
 ---
 
@@ -53,10 +53,10 @@ PR #5  fix(resourcemap): viewMode default + dedup labels + empty state + lint
 
 ## §3 — Stale Branch Cleanup (no-action pending Sky awareness)
 
-| Branch | Status | Action |
-|--------|--------|--------|
+| Branch                                   | Status                                                             | Action                 |
+| ---------------------------------------- | ------------------------------------------------------------------ | ---------------------- |
 | `data/sync-types-mig-002-009-2026-05-24` | STALE — VerificationDecision already in main (line 28 database.ts) | Delete when convenient |
-| `will/contact-email-2026-05-24` | DEAD — absorbed into PR #2 commit a435556 | Delete when convenient |
+| `will/contact-email-2026-05-24`          | DEAD — absorbed into PR #2 commit a435556                          | Delete when convenient |
 
 No urgency. Both branches are local + remote. Can be cleaned up any time.
 
@@ -66,31 +66,31 @@ No urgency. Both branches are local + remote. Can be cleaned up any time.
 
 ### Waiting on Sky (merge PRs first)
 
-| # | Task | Owner | Notes |
-|---|------|-------|-------|
-| — | Merge PR #4 (photo fix) | Sky | Cowork, ruleset API pattern |
-| — | Merge PR #5 (resourcemap + tests) | Sky | After PR #4 |
+| #   | Task                              | Owner | Notes                       |
+| --- | --------------------------------- | ----- | --------------------------- |
+| —   | Merge PR #4 (photo fix)           | Sky   | Cowork, ruleset API pattern |
+| —   | Merge PR #5 (resourcemap + tests) | Sky   | After PR #4                 |
 
 ### Unblocked (Rory — can start now)
 
-| # | Task | Owner | Est. | Notes |
-|---|------|-------|------|-------|
-| 1 | Push notification e2e device test | Rory | 1–2 hr | Physical iOS/Android; AC-8 round-trip |
-| 2 | Error reporting e2e (client → Edge Function → DB) | Rory | 30 min | Confirm log_error RPC fires + DB row appears |
-| 3 | Cron first-run monitor | Rory | passive | 4 jobs registered, 0 executions — watch first nightly fire |
+| #   | Task                                              | Owner | Est.    | Notes                                                      |
+| --- | ------------------------------------------------- | ----- | ------- | ---------------------------------------------------------- |
+| 1   | Push notification e2e device test                 | Rory  | 1–2 hr  | Physical iOS/Android; AC-8 round-trip                      |
+| 2   | Error reporting e2e (client → Edge Function → DB) | Rory  | 30 min  | Confirm log_error RPC fires + DB row appears               |
+| 3   | Cron first-run monitor                            | Rory  | passive | 4 jobs registered, 0 executions — watch first nightly fire |
 
 ### Non-blocking follow-ups (from Design Compiler escalations)
 
-| # | Task | Owner | Notes |
-|---|------|-------|-------|
-| A | a11y audit: overlay focus isolation | Alex | ResourceMapScreen.tsx ~line 368-377; screen reader focus trap check |
-| B | Token drift sweep | Dani | 3 pre-existing hardcoded colors (ProfileCard, RequestDetailScreen, CategoryBadge) |
+| #   | Task                                | Owner | Notes                                                                             |
+| --- | ----------------------------------- | ----- | --------------------------------------------------------------------------------- |
+| A   | a11y audit: overlay focus isolation | Alex  | ResourceMapScreen.tsx ~line 368-377; screen reader focus trap check               |
+| B   | Token drift sweep                   | Dani  | 3 pre-existing hardcoded colors (ProfileCard, RequestDetailScreen, CategoryBadge) |
 
 ### Blocked on Sky decision
 
-| # | Task | Owner | Decision |
-|---|------|-------|----------|
-| — | TestFlight — EAS config + first preview build | Rory | Sky go-ahead required; depends on device test passing |
+| #   | Task                                          | Owner | Decision                                              |
+| --- | --------------------------------------------- | ----- | ----------------------------------------------------- |
+| —   | TestFlight — EAS config + first preview build | Rory  | Sky go-ahead required; depends on device test passing |
 
 ---
 
