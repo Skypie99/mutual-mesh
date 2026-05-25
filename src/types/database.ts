@@ -79,7 +79,13 @@ export type ResourceRow = {
   description: string | null;
   photo_url: string | null;
   pickup_text: string;
-  contact_handle: string;
+  /**
+   * Jordan Condition B (2026-05-25): contact_handle must be typed `string | null`
+   * because the get_resource_detail RPC returns NULL when the caller is neither
+   * the poster nor the claimant. The DB column is NOT NULL but the RPC gates it.
+   * Never narrow this to `string` — it would break the privacy gate at compile time.
+   */
+  contact_handle: string | null;
   category: ResourceCategory;
   status: ResourceStatus;
   postal_prefix: string | null;
@@ -258,6 +264,15 @@ export type Database = {
       claim_resource: {
         Args: { resource_id: string };
         Returns: boolean;
+      };
+      get_resource_detail: {
+        Args: { p_resource_id: string };
+        /**
+         * Returns a single-row result set. The RPC returns all resource fields
+         * with contact_handle gated: null unless caller is poster or claimant.
+         * Jordan Condition B (2026-05-25): contact_handle is string | null here.
+         */
+        Returns: ResourceRow[];
       };
       touch_my_last_active: {
         Args: Record<string, never>;
