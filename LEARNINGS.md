@@ -134,3 +134,171 @@ Cycle 1 lands the first real user-data layer. Six load-bearing patterns emerged 
 ---
 
 _Cycle 1 complete. Cycle 2 (Marketplace Feed wired to real Supabase + resourcesRealtime integration) starts the moment Sky applies the schema._
+
+---
+
+## 2026-05-24 — Phase 2: CategoryChip + filter pattern (pure-helper split)
+
+Phase 2 extended the marketplace with five categories (food, hygiene, baby, HRT, other) using the same pure-helper discipline as Phase 0a's `resourcesRealtime.ts`. The split lives in two files: `src/lib/categories.ts` (zero React, zero Supabase) and a `CategoryChip` UI component that consumes it.
+
+**The pattern in `src/lib/categories.ts`:**
+
+- `CATEGORY_VALUES` — canonical ordered array of `ResourceCategory` — drives the picker on `AddResourceScreen` and the chip row on `HomeScreen`. Order is stable; Casey's 90-day metrics depend on it.
+- `CATEGORY_LABELS` / `CATEGORY_DESCRIPTIONS` — display strings and a11y hints. Each description is generic and surveillance-safe.
+- `matchesActiveFilter(resourceCategory, activeFilters)` — pure set-membership. Empty `activeFilters` means "show all" (default-on), avoiding an empty-screen surprise when a user toggles off every chip.
+- `toggleCategoryInFilter(filters, category)` — returns a new array in `CATEGORY_VALUES` order by re-emitting via `CATEGORY_VALUES.filter`. Stable ordering matters for `AsyncStorage` serialization and test assertions — an unordered `Set` round-trip produces non-deterministic output.
+
+**Privacy note (DFS-3 / Jordan):** HRT has no special-case branching. The filter and display paths treat it identically to all other values so a screen-reader or analytics consumer watching element-tree traversal cannot infer that any particular category was filtered. Escalate to Jordan before adding any category-specific branching.
+
+Tests for the pure helpers live in `src/__tests__/categories.test.ts`. Unit-test pure helpers first; the `CategoryChip` component test is bonus.
+
+---
+
+## 2026-05-24 — Phase 2: ConfirmationModal — shared primitive across destructive + non-destructive flows
+
+`src/components/ConfirmationModal.tsx` is a single shared primitive used by two very different flows: the pickup/claim confirmation on `ResourceDetailScreen` (non-destructive) and the delete-account confirmation on `ProfileScreen` (destructive). Both call the same component with different prop combinations.
+
+**Why one component, not two:** The only behavioral difference between "confirm pickup" and "confirm deletion" is the `destructive` boolean prop, which swaps the confirm button to the `danger` variant. Everything else — focus trapping, Android back-button handling, backdrop tap, busy state — is identical boilerplate that must not be duplicated.
+
+**A11y baked in:**
+
+- `accessibilityViewIsModal` traps screen-reader focus inside the modal card.
+- `accessibilityRole="alert"` on the title region announces the prompt when it mounts.
+- `onRequestClose={onCancel}` maps Android back gesture to dismiss.
+- Backdrop tap is a `Pressable` that calls `onCancel` unless `busy`. The inner card uses `e.stopPropagation?.()` to prevent backdrop dismissal on card tap.
+
+**The `busy` prop:** disables both buttons during an async `onConfirm` and replaces the confirm label with "Working…". Prevents double-submits — the same pattern used in `AddResourceScreen`'s submit flow. Every modal that wraps an async RPC call must pass `busy` while awaiting.
+
+**Rule for future primitives:** build the "destructive" variant in from the start via a `destructive` boolean, not a separate component. This is cheaper than a `ConfirmationModalDanger` that has to stay in sync.
+
+---
+
+## 2026-05-24 — Phase 2: `complete_onboarding` RPC — idempotent single-column write
+
+`supabase/migrations/006_onboarding_complete.sql` adds the `complete_onboarding()` RPC. It follows the same pattern as `claim_resource` from Cycle 1 but is simpler because there is no concurrent writer race.
+
+**The pattern:**
+
+1. **Security definer.** The RPC runs as `postgres`, bypassing RLS. The client cannot write to `onboarding_complete` directly — no client UPDATE policy exists for that column.
+2. **Idempotent by design.** Calling `complete_onboarding()` when the flag is already `true` is a no-op (the UPDATE matches the row but writes the same value). Load-bearing — the onboarding tour might be dismissed during a network retry.
+3. **No extra query after the RPC.** The client reads `onboarding_complete` from `AuthProvider`'s cached `profile` object, updated via the realtime `user-row-${uid}` subscription. The RPC write triggers a realtime event; no explicit refetch needed.
+
+**Contrast with `claim_resource`:** `claim_resource` uses `SELECT … FOR UPDATE` because two clients can race on the same resource row. `complete_onboarding` only touches the caller's own row and the idempotent outcome is the same regardless of order. Use `FOR UPDATE` only when concurrent writers compete on the same row.
+
+**The companion `reset_onboarding()` RPC** (the "See intro again" link in Profile) was deferred as a DECISION FOR SKY. It is a one-line addition — same structure, `SET onboarding_complete = false`. Add it as migration 006b before Shamus wires the Settings link.
+
+---
+
+## 2026-05-25 — EXIF strip pipeline: client + server are both load-bearing
+
+The EXIF strip is two layers because neither layer alone is sufficient. The client-side strip in `src/lib/photos.ts` uses `expo-image-manipulator` to re-encode the image at 0.75 quality and max 2048px, which discards the EXIF container as a side effect of re-encoding. That's the first layer. But a forked or tampered client could bypass it — so there's a second layer: a Deno Edge Function at `supabase/functions/exif-strip/index.ts` that fires on every `storage.objects` INSERT via a Storage Webhook, downloads the uploaded file, runs `imagemagick_deno`'s explicit `img.strip()` call, and overwrites the object in place.
+
+Three things tripped us up building this:
+
+**(1) The tsconfig must explicitly exclude `supabase/functions/`.** The Edge Function uses Deno-style URL imports (`https://deno.land/x/imagemagick_deno@0.0.31/mod.ts`) that don't exist in the Node module graph. Without the exclude, every URL import breaks `npm run typecheck`. Fix: add `"supabase/functions"` to the `exclude` array in `tsconfig.json` and `"supabase/functions/"` to `ignorePatterns` in `.eslintrc.json`. Prettier is fine with the Deno file — it doesn't resolve imports, it just formats tokens.
+
+**(2) Idempotency via a user-metadata marker, not a re-check of the bytes.** Webhook redelivery is real. The function checks the object's `user_metadata` for an `x-exif-stripped: v1` header before doing any work. If the marker is present, it returns 200 immediately. On successful strip + re-upload, it sets the marker. Two webhook deliveries racing on the same path both re-encode from the already-stripped bytes, both write the marker — wasteful but correct. Without the marker, a redelivery would strip an already-stripped file, which works but logs noise.
+
+**(3) Keep-on-failure vs delete-on-failure is a real decision, not an obvious default.** If the function fails (oversized file, corrupt decode, re-upload error), the current choice is to leave the original in place — the post still works, and the client-side strip still applies. Delete-on-failure would silently remove the photo and confuse the poster. The right monitoring response is a weekly bucket scan for objects missing the `x-exif-stripped` marker. Any unmarked object in the `resource-photos` bucket is a signal worth investigating. See `qa-reports/phase-2.5-c1-exif-edge-function.md` §3.2 for the full edge-case table.
+
+---
+
+## 2026-05-25 — FSA aggregation: the map is private because of what it never shows
+
+The resource map renders neighborhood-level polygons — Canadian FSAs (the first three characters of a postal code, roughly several blocks). It never shows GPS pins, building addresses, or exact counts. That design choice is load-bearing for Deb's persona (anti-goal: anything that exposes the community fridge's exact address) and Keo's persona (anti-goal: location at any granularity finer than city).
+
+The aggregation lives in `src/lib/fsaAggregation.ts` as a set of pure functions. `groupResourcesByFSA` takes the existing `resources` array (already in memory from the marketplace feed), groups by the first three characters of `postal_prefix`, and returns `FsaDescriptor` objects — one per FSA with at least one available resource. The descriptor carries a `bucket` (none / light / medium / heavy) rather than an exact count. The bucket is what the map renders and what the screen-reader label speaks. The exact count is internal to the descriptor and is never shown in the UI.
+
+Two implementation rules to follow forever: (1) `postal_prefix` inputs are normalized to 3-char uppercase before grouping — user-entered postal codes are inconsistent in casing and sometimes include the trailing half. (2) Resources without a `postal_prefix` are silently dropped from the map, not bucketed into a catch-all FSA. A resource with no location data should not appear to have a location. See the `extractFsa` helper for the exact normalization and `src/__tests__/fsaAggregation.test.ts` for boundary cases. The accessibility label format (`"M5V, Toronto, a few resources available"`) is the public surface — never include raw counts in labels.
+
+---
+
+## 2026-05-25 — Push notification consent: three places, not one
+
+Push notifications touch three separate layers of enforcement and all three must be present. The pattern came out of Jordan's Phase 3.1 privacy review and Steve's Phase 3+4 security sweep.
+
+**Layer 1 — client gate.** `src/lib/pushNotifications.ts` checks `hasAnyTriggerEnabled(prefs)` before calling `registerForPushNotificationsAsync`. If all triggers are off (the default for every user), the client never asks the OS for permission and never calls Expo's push API. The Expo push token is read fresh on each session foreground and is never written to `AsyncStorage` — a stolen device does not yield a usable token.
+
+**Layer 2 — server RPC gate.** `register_push_token` in `supabase/migrations/011_register_push_token_pref_gate.sql` checks `is_verified = true` AND `push_preferences.enabled = true` before inserting the token row. Without this, an authenticated-but-unverified user in the Waiting Room could register as a push target, and a stale client could register tokens for a user who has since opted out. The JSDoc in `pushNotifications.ts` documents all three layers — if Layer 2 is pending deployment, the comment must say so explicitly rather than claiming it is in place.
+
+**Layer 3 — Edge Function pre-send check.** The `deliver_notification` Edge Function re-reads `push_preferences` from the database before sending to Expo. Even if Layer 2 were bypassed, a token registered for an opted-out user would be caught here. This is the last-line defense.
+
+The privacy rules that apply forever: push notification payloads contain a title (one of four fixed generic strings per trigger, never the resource name) and an empty body. The body-empty contract is enforced by a runtime assertion at the Edge Function layer. The four title strings are reviewed by Jordan before any new trigger is added — the list is not open-ended. Geofence-triggered push is permanently out of scope for any version; the smallest location unit the app communicates is an FSA, and push notifications that fire based on location would violate that contract. See `qa-reports/phase-3-jordan-review-push.md` for the full conditions and `qa-reports/phase-3-4-security-sweep-2026-05-24.md` for Steve's F1–F4 findings.
+
+---
+
+## 2026-05-25 — Phase 3: Web compat layer — Metro platform-specific file resolution
+
+The web build needs a map library that works in a browser; `react-native-maps` does not. The solution uses Metro's built-in platform-specific file resolution rather than runtime `Platform.OS` guards.
+
+**The pattern:**
+
+- `src/components/PlatformMapView.tsx` — native path. Imports `react-native-maps` (`MapView` + `UrlTile`). Metro serves this to iOS/Android builds.
+- `src/components/PlatformMapView.web.tsx` — web path. Imports `react-leaflet` (`MapContainer` + `TileLayer`). Metro serves this when bundling for web.
+
+No shared code between the two files is needed. They export the same `PlatformMapView` function with the same `PlatformMapViewProps` type. The web file imports the type from the native file — safe because TypeScript resolves types at compile time, not at Metro bundle time. The native bundle never includes `react-leaflet`; the web bundle never includes `react-native-maps`.
+
+**The `deltaToZoom` helper in the web file** converts `react-native-maps`' `latitudeDelta` to a Leaflet zoom integer. Clamped to `[2, 13]` — the upper bound reinforces the FSA zoom floor at the Leaflet level (Jordan advisory condition). On web, `onRegionChangeComplete` is intentionally not wired — FSA chip taps drive navigation, not map panning.
+
+**Expo peer-dep note:** `react-leaflet` has a peer dependency conflict with the React 19.1 pin (Expo SDK 54). Vercel's `installCommand` needs `--legacy-peer-deps`. This is in `vercel.json` and is why CI `npm install` also needs the flag (commit `f68eb63`).
+
+**Rule:** prefer platform-specific file resolution (`.native.tsx` / `.web.tsx`) over `Platform.OS === 'web'` guards inside shared files. The guard approach puts dead code in both bundles; file resolution puts zero dead code in either.
+
+---
+
+## 2026-05-25 — Jordan web gate: anon key in web bundle is safe because of RLS posture
+
+When the web build was reviewed (Jordan, 2026-05-25), one concern was the Supabase anon key being visible in the Vercel-deployed bundle. Jordan's ruling: **this is safe for MutualMesh specifically**, but the reasoning is specific to the RLS model.
+
+**Why it's safe:** MutualMesh's RLS policies deny the `anon` role on every table. An unauthenticated request to Supabase — even with the correct anon key — returns zero rows and zero mutations. The resource-photos Storage bucket (`resource-photos`) is **PRIVATE** (not public), so signed URLs require an authenticated session. A web visitor who extracts the anon key from the bundle cannot read resources, cannot list photos, cannot claim items.
+
+**Contrast with AccessMap:** AccessMap's bucket allows public flag-photo reads (photos are the product; public visibility is intentional). MutualMesh's bucket is private because photos contain item details that could reveal sensitive needs. Never relax the bucket's `public = false` without Jordan review.
+
+**The web demo is auth-gated with no guest mode:** `https://mutual-mesh.vercel.app` requires a verified Mutual Mesh account. Jordan's advisory condition (2026-05-25) requires no unauthenticated marketplace browsing — a web visitor cannot see the marketplace without going through the invite-token + verification gate. This is intentional and non-negotiable per PRIVACY.md.
+
+---
+
+## 2026-05-25 — Storage cascade via security-definer RPC (not client-side)
+
+When an operation must atomically delete both Postgres rows AND Storage objects, the correct pattern is to handle Storage deletion inside a security-definer RPC, not client-side. The `delete_my_account()` RPC in `supabase/migrations/003_storage_cascade_on_delete_and_prune.sql` demonstrates this pattern.
+
+**Why client-side Storage deletion after an RPC is unsafe:** the auth session may already be invalidated by the time client code runs — if the RPC deleted the caller's `auth.users` row, the client's JWT is dead before it can call `supabase.storage.from('bucket').remove([paths])`. Even if the auth row is not deleted synchronously, a network failure between the RPC success and the client Storage delete leaves orphaned files in the bucket with no recovery path. The orphan has no owner row left to link it to, so a weekly scan for unlinked objects is the only way to detect it — and by then you've already leaked the file's existence.
+
+**The correct pattern:** migration 003's `delete_my_account()` RPC uses `DELETE FROM storage.objects USING paths_cte` where `paths_cte` is a CTE that selects the paths belonging to the caller. This runs entirely within a single Postgres transaction. Supabase's Storage API and Postgres share a `storage` schema, so a Postgres-level `DELETE` on `storage.objects` is the authoritative write — no HTTP round-trip to the Storage API is needed.
+
+**What NOT to do:** never call `supabase.storage.from('bucket').remove([paths])` client-side after an RPC that deletes the caller's auth row. The two operations are not atomic, the second may fail silently, and there is no retry path.
+
+Reference files: `supabase/migrations/003_storage_cascade_on_delete_and_prune.sql`, `supabase/schema.sql` `delete_my_account()` RPC.
+
+---
+
+## 2026-05-25 — useFocusEffect for navigation-aware data refresh
+
+Data counts that depend on actions the user took in OTHER tabs must refresh on tab focus, not just on mount. This pattern came out of Dana's AC-6.3 work on `ProfileScreen.tsx`, where the claimed-resource count was stale after a user claimed something in the Feed tab and then switched to the Profile tab.
+
+**Why `useEffect([])` is not enough:** `useEffect` with an empty dependency array fires once — when the component mounts. In a bottom-tab navigator, each tab's screen is mounted once and then kept alive (not unmounted) when the user switches tabs. A user who claims a resource in the Feed tab and then taps the Profile tab will see a stale count because `useEffect([])` has already fired and will not fire again for that screen's lifetime.
+
+**The fix:** replace `useEffect` with `useFocusEffect` from `@react-navigation/native` wrapped in `useCallback`. This fires every time the screen receives focus — including when the user navigates back to it from another tab or pops back from a nested stack. The `useCallback` wrapper is required; `useFocusEffect` expects a stable callback reference.
+
+```tsx
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
+useFocusEffect(
+  useCallback(() => {
+    let mounted = true;
+    async function load() {
+      const data = await fetchSomething();
+      if (mounted) setState(data);
+    }
+    load();
+    return () => {
+      mounted = false;
+    }; // cleanup on blur
+  }, []),
+);
+```
+
+**The mounted-ref pattern still applies inside `useFocusEffect`:** return a cleanup function that sets `mounted = false`. If the user tabs away before the async fetch completes, the cleanup fires on blur, and the `if (mounted)` guard prevents the `setState` from running on an already-blurred screen. Without this guard, a slow network response could write stale data into state after a second focus-cycle fetch has already completed.
+
+Reference file: `src/screens/ProfileScreen.tsx`.
