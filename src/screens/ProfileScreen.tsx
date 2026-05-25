@@ -17,8 +17,24 @@ import {
 import {
   DEFAULT_OPT_IN as ERROR_REPORTING_DEFAULT_OPT_IN,
   getErrorReportingOptIn,
+  OPT_IN_STORAGE_KEY,
   setErrorReportingOptIn,
 } from '@/lib/errorReporting';
+import { FILTER_STORAGE_KEY } from '@/lib/categoryStorage';
+import { LOCALE_OVERRIDE_KEY } from '@/lib/i18n';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+/**
+ * Device-local AsyncStorage keys cleared on account deletion (AC-6.5).
+ * These hold per-user device preferences with no PII. Clearing them on
+ * deletion prevents state bleed if a different account is created on the
+ * same device later.
+ */
+const DEVICE_PREF_KEYS_TO_CLEAR = [
+  FILTER_STORAGE_KEY,
+  OPT_IN_STORAGE_KEY,
+  LOCALE_OVERRIDE_KEY,
+] as const;
 
 /**
  * ProfileScreen — wired in L28 + L29.
@@ -32,12 +48,17 @@ import {
  *   - Calls updateMyProfile() on save; reloads AuthContext profile on success.
  *   - Mounted-ref guard on the async save (LEARNINGS:2026-05-23).
  *
- * Delete account (D6 + S5):
- *   - ConfirmationModal with HONEST backup disclosure (Supabase keeps
- *     point-in-time-recovery for 7 days; we cannot scrub backups)
- *   - calls delete_my_account RPC which atomically:
- *       cascade-deletes resources, NULLs claims, deletes auth.users
- *   - on success, signOut() runs to clear the local session
+ * Delete account (AC-6.2 / D6 + S5):
+ *   - ConfirmationModal with honest disclosure distinguishing:
+ *       • Uploaded photos are deleted immediately and cannot be recovered
+ *         (Storage is NOT covered by Postgres PITR — migration 003).
+ *       • Account / posts / claims row data may persist in Supabase Postgres
+ *         PITR backups for up to 7 days.
+ *   - Calls delete_my_account RPC which atomically:
+ *       cascade-deletes resources + Storage photos, NULLs claims,
+ *       deletes auth.users → cascades to public.users.
+ *   - On success: signOut() clears the local session, then AsyncStorage
+ *     multiRemove clears stale device preferences (AC-6.5).
  */
 export function ProfileScreen() {
   const { profile, signOut, user, reloadProfile } = useAuth();
@@ -165,6 +186,14 @@ export function ProfileScreen() {
       if (err) throw err;
       // Clear local session — the auth.users row is gone server-side.
       await signOut();
+      // AC-6.5 — clear stale device preferences after account deletion so
+      // they don't bleed into a future account on this device. Best-effort:
+      // swallow failures so a storage hiccup doesn't trap the user.
+      try {
+        await AsyncStorage.multiRemove([...DEVICE_PREF_KEYS_TO_CLEAR]);
+      } catch {
+        // Intentionally swallowed — device prefs are hygiene, not correctness.
+      }
     } catch (err) {
       setError(userFacingErrorMessage(err, 'Could not delete your account.'));
       setDeleteModalOpen(false);
@@ -344,10 +373,9 @@ export function ProfileScreen() {
         visible={deleteModalOpen}
         title="Delete your account?"
         body={
-          'This removes your account, your posts, and your claims from Mutual Mesh immediately. ' +
-          'Honest disclosure: Supabase keeps automatic backups for ~7 days, so the data is technically ' +
-          "recoverable from a backup during that window. We cannot scrub backups — that's a platform limit. " +
-          'You can sign up again with the same email later if you want.'
+          'This will permanently delete your account, posts, and claims. ' +
+          'Your uploaded photos are deleted immediately and cannot be recovered. ' +
+          'Account and activity records may persist in database backups for up to 7 days.'
         }
         confirmLabel="Yes, delete"
         cancelLabel="Cancel"
