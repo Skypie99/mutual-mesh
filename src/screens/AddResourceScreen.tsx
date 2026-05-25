@@ -87,9 +87,7 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
         }
 
         if (!signedUrl) {
-          throw new Error(
-            'Photo uploaded but could not be verified. Please try again.',
-          );
+          throw new Error('Photo uploaded but could not be verified. Please try again.');
         }
       }
       const { error: err } = await createResource(
