@@ -134,3 +134,41 @@ Cycle 1 lands the first real user-data layer. Six load-bearing patterns emerged 
 ---
 
 _Cycle 1 complete. Cycle 2 (Marketplace Feed wired to real Supabase + resourcesRealtime integration) starts the moment Sky applies the schema._
+
+---
+
+## 2026-05-25 — EXIF strip pipeline: client + server are both load-bearing
+
+The EXIF strip is two layers because neither layer alone is sufficient. The client-side strip in `src/lib/photos.ts` uses `expo-image-manipulator` to re-encode the image at 0.75 quality and max 2048px, which discards the EXIF container as a side effect of re-encoding. That's the first layer. But a forked or tampered client could bypass it — so there's a second layer: a Deno Edge Function at `supabase/functions/exif-strip/index.ts` that fires on every `storage.objects` INSERT via a Storage Webhook, downloads the uploaded file, runs `imagemagick_deno`'s explicit `img.strip()` call, and overwrites the object in place.
+
+Three things tripped us up building this:
+
+**(1) The tsconfig must explicitly exclude `supabase/functions/`.** The Edge Function uses Deno-style URL imports (`https://deno.land/x/imagemagick_deno@0.0.31/mod.ts`) that don't exist in the Node module graph. Without the exclude, every URL import breaks `npm run typecheck`. Fix: add `"supabase/functions"` to the `exclude` array in `tsconfig.json` and `"supabase/functions/"` to `ignorePatterns` in `.eslintrc.json`. Prettier is fine with the Deno file — it doesn't resolve imports, it just formats tokens.
+
+**(2) Idempotency via a user-metadata marker, not a re-check of the bytes.** Webhook redelivery is real. The function checks the object's `user_metadata` for an `x-exif-stripped: v1` header before doing any work. If the marker is present, it returns 200 immediately. On successful strip + re-upload, it sets the marker. Two webhook deliveries racing on the same path both re-encode from the already-stripped bytes, both write the marker — wasteful but correct. Without the marker, a redelivery would strip an already-stripped file, which works but logs noise.
+
+**(3) Keep-on-failure vs delete-on-failure is a real decision, not an obvious default.** If the function fails (oversized file, corrupt decode, re-upload error), the current choice is to leave the original in place — the post still works, and the client-side strip still applies. Delete-on-failure would silently remove the photo and confuse the poster. The right monitoring response is a weekly bucket scan for objects missing the `x-exif-stripped` marker. Any unmarked object in the `resource-photos` bucket is a signal worth investigating. See `qa-reports/phase-2.5-c1-exif-edge-function.md` §3.2 for the full edge-case table.
+
+---
+
+## 2026-05-25 — FSA aggregation: the map is private because of what it never shows
+
+The resource map renders neighborhood-level polygons — Canadian FSAs (the first three characters of a postal code, roughly several blocks). It never shows GPS pins, building addresses, or exact counts. That design choice is load-bearing for Deb's persona (anti-goal: anything that exposes the community fridge's exact address) and Keo's persona (anti-goal: location at any granularity finer than city).
+
+The aggregation lives in `src/lib/fsaAggregation.ts` as a set of pure functions. `groupResourcesByFSA` takes the existing `resources` array (already in memory from the marketplace feed), groups by the first three characters of `postal_prefix`, and returns `FsaDescriptor` objects — one per FSA with at least one available resource. The descriptor carries a `bucket` (none / light / medium / heavy) rather than an exact count. The bucket is what the map renders and what the screen-reader label speaks. The exact count is internal to the descriptor and is never shown in the UI.
+
+Two implementation rules to follow forever: (1) `postal_prefix` inputs are normalized to 3-char uppercase before grouping — user-entered postal codes are inconsistent in casing and sometimes include the trailing half. (2) Resources without a `postal_prefix` are silently dropped from the map, not bucketed into a catch-all FSA. A resource with no location data should not appear to have a location. See the `extractFsa` helper for the exact normalization and `src/__tests__/fsaAggregation.test.ts` for boundary cases. The accessibility label format (`"M5V, Toronto, a few resources available"`) is the public surface — never include raw counts in labels.
+
+---
+
+## 2026-05-25 — Push notification consent: three places, not one
+
+Push notifications touch three separate layers of enforcement and all three must be present. The pattern came out of Jordan's Phase 3.1 privacy review and Steve's Phase 3+4 security sweep.
+
+**Layer 1 — client gate.** `src/lib/pushNotifications.ts` checks `hasAnyTriggerEnabled(prefs)` before calling `registerForPushNotificationsAsync`. If all triggers are off (the default for every user), the client never asks the OS for permission and never calls Expo's push API. The Expo push token is read fresh on each session foreground and is never written to `AsyncStorage` — a stolen device does not yield a usable token.
+
+**Layer 2 — server RPC gate.** `register_push_token` in `supabase/migrations/011_register_push_token_pref_gate.sql` checks `is_verified = true` AND `push_preferences.enabled = true` before inserting the token row. Without this, an authenticated-but-unverified user in the Waiting Room could register as a push target, and a stale client could register tokens for a user who has since opted out. The JSDoc in `pushNotifications.ts` documents all three layers — if Layer 2 is pending deployment, the comment must say so explicitly rather than claiming it is in place.
+
+**Layer 3 — Edge Function pre-send check.** The `deliver_notification` Edge Function re-reads `push_preferences` from the database before sending to Expo. Even if Layer 2 were bypassed, a token registered for an opted-out user would be caught here. This is the last-line defense.
+
+The privacy rules that apply forever: push notification payloads contain a title (one of four fixed generic strings per trigger, never the resource name) and an empty body. The body-empty contract is enforced by a runtime assertion at the Edge Function layer. The four title strings are reviewed by Jordan before any new trigger is added — the list is not open-ended. Geofence-triggered push is permanently out of scope for any version; the smallest location unit the app communicates is an FSA, and push notifications that fire based on location would violate that contract. See `qa-reports/phase-3-jordan-review-push.md` for the full conditions and `qa-reports/phase-3-4-security-sweep-2026-05-24.md` for Steve's F1–F4 findings.
