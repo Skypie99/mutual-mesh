@@ -10,8 +10,8 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR-STAGING-PROJECT.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR-STAGING-ANON-KEY"
+        "EXPO_PUBLIC_SUPABASE_URL": "REPLACE_WITH_STAGING_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "REPLACE_WITH_STAGING_SUPABASE_ANON_KEY"
       },
       "ios": {
         "simulator": true,
@@ -26,8 +26,8 @@
       "distribution": "store",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR-STAGING-PROJECT.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR-STAGING-ANON-KEY"
+        "EXPO_PUBLIC_SUPABASE_URL": "REPLACE_WITH_STAGING_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "REPLACE_WITH_STAGING_SUPABASE_ANON_KEY"
       },
       "ios": {
         "simulator": false,
@@ -43,8 +43,8 @@
       "distribution": "store",
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR-PRODUCTION-PROJECT.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR-PRODUCTION-ANON-KEY"
+        "EXPO_PUBLIC_SUPABASE_URL": "REPLACE_WITH_PRODUCTION_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "REPLACE_WITH_PRODUCTION_SUPABASE_ANON_KEY"
       },
       "ios": {
         "simulator": false,
@@ -60,9 +60,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "REPLACE-WITH-SKY-APPLE-ID@example.com",
-        "ascAppId": "REPLACE-WITH-APP-STORE-CONNECT-NUMERIC-ID",
-        "appleTeamId": "REPLACE-WITH-APPLE-TEAM-ID"
+        "appleId": "REPLACE_WITH_APPLE_ID_EMAIL",
+        "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "REPLACE_WITH_APPLE_TEAM_ID"
       },
       "android": {
         "serviceAccountKeyPath": "../play-store-service-account.json",
@@ -73,9 +73,9 @@
     },
     "preview": {
       "ios": {
-        "appleId": "REPLACE-WITH-SKY-APPLE-ID@example.com",
-        "ascAppId": "REPLACE-WITH-APP-STORE-CONNECT-NUMERIC-ID",
-        "appleTeamId": "REPLACE-WITH-APPLE-TEAM-ID"
+        "appleId": "REPLACE_WITH_APPLE_ID_EMAIL",
+        "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "REPLACE_WITH_APPLE_TEAM_ID"
       },
       "android": {
         "serviceAccountKeyPath": "../play-store-service-account.json",
