@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
@@ -47,6 +47,13 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
     setRefreshing(false);
   }, [reload]);
 
+  const keyExtractor = useCallback((item: ResourceRow) => item.id, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: ResourceRow }) => <ResourceCard item={item} onPress={onOpenResource} />,
+    [onOpenResource],
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-light-bg dark:bg-dark-bg">
       <View className="flex-1 px-4 pt-4">
@@ -88,9 +95,9 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
         ) : (
           <FlatList
             data={resources}
-            keyExtractor={(item) => item.id}
+            keyExtractor={keyExtractor}
             ItemSeparatorComponent={Separator}
-            renderItem={({ item }) => <ResourceCard item={item} onPress={onOpenResource} />}
+            renderItem={renderItem}
             contentContainerStyle={{ paddingBottom: 96 }}
             refreshControl={
               <RefreshControl
@@ -112,16 +119,16 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
 // Sub-components (extracted for React.memo + a11y consistency — Peter pre-empt)
 // ============================================================================
 
-function Separator() {
+const Separator = memo(function Separator() {
   return <View className="h-3" />;
-}
+});
 
 type ResourceCardProps = {
   item: ResourceRow;
   onPress?: (id: string) => void;
 };
 
-function ResourceCard({ item, onPress }: ResourceCardProps) {
+const ResourceCard = memo(function ResourceCard({ item, onPress }: ResourceCardProps) {
   return (
     <Card
       onPress={() => onPress?.(item.id)}
@@ -153,4 +160,4 @@ function ResourceCard({ item, onPress }: ResourceCardProps) {
       </View>
     </Card>
   );
-}
+});
