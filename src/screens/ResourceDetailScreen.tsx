@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Pressable,
@@ -14,7 +14,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { StatusPill } from '@/components/StatusPill';
-import { getResourceDetail } from '@/lib/resources';
+import { getClaimantHandle, getResourceDetail } from '@/lib/resources';
 import { supabase } from '@/lib/supabase';
 import { createSignedResourcePhotoUrl } from '@/lib/photos';
 import { userFacingErrorMessage } from '@/lib/errors';
@@ -77,6 +77,7 @@ export function ResourceDetailScreen({
   const [error, setError] = useState<string | null>(null);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [claimantHandle, setClaimantHandle] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   // Fetch (and refetch) the resource via the privacy-safe RPC.
@@ -124,6 +125,38 @@ export function ResourceDetailScreen({
       };
     }, [fetchResource]),
   );
+
+  // Fetch claimant handle when the poster views a reserved resource.
+  // Only runs when: status is 'reserved', current user is the poster, and
+  // claimed_by is set. RLS (users_verified_read_others) permits this read
+  // because the claimant is verified (gate-enforced) and so is the poster.
+  // Distinct from contact_handle — this is the claimant's own profile handle.
+  useEffect(() => {
+    if (
+      resource?.status !== 'reserved' ||
+      !resource.claimed_by ||
+      !user ||
+      resource.posted_by !== user.id
+    ) {
+      setClaimantHandle(null);
+      return;
+    }
+    const claimantId = resource.claimed_by;
+    let cancelled = false;
+    (async () => {
+      const { data, error: err } = await getClaimantHandle(claimantId);
+      if (cancelled || !mountedRef.current) return;
+      if (err) {
+        console.warn('[ResourceDetail] getClaimantHandle failed:', err.message);
+        setClaimantHandle(null);
+        return;
+      }
+      setClaimantHandle(data?.handle ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [resource?.status, resource?.claimed_by, resource?.posted_by, user]);
 
   const handleClaimConfirm = async () => {
     if (!resourceId) return;
@@ -209,6 +242,9 @@ export function ResourceDetailScreen({
    * Riley F2: handle reveal is inline, plain text, no animation.
    */
   const showContactHandle = resource?.contact_handle != null;
+  // Show claimant's profile handle ONLY to the poster when reserved.
+  // Jordan-approved: handle only, no other PII. (2026-05-25-jordan-admin-tab-ack.md)
+  const showsClaimantHandle = isMyPost && resource?.status === 'reserved' && claimantHandle !== null;
 
   // ─── Loading ─────────────────────────────────────────────────────────────
 
@@ -332,6 +368,31 @@ export function ResourceDetailScreen({
             </Pressable>
             <Text className="mt-2 text-sm leading-5 text-light-text-muted dark:text-dark-text-muted">
               Contact them to arrange pickup. Pickup happens off-app.
+            </Text>
+          </Card>
+        )}
+
+        {/*
+          Claimant handle — shown ONLY to the poster when reserved.
+          Jordan-approved handle-only reveal (PRD §6, D1/D2).
+          Long-press shares handle via system Share sheet.
+        */}
+        {showsClaimantHandle && (
+          <Card>
+            <Text className="mb-2 text-xs font-semibold uppercase text-light-text-muted dark:text-dark-text-muted">
+              Claimed by
+            </Text>
+            <Pressable
+              onLongPress={() => void handleCopyHandle(claimantHandle!)}
+              accessibilityLabel={`Claimed by ${claimantHandle}`}
+              accessibilityHint="Long press to share this handle"
+            >
+              <Text className="text-lg font-semibold text-light-text dark:text-dark-text">
+                {claimantHandle}
+              </Text>
+            </Pressable>
+            <Text className="mt-2 text-sm leading-5 text-light-text-muted dark:text-dark-text-muted">
+              This is the handle of the person who claimed your resource.
             </Text>
           </Card>
         )}

@@ -65,6 +65,7 @@ import { ResourceDetailScreen } from '@/screens/ResourceDetailScreen';
 
 jest.mock('@/lib/resources', () => ({
   getResourceDetail: jest.fn(),
+  getClaimantHandle: jest.fn().mockResolvedValue({ data: null, error: null }),
   // Ensure all other named exports remain intact (some may be imported by
   // transitive deps inside the screen bundle).
   listResources: jest.fn(),
@@ -112,10 +113,11 @@ jest.mock('@/lib/photos', () => ({
 }));
 
 // Auth: stub useAuth so the screen mounts without an AuthProvider.
-// The user id is set to OTHER_USER_ID (not the poster) so self-claim prevention
-// does not interfere with the race-condition tests.
+// Default: OTHER_USER_ID so race-condition tests don't hit the self-claim guard.
+// Individual tests that need poster perspective call mockAuthAs(POSTER_ID).
+const mockUseAuth = jest.fn(() => ({ user: { id: 'user-other-003' } }));
 jest.mock('@/lib/auth', () => ({
-  useAuth: () => ({ user: { id: 'user-other-003' } }),
+  useAuth: () => mockUseAuth(),
 }));
 
 
@@ -202,11 +204,11 @@ async function renderAndLoad(
  * This is a helper for tests that need to trigger the claim flow.
  */
 async function openModalAndConfirm() {
-  // The Claim button label on main branch is "Claim this item".
-  const claimButton = screen.getByLabelText('Claim this item');
+  // Riley F1: label is "Claim this resource" (updated in PR #28).
+  const claimButton = screen.getByLabelText('Claim this resource');
   fireEvent.press(claimButton);
-  // "Yes, claim" is the modal confirm label on main branch.
-  const confirmButton = await screen.findByLabelText('Yes, claim');
+  // Confirm modal uses same label as the main button per PR #28.
+  const confirmButton = await screen.findByLabelText('Claim this resource');
   fireEvent.press(confirmButton);
 }
 
@@ -425,9 +427,9 @@ describe('ResourceDetailScreen — additional claim flow tests', () => {
     await renderAndLoad();
 
     // Open the modal and press confirm — this starts the in-flight state.
-    const claimButton = screen.getByLabelText('Claim this item');
+    const claimButton = screen.getByLabelText('Claim this resource');
     fireEvent.press(claimButton);
-    const confirmButton = await screen.findByLabelText('Yes, claim');
+    const confirmButton = await screen.findByLabelText('Claim this resource');
     fireEvent.press(confirmButton);
 
     // While the RPC is pending, the confirm button must be disabled.
@@ -437,7 +439,7 @@ describe('ResourceDetailScreen — additional claim flow tests', () => {
       // The busy/disabled state is observable via accessibilityState.disabled
       // or by the button being replaced with a loading indicator.
       // We check the confirm button is no longer interactive (disabled).
-      const btn = screen.queryByLabelText('Yes, claim');
+      const btn = screen.queryByLabelText('Claim this resource');
       // The button may be hidden or have disabled=true. If it's still in the
       // tree, its accessibilityState.disabled should be truthy.
       if (btn) {
@@ -469,29 +471,24 @@ describe('ResourceDetailScreen — additional claim flow tests', () => {
   // so the self-claim button IS currently shown. This test is skipped on the
   // main-branch by wrapping in `.todo` — change to `.it` after Shamus merge.
 
-  it.todo(
-    '[C4] Claim button absent when posted_by === currentUser.id ' +
-      '(requires Shamus branch: useAuth + posted_by guard)',
-  );
+  it('[C4] Claim button absent when posted_by === currentUser.id', async () => {
+    // Override auth to log in as the poster for this test only.
+    mockUseAuth.mockReturnValue({ user: { id: POSTER_ID } });
+    try {
+      // PR #28 added useAuth + !isMyPost guard to canClaim — self-claim prevented.
+      mockDetailSuccess(fakeResource({ status: 'available', posted_by: POSTER_ID }));
+      await renderAndLoad();
 
-  // ── C4b: Self-claim prevention — current main behavior documented ─────────
-  //
-  // This test documents what main-branch currently does: it shows the Claim
-  // button even for the poster, because the posted_by guard is missing.
-  // This is the gap that the Shamus branch closes.
-
-  it('[C4b] [GAP] main branch shows Claim button even for the poster (no posted_by guard yet)', async () => {
-    // Logged in as POSTER_ID — same user who posted this resource.
-    // main branch has no useAuth, so there is no self-claim prevention.
-    mockDetailSuccess(fakeResource({ status: 'available', posted_by: POSTER_ID }));
-    await renderAndLoad();
-
-    // On main branch the button IS visible (gap). This test will need to be
-    // INVERTED once the Shamus branch is merged (button should be absent).
-    const btn = screen.queryByLabelText('Claim this item');
-    // Document the current (incorrect) behavior — button exists on main.
-    expect(btn).not.toBeNull();
+      // Poster must NOT see the Claim button on their own resource.
+      const btn = screen.queryByLabelText('Claim this resource');
+      expect(btn).toBeNull();
+    } finally {
+      // Restore default auth for subsequent tests.
+      mockUseAuth.mockReturnValue({ user: { id: OTHER_USER_ID } });
+    }
   });
+
+  // C4b retired: gap closed by PR #28 (added useAuth + !isMyPost to canClaim).
 });
 
 // ─── Source-level pins for race-condition contract ───────────────────────────

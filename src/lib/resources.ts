@@ -76,6 +76,21 @@ export async function getResourceDetail(resourceId: string) {
   return { data: row, error: null };
 }
 
+/**
+ * Fetch only the handle of a user — used by the poster to display the
+ * claimant's handle once a resource is reserved.
+ *
+ * RLS safety: `users_verified_read_others` allows any verified user to read
+ * another verified user's row. The claimant must be verified to have claimed
+ * (RLS + Gate enforces this), so this read is always permitted for a poster
+ * who is also verified. We select ONLY `handle` — no email, no postal data,
+ * no is_admin — minimising exposure per Jordan D1/D2 and PRD §6 handle-only
+ * reveal policy.
+ */
+export async function getClaimantHandle(userId: string) {
+  return supabase.from('users').select('handle').eq('id', userId).maybeSingle();
+}
+
 /** Posts the current user has created (any status). */
 export async function listMyPosts(userId: string) {
   return supabase
