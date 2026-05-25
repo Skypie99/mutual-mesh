@@ -177,7 +177,7 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           hint="Signal, email alias, or any handle. No real name. Only shown to the person who claims your resource."
           value={contactHandle}
           onChangeText={setContactHandle}
-          maxLength={100}
+          maxLength={64}
           autoCapitalize="none"
           autoCorrect={false}
           error={handleError}
