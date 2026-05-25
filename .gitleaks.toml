@@ -1,0 +1,10 @@
+# Gitleaks configuration for Mutual Mesh
+# See: https://github.com/gitleaks/gitleaks#configuration
+
+title = "mutual-mesh gitleaks config"
+
+[allowlist]
+  description = "Synthetic test-fixture strings in __tests__ are not real secrets"
+  paths = [
+    '''src/__tests__/.*'''
+  ]
