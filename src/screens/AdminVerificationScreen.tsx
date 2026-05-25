@@ -5,6 +5,7 @@ import {
   RefreshControl,
   Text,
   View,
+  findNodeHandle,
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -358,12 +359,23 @@ function ApplicantDetail({
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const mountedRef = useRef(true);
+  const detailHeaderRef = useRef<Text>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
+  }, []);
+
+  // FIX 1 (BLOCKER) — WCAG 2.4.3: move screen-reader focus to the detail
+  // header when this view mounts so VoiceOver/TalkBack announces the applicant
+  // handle instead of leaving focus on the now-gone list card.
+  useEffect(() => {
+    const node = findNodeHandle(detailHeaderRef.current);
+    if (node) {
+      AccessibilityInfo.setAccessibilityFocus(node);
+    }
   }, []);
 
   const handleApprove = async () => {
@@ -439,6 +451,7 @@ function ApplicantDetail({
     <View className="flex-1 px-4 pt-4">
       <Button label="← Back" variant="ghost" onPress={onBack} hint="Returns to the queue list." />
       <Text
+        ref={detailHeaderRef}
         accessibilityRole="header"
         className="mt-3 text-2xl font-semibold text-light-text dark:text-dark-text"
       >
@@ -457,13 +470,17 @@ function ApplicantDetail({
         <View className="mt-4 gap-3">
           <Button
             label="Approve"
+            accessibilityLabel={`Approve ${f.handle}`}
             variant="primary"
+            disabled={busy}
             onPress={() => setApproveModal(true)}
             hint="Approves this person. They will be able to use the marketplace."
           />
           <Button
             label="Reject"
+            accessibilityLabel={`Reject ${f.handle}`}
             variant="danger"
+            disabled={busy}
             onPress={() => setRejectFormOpen(true)}
             hint="Rejects this person. Their account will be deleted."
           />
@@ -486,6 +503,15 @@ function ApplicantDetail({
             hint={reasonCounter}
             accessibilityHint="Required. Stored in the audit log; not shown to the applicant."
           />
+          {/* FIX 4 — screen-reader-only live region so VoiceOver/TalkBack
+              announces the running character count on each keystroke.
+              The visual counter is rendered inside TextField via the hint prop. */}
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}
+          >
+            {reasonCounter}
+          </Text>
           <Text
             accessibilityRole="alert"
             className="text-xs text-light-text-secondary dark:text-dark-text-secondary"
