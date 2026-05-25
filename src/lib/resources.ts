@@ -149,15 +149,31 @@ export async function deleteResourceById(id: string) {
 // ============================================================================
 
 /**
- * Hard-delete the current user's account. Calls delete_my_account RPC
- * which:
- *   - locks the auth.users row with FOR UPDATE (S5)
- *   - DELETEs all resources posted by the user (cascade)
- *   - NULLs out claims the user had placed on others' resources
- *   - DELETEs from auth.users → cascades to public.users
+ * Hard-delete the current user's account.
  *
- * Note: Supabase platform backups retain the data for ~7 days (D6 honest
- * disclosure). The in-app delete confirmation should say so.
+ * Calls the `delete_my_account` security-definer RPC, which runs in a single
+ * atomic transaction:
+ *   1. Locks the `auth.users` row with `SELECT … FOR UPDATE` (S5 — prevents
+ *      concurrent claims or resource actions during deletion).
+ *   2. Deletes all Storage objects in `resource-photos/<userId>/…` via the
+ *      cascade installed in migration 003
+ *      (`supabase/migrations/003_storage_cascade_on_delete_and_prune.sql`).
+ *      Storage deletes are **immediate and permanent** — Storage objects are
+ *      NOT covered by Supabase's Postgres PITR backups.
+ *   3. Cascade-deletes all `public.resources` rows posted by the user.
+ *   4. NULLs `claimed_by` on any resources the user had claimed on others'
+ *      posts (so those listings remain available).
+ *   5. Deletes from `auth.users`, which cascades to `public.users`.
+ *
+ * Returns the standard Supabase `{ data, error }` shape — callers should
+ * pipe `error` through `userFacingErrorMessage()` before display.
+ *
+ * @privacy-note Implements PRIVACY.md D6 (right-to-erasure). Cascade is
+ *   implemented server-side in the `delete_my_account` RPC + migration 003.
+ *   Row data (account info, posts metadata, claims metadata) may persist in
+ *   Supabase Postgres PITR backups for up to 7 days — callers must surface
+ *   this in the delete-confirmation UI. Storage photos are NOT subject to
+ *   PITR and are permanently deleted immediately.
  */
 export async function deleteMyAccount() {
   return supabase.rpc('delete_my_account');
