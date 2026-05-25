@@ -118,6 +118,7 @@ Prevents the browser from MIME-sniffing a response away from the declared `Conte
 ### `Referrer-Policy: strict-origin-when-cross-origin`
 
 Controls how much referrer information is sent in the `Referer` HTTP header:
+
 - **Same-origin requests:** full URL is sent (useful for analytics).
 - **Cross-origin HTTPS→HTTPS:** only the origin is sent (e.g., `https://mutual-mesh.vercel.app`), not the path.
 - **HTTPS→HTTP (downgrade):** no referrer is sent at all.
@@ -136,19 +137,19 @@ This protects user navigation paths from leaking to third-party origins (Supabas
 
 ## Pre-Commit Verification Checklist
 
-| Check | Result |
-|---|---|
-| `connect-src` includes `https://*.supabase.co` | PASS |
-| `connect-src` includes `wss://*.supabase.co` (Realtime) | PASS |
-| `img-src` includes `https://*.tile.openstreetmap.org` (Leaflet tiles) | PASS |
-| `img-src` includes `blob:` (Expo web image edge cases) | PASS |
-| `style-src` includes `https://unpkg.com` — needed? | NOT NEEDED — Leaflet CSS is bundled by Metro via `import 'leaflet/dist/leaflet.css'` in `PlatformMapView.web.tsx`. Omitted. |
-| `script-src 'unsafe-inline'` preserved for Expo web Metro runtime | PASS |
-| Existing build config (`buildCommand`, `installCommand`, `outputDirectory`, `framework`) preserved | PASS |
-| SPA rewrite preserved with improved `api/` exclusion pattern | PASS |
-| No `app.json` or `eas.json` modified | PASS |
-| No `~/.claude/**` modified | PASS |
-| Branch is NOT main | PASS — `release/auto-2026-05-25-rory-csp-headers` |
+| Check                                                                                              | Result                                                                                                                      |
+| -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `connect-src` includes `https://*.supabase.co`                                                     | PASS                                                                                                                        |
+| `connect-src` includes `wss://*.supabase.co` (Realtime)                                            | PASS                                                                                                                        |
+| `img-src` includes `https://*.tile.openstreetmap.org` (Leaflet tiles)                              | PASS                                                                                                                        |
+| `img-src` includes `blob:` (Expo web image edge cases)                                             | PASS                                                                                                                        |
+| `style-src` includes `https://unpkg.com` — needed?                                                 | NOT NEEDED — Leaflet CSS is bundled by Metro via `import 'leaflet/dist/leaflet.css'` in `PlatformMapView.web.tsx`. Omitted. |
+| `script-src 'unsafe-inline'` preserved for Expo web Metro runtime                                  | PASS                                                                                                                        |
+| Existing build config (`buildCommand`, `installCommand`, `outputDirectory`, `framework`) preserved | PASS                                                                                                                        |
+| SPA rewrite preserved with improved `api/` exclusion pattern                                       | PASS                                                                                                                        |
+| No `app.json` or `eas.json` modified                                                               | PASS                                                                                                                        |
+| No `~/.claude/**` modified                                                                         | PASS                                                                                                                        |
+| Branch is NOT main                                                                                 | PASS — `release/auto-2026-05-25-rory-csp-headers`                                                                           |
 
 ---
 
