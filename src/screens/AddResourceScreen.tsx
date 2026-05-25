@@ -1,11 +1,9 @@
-import { useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { AccessibilityInfo, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { validateContactHandle, validationFailureMessage } from '@/lib/contactHandle';
-import { uploadResourcePhoto } from '@/lib/photos';
 import { createResource } from '@/lib/resources';
 import { userFacingErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
@@ -17,17 +15,20 @@ type AddResourceScreenProps = {
 };
 
 /**
- * Add Resource — real submit wired in L26.
+ * AddResourceScreen — text-only resource creation form.
  *
- * Flow:
- *   1. User fills form (name, description, pickup, contact-handle), optionally picks photo
- *   2. On submit:
- *      a. If photo: stripExifAndCompress → upload to resource-photos/<userId>/<ts>.jpg
- *      b. createResource with photo_url=path (server-side createSignedUrl renders later)
- *      c. Trigger sets created_at + status_changed_at; defaults status='available'
- *   3. Realtime delivers the INSERT to all subscribed clients; HomeScreen updates without re-fetch
+ * Jordan APPROVED WITH CONDITIONS 2026-05-25 (jordan-add-resource-review.md):
+ *   Condition 1 — Pickup location hint must NOT suggest full addresses.
+ *   Condition 2 — Description hint must note visibility to all verified members.
+ *   Condition 3 — Contact handle hint must warn against real names.
  *
- * Per Deb persona + Casey advisory: photo is OPTIONAL with prominent "Photo optional" hint.
+ * No photo upload in this screen. Photo upload requires a separate Jordan
+ * approval for the EXIF pipeline and will ship in a future cycle.
+ *
+ * Category is posted as 'other' per Quinn spec gap (acceptable for MVP).
+ *
+ * Accessibility: WCAG 2.2 AA throughout — all fields have accessibilityLabel,
+ * errors announced via AccessibilityInfo, focus moved to first errored field.
  */
 export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps) {
   const { user, profile } = useAuth();
@@ -35,9 +36,12 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
   const [description, setDescription] = useState('');
   const [pickupText, setPickupText] = useState('');
   const [contactHandle, setContactHandle] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Refs for focus management — move focus to first errored field on submit failure.
+  const nameRef = useRef<TextInput>(null);
+  const contactRef = useRef<TextInput>(null);
 
   const handleValidation = validateContactHandle(contactHandle);
   const handleError =
@@ -52,31 +56,30 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
     handleValidation.ok &&
     !submitting;
 
-  const pickPhoto = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      setError('Photo library permission denied. You can post without a photo.');
+  const handleSubmit = async () => {
+    if (!user) return;
+
+    // Inline validation before submit — focus first errored field.
+    if (name.trim().length === 0) {
+      nameRef.current?.focus();
+      const msg = 'Please enter a resource name.';
+      setError(msg);
+      AccessibilityInfo.announceForAccessibility(msg);
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 1, // We compress later in stripExifAndCompress; pick full quality here.
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  };
 
-  const handleSubmit = async () => {
-    if (!canSubmit || !user) return;
+    if (!handleValidation.ok) {
+      contactRef.current?.focus();
+      const msg = validationFailureMessage(handleValidation.reason);
+      setError(msg);
+      AccessibilityInfo.announceForAccessibility(msg);
+      return;
+    }
+
     setError(null);
     setSubmitting(true);
+
     try {
-      let photoPath: string | null = null;
-      if (photoUri) {
-        photoPath = await uploadResourcePhoto(user.id, photoUri);
-      }
       const { error: err } = await createResource(
         {
           name: name.trim(),
@@ -85,14 +88,17 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           contact_handle: contactHandle.trim(),
           postal_prefix: profile?.postal_prefix ?? null,
           city: profile?.city ?? null,
-          photo_url: photoPath,
+          photo_url: null,
+          category: 'other',
         },
         user.id,
       );
       if (err) throw err;
       onPosted?.();
     } catch (err) {
-      setError(userFacingErrorMessage(err, 'Could not post your resource.'));
+      const msg = userFacingErrorMessage(err, 'Could not post your resource. Please try again.');
+      setError(msg);
+      AccessibilityInfo.announceForAccessibility(msg);
     } finally {
       setSubmitting(false);
     }
@@ -110,89 +116,65 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
         >
           Post a resource
         </Text>
-        <Text className="text-sm text-light-text-muted dark:text-dark-text-muted">
-          Photos uploaded here have all metadata removed automatically.
-        </Text>
 
+        {/* Field 1 — Resource name */}
         <TextField
-          label="What is it?"
-          hint="e.g., 'Sensitive baby formula, unopened'"
+          ref={nameRef}
+          label="Resource name"
+          placeholder="What are you sharing?"
           value={name}
           onChangeText={setName}
+          maxLength={100}
           autoCapitalize="sentences"
+          returnKeyType="next"
         />
 
+        {/* Field 2 — Description
+            Jordan Condition 2: hint tells users description is visible to all
+            verified members and nudges item-focused copy. */}
         <TextField
-          label="Details"
-          hint="Quantity, expiry, allergens, anything a recipient should know."
+          label="Description"
+          placeholder="Describe the item"
+          hint="Describe the item. Visible to all verified members — avoid personal details."
           value={description}
           onChangeText={setDescription}
           multiline
           numberOfLines={4}
+          maxLength={2000}
           autoCapitalize="sentences"
         />
 
+        {/* Field 3 — Pickup area
+            Jordan Condition 1: hint names neighbourhood/intersection/landmark
+            as the recommended granularity; warns against full addresses. */}
         <TextField
-          label="Pickup info"
-          hint="Where and when. Be as specific or vague as you want."
+          label="Pickup area"
+          placeholder="e.g. Downtown East Side, near the library"
+          hint="Neighbourhood, intersection, or landmark — not your full address"
           value={pickupText}
           onChangeText={setPickupText}
+          maxLength={280}
           autoCapitalize="sentences"
+          returnKeyType="next"
         />
 
+        {/* Field 4 — Contact handle
+            Jordan Condition 3: shortened hint, explicit no-real-name warning. */}
         <TextField
-          label="Contact handle (revealed only on claim)"
-          hint="Signal handle, Proton email, or any handle you trust. No links."
+          ref={contactRef}
+          label="Contact handle"
+          placeholder="Your preferred contact method"
+          hint="Signal, email alias, or any handle. No real name."
           value={contactHandle}
           onChangeText={setContactHandle}
+          maxLength={100}
           autoCapitalize="none"
           autoCorrect={false}
           error={handleError}
+          returnKeyType="done"
         />
 
-        {/* Photo picker -- disabled on web.
-            expo-image-manipulator is native-only; web photo upload without
-            EXIF strip violates PRIVACY.md D5. Jordan advisory condition,
-            2026-05-25-jordan-web-gate.md. */}
-        {Platform.OS === 'web' ? (
-          <View>
-            <Text className="mb-1 text-sm font-semibold text-light-text dark:text-dark-text">
-              Photo (optional)
-            </Text>
-            <Text className="text-xs text-light-text-muted dark:text-dark-text-muted">
-              Photo upload is not available on web. Use the mobile app to add a photo.
-            </Text>
-          </View>
-        ) : (
-          <View>
-            <Text className="mb-1 text-sm font-semibold text-light-text dark:text-dark-text">
-              Photo (optional)
-            </Text>
-            <Text className="mb-2 text-xs text-light-text-muted dark:text-dark-text-muted">
-              All metadata (location, device, time) is stripped before upload.
-            </Text>
-            {photoUri ? (
-              <View className="gap-2">
-                <Pressable
-                  onPress={pickPhoto}
-                  accessibilityLabel="Change photo"
-                  className="overflow-hidden rounded-card"
-                >
-                  <Image
-                    source={{ uri: photoUri }}
-                    style={{ width: '100%', aspectRatio: 1 }}
-                    resizeMode="cover"
-                    accessibilityLabel="Photo preview"
-                  />
-                </Pressable>
-                <Button label="Remove photo" variant="ghost" onPress={() => setPhotoUri(null)} />
-              </View>
-            ) : (
-              <Button label="Add a photo" variant="secondary" onPress={pickPhoto} />
-            )}
-          </View>
-        )}
-
+        {/* Global error state */}
         {error && (
           <Text
             accessibilityLiveRegion="polite"
@@ -205,10 +187,17 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
         <View className="mt-2 gap-3">
           <Button
             label={submitting ? 'Posting…' : 'Post resource'}
-            onPress={handleSubmit}
+            hint="Submits your resource listing to the community feed"
+            onPress={() => void handleSubmit()}
             disabled={!canSubmit}
           />
-          <Button label="Cancel" variant="ghost" onPress={onCancel} disabled={submitting} />
+          <Button
+            label="Cancel"
+            variant="ghost"
+            hint="Discards this form and goes back"
+            onPress={onCancel}
+            disabled={submitting}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
