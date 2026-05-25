@@ -31,6 +31,11 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: npm run lint
       - run: npm run format:check
+      - name: Check expo-location not imported in non-native files (Jordan C4)
+        run: |
+          # Jordan Condition 4: expo-location must not be imported in web-bundled files
+          # Dynamic require inside .native.ts files is exempt; this checks shared src/ files
+          ! grep -r "from 'expo-location'" src/ --include="*.ts" --include="*.tsx" | grep -v "\.native\."
 
   test:
     name: test
