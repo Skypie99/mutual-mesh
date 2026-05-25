@@ -17,6 +17,7 @@ Existing coordination tool (often Telegram or Buy Nothing on Facebook) doesn't b
 Acknowledge they already have coordination working at the building level. Frame Mutual Mesh as a way to share across building lines without exposing the fridge's address — neighborhood-level pickup info only.
 
 **What NOT to say:**
+
 - "We're a startup." (We're a tool. Per growth-strategy.)
 - "We'll help your community fridge get more donations." (Saviorism. Don't presume the problem is donation volume — Deb's actual problem is reach.)
 - Anything that implies their current Telegram setup is broken. It isn't. We complement, not replace.
@@ -32,6 +33,7 @@ Aid apps require Facebook login or government ID. CAS (Child & Family Services) 
 Lead with: nothing here creates a paper trail. No real name, no photo of mom or baby, no notification text that reveals what was claimed. Verification admin can't see what anyone has claimed (this is enforced in the schema, not a policy promise).
 
 **What NOT to say:**
+
 - "We're disrupting food aid." (Insulting. They aren't a market.)
 - "We'll connect you to more donors." (Wrong framing — they're peers, not recipients of charity.)
 - Anything about "vulnerable parents" or "families in need." Just say "parents", "people."
@@ -48,6 +50,7 @@ Every existing aid app requires verifiable real-name + address. For trans / quee
 Lead with what we don't collect — no real name, no SMS verification (their phones are often shared), no location finer than postal prefix, no profile photo, no third-party analytics. Mention the "delete in one tap" flow is on the main screen, not buried in settings. Mention we will NEVER pursue press coverage.
 
 **What NOT to say:**
+
 - "We're the future of mutual aid." (Anything saviorist or grandiose. They've seen tech-savior pitches and walked away.)
 - "Verified safe community." (No badges, no safety claims — every safety claim is a target.)
 - Anything that names HRT, drug supplies, or sex work in writing in a cold email. They'll bring it up if they want to.
@@ -65,6 +68,7 @@ Surplus from food-bank hauls or building-wide donation drives doesn't move acros
 Acknowledge their landlord-threat model. Mutual Mesh doesn't surface real names, doesn't tie postings to specific addresses, and doesn't have a "search users near you" feature a landlord could weaponize. Framing: it's the same coordination work you do on Signal, but visible to neighbors you don't yet know.
 
 **What NOT to say:**
+
 - "We help marginalized people." (They're organizers, not subjects.)
 - "We'll help build your union." (We won't and shouldn't claim to.)
 - Don't pitch the app to landlord-friendly tenant orgs (yes, those exist). Casey filters by union's actual stance before reaching out.
@@ -80,6 +84,7 @@ Newcomers often won't use real-name systems for understandable reasons — immig
 Lead with: no real name required, no government ID, no SMS verification. Mention that postal-prefix-only is by design and that we don't share user data with any agency under any circumstance. Be explicit that we don't have a data-sharing arrangement with city, provincial, or federal services — because that's a question this audience reasonably asks.
 
 **What NOT to say:**
+
 - Anything that implies newcomers need our help to integrate. They don't.
 - "We'll help with food security for refugees." (Imposing a frame. Let them describe their need.)
 - Anything in English-only marketing voice. If the partner org operates in another language, ask in the intro what language they'd prefer to continue in. Translation budget is real and Sky's call.

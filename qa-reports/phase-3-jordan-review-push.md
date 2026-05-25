@@ -257,18 +257,18 @@ Append to the existing "Fields NOT collected" sentence (after "payment info"):
 
 ## Summary table
 
-| Concern # | Topic | Verdict | Blocking? |
-| --------- | ----- | ------- | --------- |
-| 1 | Apple/Google/Expo enter trust boundary | Address via PRIVACY.md amendment + microcopy | BLOCKING (3 sub-conditions) |
-| 2 | Title-only lockscreen rule | APPROVED, reinforce via production assertion + enum test | NO |
-| 3 | Token rotation across reinstall/migration | APPROVED with caveat on reconnect-prompt UX | NO |
-| 4 | OFF default persists across reinstall | APPROVED with two BLOCKING sub-conditions (Gotcha doc + delete-test extension) | BLOCKING |
-| 5 | Failed-delivery logging hygiene | APPROVED, recommend log-shape test strengthening | NO |
-| 6 | `cron_log` aggregate-only | APPROVED | NO |
-| 7 | Deep-link auth-gate preservation | APPROVED | NO |
-| 8 | Quiet hours deferred to OS | APPROVED, pair with DFS-4 silent default | NO |
-| 9 | AsyncStorage does NOT cache token | APPROVED | NO |
-| 10 | Geofence push permanently excluded | APPROVED, surface to CLAUDE.md | NO |
+| Concern # | Topic                                     | Verdict                                                                        | Blocking?                   |
+| --------- | ----------------------------------------- | ------------------------------------------------------------------------------ | --------------------------- |
+| 1         | Apple/Google/Expo enter trust boundary    | Address via PRIVACY.md amendment + microcopy                                   | BLOCKING (3 sub-conditions) |
+| 2         | Title-only lockscreen rule                | APPROVED, reinforce via production assertion + enum test                       | NO                          |
+| 3         | Token rotation across reinstall/migration | APPROVED with caveat on reconnect-prompt UX                                    | NO                          |
+| 4         | OFF default persists across reinstall     | APPROVED with two BLOCKING sub-conditions (Gotcha doc + delete-test extension) | BLOCKING                    |
+| 5         | Failed-delivery logging hygiene           | APPROVED, recommend log-shape test strengthening                               | NO                          |
+| 6         | `cron_log` aggregate-only                 | APPROVED                                                                       | NO                          |
+| 7         | Deep-link auth-gate preservation          | APPROVED                                                                       | NO                          |
+| 8         | Quiet hours deferred to OS                | APPROVED, pair with DFS-4 silent default                                       | NO                          |
+| 9         | AsyncStorage does NOT cache token         | APPROVED                                                                       | NO                          |
+| 10        | Geofence push permanently excluded        | APPROVED, surface to CLAUDE.md                                                 | NO                          |
 
 **BLOCKER count: 3 (Concern 1.1, 1.2, 1.3 are one cluster; Concern 4.1 + 4.2 are the other).**
 **PRIVACY.md edits proposed: 5 (3 inventory rows / subsections + 1 fields-NOT-collected addition + 1 new D11 decision).**

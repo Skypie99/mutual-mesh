@@ -142,9 +142,9 @@ describe('decideGateRoute', () => {
     // `isProfilePending` uses startsWith('pending-'); the bare prefix
     // should also count as pending. Regression guard.
     const justPrefix = { handle: 'pending-', is_verified: false };
-    expect(
-      decideGateRoute({ loading: false, session: sessionFixture, profile: justPrefix }),
-    ).toBe('complete-profile');
+    expect(decideGateRoute({ loading: false, session: sessionFixture, profile: justPrefix })).toBe(
+      'complete-profile',
+    );
   });
 
   it('routes to wait for any non-strict-true is_verified (covers true/false/numeric)', () => {

@@ -27,15 +27,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
@@ -312,9 +304,7 @@ export function ResourceMapScreen({
             </View>
 
             {/* FSA chip list */}
-            <ScrollView
-              contentContainerStyle={{ padding: 12, paddingBottom: 32 }}
-            >
+            <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 32 }}>
               {descriptors.map((d) => (
                 <View key={d.fsa} className="mb-2">
                   <FsaChip
@@ -375,9 +365,7 @@ export function ResourceMapScreen({
       </View>
 
       {/* MapView — OSM tiles, clamped to FSA zoom, privacy-safe (no GPS pins) */}
-      <View
-        className="flex-1"
-      >
+      <View className="flex-1">
         <MapView
           style={{ flex: 1 }}
           region={region}
@@ -385,11 +373,7 @@ export function ResourceMapScreen({
           accessibilityRole="image"
           accessibilityLabel={summary}
         >
-          <UrlTile
-            urlTemplate={OSM_TILE_URL}
-            maximumZ={19}
-            flipY={false}
-          />
+          <UrlTile urlTemplate={OSM_TILE_URL} maximumZ={19} flipY={false} />
         </MapView>
 
         {/* Center-on-me FAB */}
@@ -576,7 +560,11 @@ function FsaPreviewSheet({
 
       {/* Sheet */}
       <View
-        style={{ backgroundColor: palette.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}
+        style={{
+          backgroundColor: palette.surface,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+        }}
         accessibilityLiveRegion="polite"
       >
         {/* Drag handle */}
@@ -632,9 +620,7 @@ function FsaPreviewSheet({
           contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 8 : 0 }}
         >
           {previewSlice.length === 0 ? (
-            <Text
-              style={{ color: palette.textSecondary, fontSize: 14, paddingVertical: 12 }}
-            >
+            <Text style={{ color: palette.textSecondary, fontSize: 14, paddingVertical: 12 }}>
               No available resources in this area right now.
             </Text>
           ) : (
@@ -692,12 +678,16 @@ function ResourcePreviewCard({ resource, onPress, palette }: ResourcePreviewCard
       onPress={onPress}
       accessibilityLabel={`${resource.name}${resource.description ? ', ' + resource.description.slice(0, 60) : ''}. Status: available. Tap to view details.`}
     >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 8,
+        }}
+      >
         <View style={{ flex: 1 }}>
-          <Text
-            numberOfLines={1}
-            style={{ color: palette.text, fontSize: 15, fontWeight: '600' }}
-          >
+          <Text numberOfLines={1} style={{ color: palette.text, fontSize: 15, fontWeight: '600' }}>
             {resource.name}
           </Text>
           {resource.description ? (

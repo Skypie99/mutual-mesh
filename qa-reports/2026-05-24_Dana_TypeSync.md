@@ -15,20 +15,20 @@ Shamus Phase 2/3 UI breakage: NONE detected
 
 Section A only — VerificationDecision += 'demote' (Mig 002)
 
-  File: src/types/database.ts
-  Change: 'approve' | 'reject' | 'escalate'  ->  'approve' | 'reject' | 'escalate' | 'demote'
+File: src/types/database.ts
+Change: 'approve' | 'reject' | 'escalate' -> 'approve' | 'reject' | 'escalate' | 'demote'
 
 ## Sections already present (no action needed)
 
 Sections B-F were already applied by prior sessions before this run:
 
-  Section A (ResourceStatus, ResourceCategory): present
-  Section B (UserRow.onboarding_complete, UserRow.push_preferences, PushPreferences): present
-  Section C (ResourceRow.category, confirmed_at, confirmed_by, ResourceStatus): present
-  Section D (ErrorReportRow type + error_reports table): present
-  Section E (PushTokenRow type + push_tokens table): present
-  Section F (confirm_pickup, complete_onboarding, register_push_token,
-             revoke_push_token, update_push_preferences, log_error RPCs): present
+Section A (ResourceStatus, ResourceCategory): present
+Section B (UserRow.onboarding_complete, UserRow.push_preferences, PushPreferences): present
+Section C (ResourceRow.category, confirmed_at, confirmed_by, ResourceStatus): present
+Section D (ErrorReportRow type + error_reports table): present
+Section E (PushTokenRow type + push_tokens table): present
+Section F (confirm_pickup, complete_onboarding, register_push_token,
+revoke_push_token, update_push_preferences, log_error RPCs): present
 
 ## Notes on shape differences vs Dana proposal
 

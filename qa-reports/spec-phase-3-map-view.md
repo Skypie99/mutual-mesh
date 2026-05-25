@@ -217,14 +217,14 @@ Tapping the M5V polygon transitions to the LIST view, with an active "M5V" filte
 
 ### Component reuse map
 
-| Used component                                      | Where                                                     |
-| --------------------------------------------------- | --------------------------------------------------------- |
-| `MapView` (NEW)                                     | Map area in HomeScreen — wraps react-native-maps with OSM |
-| `Toggle` / `SegmentControl` (NEW or reuse)          | Map/List toggle (if Toggle didn't ship in Phase 3.1 push)  |
-| `EmptyState`                                        | Map-unavailable fallback                                  |
-| `Button` (secondary variant)                        | "Switch to list view" CTA                                 |
-| `Card` (existing)                                   | Filtered list after tapping an FSA                        |
-| FSA polygon (NEW)                                   | GeoJSON-rendered overlay; bundled                          |
+| Used component                             | Where                                                     |
+| ------------------------------------------ | --------------------------------------------------------- |
+| `MapView` (NEW)                            | Map area in HomeScreen — wraps react-native-maps with OSM |
+| `Toggle` / `SegmentControl` (NEW or reuse) | Map/List toggle (if Toggle didn't ship in Phase 3.1 push) |
+| `EmptyState`                               | Map-unavailable fallback                                  |
+| `Button` (secondary variant)               | "Switch to list view" CTA                                 |
+| `Card` (existing)                          | Filtered list after tapping an FSA                        |
+| FSA polygon (NEW)                          | GeoJSON-rendered overlay; bundled                         |
 
 New components: `MapView` is the primary new surface. Shamus files a `qa-reports/feature-mapview-component.md` proposal with Dani before building (polygon styling, gradient palette, max-zoom clamp).
 
@@ -251,6 +251,7 @@ The map adds ZERO new columns to any SELECT. It uses ONLY data the list view alr
 ### Aggregation happens client-side
 
 The client computes `Map<FSA, ResourceCount>` from the loaded resources. The server NEVER computes or returns aggregated counts. This means:
+
 - No new RPC.
 - No new query that could leak "show me how many baby-supplies are in M5V" as a stand-alone privacy-sensitive query.
 - The server sees the same `SELECT *` it already sees; aggregation is a client-side render concern only.
@@ -266,23 +267,26 @@ The FSA GeoJSON is open public-domain data from Statistics Canada / Canada Post.
 | Per-resource GPS coordinates                | Never collected. Not in schema. Not in any query.                                              |
 | Per-resource street-level pickup location   | `pickup_text` is free-text per PRIVACY.md; never parsed to coordinates; never rendered on map. |
 | Per-resource street-level address           | Same.                                                                                          |
-| Per-user GPS coordinates                    | Never collected. `expo-location` is NOT imported.                                               |
-| Per-resource posting-time location          | Never collected.                                                                                |
-| Per-claim claimant location                 | Never collected.                                                                                |
-| FSA-to-resource-count breakdown by category | Not rendered on map (AC-4); not exposed in tooltip/label.                                       |
+| Per-user GPS coordinates                    | Never collected. `expo-location` is NOT imported.                                              |
+| Per-resource posting-time location          | Never collected.                                                                               |
+| Per-claim claimant location                 | Never collected.                                                                               |
+| FSA-to-resource-count breakdown by category | Not rendered on map (AC-4); not exposed in tooltip/label.                                      |
 | Individual resource markers                 | NEVER rendered. The polygon is the smallest unit.                                              |
 
 ### Tile provider privacy posture (DFS-1 dependent)
 
 If we use OpenStreetMap raster tiles directly:
+
 - The OSM Foundation runs the tile servers; their privacy policy commits to not retaining individual request logs beyond 14 days for operations purposes.
 - The User-Agent header from our app would be the standard Expo / React Native one; no user_id is sent.
 - Jordan verifies OSM's current policy at review time.
 
 If we use Stadia Maps or similar (DFS-1 alternative):
+
 - Stadia's privacy policy must be reviewed and matched against our standard.
 
 If we use a self-hosted tile server (DFS-1 strongest):
+
 - Eliminates the third-party hop entirely; we control the logs.
 - Adds operational cost (which Casey + Sky weigh against the privacy gain).
 

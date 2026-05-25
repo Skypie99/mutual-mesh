@@ -58,7 +58,11 @@ export type PermissionStatus = 'granted' | 'denied' | 'undetermined';
 
 export type RegisterResult =
   | { ok: true; token: string; platform: 'ios' | 'android' }
-  | { ok: false; reason: 'permission-denied' | 'no-preferences' | 'unsupported-platform' | 'rpc-failed'; message?: string };
+  | {
+      ok: false;
+      reason: 'permission-denied' | 'no-preferences' | 'unsupported-platform' | 'rpc-failed';
+      message?: string;
+    };
 
 /**
  * Returns the current OS permission status without prompting the user.

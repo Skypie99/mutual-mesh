@@ -59,8 +59,7 @@ const es: MessageCatalog = {
   'detail.contact.warning':
     '[ES] This handle is provided by the poster. Verify before sharing personal details.',
   'detail.claim.button': '[ES] Claim this item',
-  'detail.claim.hint':
-    "[ES] Reserves this item for you and reveals the poster's contact handle.",
+  'detail.claim.hint': "[ES] Reserves this item for you and reveals the poster's contact handle.",
   'detail.claim.modal.title': '[ES] Claim this item?',
   'detail.claim.modal.body':
     "[ES] Once you claim, the poster's contact handle is revealed to you. They'll see your handle too. Other users can't claim it after that.",
@@ -73,8 +72,7 @@ const es: MessageCatalog = {
 
   // Add resource
   'addResource.title': '[ES] Post a resource',
-  'addResource.photoNotice':
-    '[ES] Photos uploaded here have all metadata removed automatically.',
+  'addResource.photoNotice': '[ES] Photos uploaded here have all metadata removed automatically.',
   'addResource.name.label': '[ES] What is it?',
   'addResource.name.hint': "[ES] e.g., 'Sensitive baby formula, unopened'",
   'addResource.description.label': '[ES] Details',
@@ -111,8 +109,7 @@ const es: MessageCatalog = {
   'profile.errorReporting.hint': '[ES] No personal data — only crash counts.',
   'profile.signOut': '[ES] Sign out',
   'profile.deleteAccount': '[ES] Delete my account',
-  'profile.deleteAccount.hint':
-    '[ES] Permanently deletes your account, posts, and active claims.',
+  'profile.deleteAccount.hint': '[ES] Permanently deletes your account, posts, and active claims.',
   'profile.deleteAccount.modal.title': '[ES] Delete your account?',
   'profile.deleteAccount.modal.body':
     '[ES] This removes your account, your posts, and your claims from Mutual Mesh immediately. ' +
@@ -153,8 +150,7 @@ const es: MessageCatalog = {
   'auth.error.resend': '[ES] Could not re-send code.',
   'auth.error.emailRequired': '[ES] Email and password are required.',
   'auth.error.passwordShort': '[ES] Password must be at least 8 characters.',
-  'auth.error.inviteShort':
-    '[ES] Invite code looks too short. Double-check what you pasted.',
+  'auth.error.inviteShort': '[ES] Invite code looks too short. Double-check what you pasted.',
   'auth.error.inviteInvalid':
     '[ES] That invite code is invalid or already used. Ask the person who gave it to you for a fresh one.',
   'auth.info.checkEmail': '[ES] Check your email for a 6-digit code.',
@@ -162,7 +158,7 @@ const es: MessageCatalog = {
   // Waiting room
   'waiting.title': "[ES] You're in the queue",
   'waiting.body':
-    "[ES] A community admin is reviewing your account. This usually takes about 24 hours. " +
+    '[ES] A community admin is reviewing your account. This usually takes about 24 hours. ' +
     "You'll get access to the marketplace as soon as you're approved — this screen will update on its own.",
   'waiting.whileYouWait.title': '[ES] While you wait',
   'waiting.whileYouWait.body':

@@ -237,11 +237,11 @@ After hard rollback, re-applying `008_error_reports.sql` restores everything.
 
 ## 9. Environment variable summary
 
-| Var                         | Source                                   | Required | Notes                                                                                          |
-| --------------------------- | ---------------------------------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `SUPABASE_URL`              | Auto-injected by Supabase Edge Functions | yes      | Read in `index.ts` to build the anon client.                                                   |
-| `SUPABASE_ANON_KEY`         | Auto-injected by Supabase Edge Functions | yes      | Anon key — has GRANT EXECUTE on `public.log_error` (migration 008).                            |
-| `EXPO_PUBLIC_LOG_ERROR_URL` | Client `.env` (optional)                 | no       | Client-side override. If unset, the client derives the URL from `EXPO_PUBLIC_SUPABASE_URL`.    |
+| Var                         | Source                                   | Required | Notes                                                                                       |
+| --------------------------- | ---------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`              | Auto-injected by Supabase Edge Functions | yes      | Read in `index.ts` to build the anon client.                                                |
+| `SUPABASE_ANON_KEY`         | Auto-injected by Supabase Edge Functions | yes      | Anon key — has GRANT EXECUTE on `public.log_error` (migration 008).                         |
+| `EXPO_PUBLIC_LOG_ERROR_URL` | Client `.env` (optional)                 | no       | Client-side override. If unset, the client derives the URL from `EXPO_PUBLIC_SUPABASE_URL`. |
 
 ---
 

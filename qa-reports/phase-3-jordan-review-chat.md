@@ -54,9 +54,9 @@ The spec's AC-2 is the entire privacy boundary. The proposed `messages_participa
 
 **BLOCKING 1.1:** `supabase/__tests__/rls.sql` must include all three adversarial SELECT tests **before** Shamus's screen code lands:
 
-  - **(a) Anonymous user (no JWT) querying `messages WHERE claim_id = <known_real_claim_id>`** — must return zero rows.
-  - **(b) Authenticated, verified, NON-participant user querying the same** — must return zero rows.
-  - **(c) Admin (`is_admin = true`) who is NOT a participant** — must return zero rows. Spec line 64 explicitly disclaims an admin read policy; the test enforces it.
+- **(a) Anonymous user (no JWT) querying `messages WHERE claim_id = <known_real_claim_id>`** — must return zero rows.
+- **(b) Authenticated, verified, NON-participant user querying the same** — must return zero rows.
+- **(c) Admin (`is_admin = true`) who is NOT a participant** — must return zero rows. Spec line 64 explicitly disclaims an admin read policy; the test enforces it.
 
 These three tests are the spec's AC-2 verification artifact. Without them, AC-2 is unverified and the privacy contract is paper-only. Steve writes; Gary runs in CI.
 
@@ -70,10 +70,10 @@ PRIVACY.md D6 promises "true cascade hard-delete" on `delete_my_account()`. The 
 
 **BLOCKING 2.1:** An integration test in `supabase/__tests__/` (or a `delete_account.sql` extension) that asserts, after `delete_my_account()`:
 
-  - Zero rows in `messages` with the deleted user's original `sender_id` (i.e., the UUID has been replaced).
-  - All such rows now have `sender_id = '00000000-0000-0000-0000-000000000000'::uuid` (DFS-4 default sentinel) AND `body = NULL` AND `deleted_at IS NOT NULL`.
-  - Cascade-via-resource: all messages belonging to claims for resources the deleting user POSTED are gone entirely (because the resource row is deleted, triggering `ON DELETE CASCADE` on `messages.claim_id`).
-  - No `messages` row anywhere in the database leaks the deleted user's original UUID. (Steve's existing trace test for D6 is extended; the spec already calls for this at line 94.)
+- Zero rows in `messages` with the deleted user's original `sender_id` (i.e., the UUID has been replaced).
+- All such rows now have `sender_id = '00000000-0000-0000-0000-000000000000'::uuid` (DFS-4 default sentinel) AND `body = NULL` AND `deleted_at IS NOT NULL`.
+- Cascade-via-resource: all messages belonging to claims for resources the deleting user POSTED are gone entirely (because the resource row is deleted, triggering `ON DELETE CASCADE` on `messages.claim_id`).
+- No `messages` row anywhere in the database leaks the deleted user's original UUID. (Steve's existing trace test for D6 is extended; the spec already calls for this at line 94.)
 
 **BLOCKING 2.2:** The PRIVACY.md D6 amendment (proposed below in "PRIVACY.md edits proposed") must land before this RPC extension ships. The amendment discloses sentinel-replace + body-NULL as the chat-specific refinement of D6. Without the amendment, the implementation is inconsistent with the published privacy contract.
 
@@ -83,11 +83,11 @@ PRIVACY.md D6 promises "true cascade hard-delete" on `delete_my_account()`. The 
 
 PRIVACY.md D8 forbids third-party SDKs (Sentry, etc.) in MVP, so there is no Sentry destination for message content to leak to. But several internal logging paths could capture `messages.body` accidentally:
 
-  - `userFacingErrorMessage()` in `src/lib/errors.ts` — the spec says all `send_message` failures route through this (AC-15). The helper must be reviewed (Steve) to confirm it does not print the input arguments of the failed RPC anywhere — only the error code is consumed.
-  - The Edge Function `deliver_notification` (Phase 3.1) — chat_message trigger. Per AC-7 + Phase 3.1 AC-2, the push payload is title-only ("You have a new message"), NEVER the body. The Edge Function code must NEVER receive the body as an argument; the RPC's fire-and-forget call passes only `(trigger, recipient_id)`, not the message text. Confirmed by spec line 412.
-  - `cron_log` for the prune extension — must log aggregate counts only (`messages_deleted_count: N`), never per-message content or per-claim metadata that could correlate to a specific user.
-  - `rate_limit_log` — records `(user_id, operation, window_start, count)`. Operation field must be a fixed enum (e.g., `'send_message'`), NEVER include any user-controlled string (no message snippet, no claim_id concatenation).
-  - React Native's console.log / dev-mode UI — Shamus must NEVER `console.log(messageBody)` even during development. Add a CLAUDE.md Gotcha (proposed below).
+- `userFacingErrorMessage()` in `src/lib/errors.ts` — the spec says all `send_message` failures route through this (AC-15). The helper must be reviewed (Steve) to confirm it does not print the input arguments of the failed RPC anywhere — only the error code is consumed.
+- The Edge Function `deliver_notification` (Phase 3.1) — chat_message trigger. Per AC-7 + Phase 3.1 AC-2, the push payload is title-only ("You have a new message"), NEVER the body. The Edge Function code must NEVER receive the body as an argument; the RPC's fire-and-forget call passes only `(trigger, recipient_id)`, not the message text. Confirmed by spec line 412.
+- `cron_log` for the prune extension — must log aggregate counts only (`messages_deleted_count: N`), never per-message content or per-claim metadata that could correlate to a specific user.
+- `rate_limit_log` — records `(user_id, operation, window_start, count)`. Operation field must be a fixed enum (e.g., `'send_message'`), NEVER include any user-controlled string (no message snippet, no claim_id concatenation).
+- React Native's console.log / dev-mode UI — Shamus must NEVER `console.log(messageBody)` even during development. Add a CLAUDE.md Gotcha (proposed below).
 
 **BLOCKING 3.1:** A Gary CI test that greps the built bundle (or the source tree) for `console.log` calls that include any variable named like a message body. Implementation: a `scripts/no-message-content-in-logs.sh` script Gary writes, run as part of `npm run lint`. Reject if any of `console.log.*messag(e|es)\.body`, `console.error.*body`, or similar patterns appear.
 
@@ -187,11 +187,12 @@ Quinn's DFS-1 (spec line 565-579) recommends sliding chat from Phase 3.3 to Phas
 ### DFS-J-2: PRIVACY.md amendment timing — strict-serial or parallel?
 
 Per BLOCKING 2.2 above, PRIVACY.md must be amended to disclose:
-  - D6 refinement (sentinel-replace + body-NULL for sent messages; cascade-delete via resource for received messages)
-  - New "Chat data inventory" row(s) for `messages.body`, `messages.sender_id`, `messages.read_at`, `messages.deleted_at`, `rate_limit_log` (aggregate)
-  - New D12 decision row documenting chat as a v2 feature with the regulatory category change
-  - New CLAUDE.md decisions-log row update (the existing "No in-app chat" row needs revision)
-  - "Fields NOT collected" line update (add: message attachments, message location, link previews, read receipts in v1)
+
+- D6 refinement (sentinel-replace + body-NULL for sent messages; cascade-delete via resource for received messages)
+- New "Chat data inventory" row(s) for `messages.body`, `messages.sender_id`, `messages.read_at`, `messages.deleted_at`, `rate_limit_log` (aggregate)
+- New D12 decision row documenting chat as a v2 feature with the regulatory category change
+- New CLAUDE.md decisions-log row update (the existing "No in-app chat" row needs revision)
+- "Fields NOT collected" line update (add: message attachments, message location, link previews, read receipts in v1)
 
 Two sequencing options:
 
@@ -319,6 +320,7 @@ Append to the existing "Fields NOT collected" sentence (which already includes "
 ### Edit C1 — Amend the "MVP scope" decisions-log row
 
 Current row reads:
+
 > | MVP scope | **No in-app chat — claim reveals contact handle** | Ships faster; keeps app out of "messaging" regulatory category; chat is v2 |
 
 Proposed amendment (assumes Sky resolves DFS-J-1 in favor of shipping chat — adjust wording if Sky resolves to never-ship):
@@ -384,23 +386,23 @@ Append to AC-6 (sentinel-replace path): "The integration test asserts that, afte
 
 ## Summary table
 
-| # | Topic | Verdict | Blocking? |
-| - | ----- | ------- | --------- |
-| 1 | RLS adversarial test coverage on messages (AC-2) | Address via 3 mandatory test cases + claim-canceled + resource-deleted cases | BLOCKING (1.1, 1.2, 1.3) |
-| 2 | delete_my_account() extension + PRIVACY.md D6 amendment | Address via integration test + PRIVACY.md amendment landing first | BLOCKING (2.1, 2.2, 2.3) |
-| 3 | Message content excluded from all logs (D8 + AC-15) | Address via console.log lint + Steve code-review checklist | BLOCKING (3.1, 3.2) |
-| 4 | Push trigger chat_message inherits push review BLOCKING 4 | Carries forward from phase-3-jordan-review-push.md | BLOCKING (4.1, 4.2, 4.3, 4.4) |
-| 5 | rate_limit_log privacy properties (AC-3) | Address via hourly prune + enum CHECK constraint | BLOCKING (5.1, 5.2) |
-| A1 | Realtime channel name documentation | JSDoc invariant comment | NO |
-| A2 | Message body length cap (DFS-5) | Support 1000 char default | NO |
-| A3 | Read receipts (DFS-2) | Support no-receipts in v1 | NO |
-| A4 | Typing indicators (AC-9 / DFS-2) | Support no-indicators in v1 | NO |
-| A5 | Active-chat push suppression (DFS-6) | Accept presence trade-off; document | NO |
-| A6 | Delete-my-message RPC (DFS-8) | Support new RPC | NO |
-| A7 | Empty-state privacy disclosure (AC-14) | Add chat-input disclosure line | NO |
-| A8 | Closed-chat read-only window (AC-8) | Approved as designed | NO |
-| A9 | No AI translation/summarization on chat content | Add NEVER-ship lines to spec | NO |
-| A10 | Mutual Mesh brand not translated | Reaffirm push review's brand rule | NO |
+| #   | Topic                                                     | Verdict                                                                      | Blocking?                     |
+| --- | --------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------- |
+| 1   | RLS adversarial test coverage on messages (AC-2)          | Address via 3 mandatory test cases + claim-canceled + resource-deleted cases | BLOCKING (1.1, 1.2, 1.3)      |
+| 2   | delete_my_account() extension + PRIVACY.md D6 amendment   | Address via integration test + PRIVACY.md amendment landing first            | BLOCKING (2.1, 2.2, 2.3)      |
+| 3   | Message content excluded from all logs (D8 + AC-15)       | Address via console.log lint + Steve code-review checklist                   | BLOCKING (3.1, 3.2)           |
+| 4   | Push trigger chat_message inherits push review BLOCKING 4 | Carries forward from phase-3-jordan-review-push.md                           | BLOCKING (4.1, 4.2, 4.3, 4.4) |
+| 5   | rate_limit_log privacy properties (AC-3)                  | Address via hourly prune + enum CHECK constraint                             | BLOCKING (5.1, 5.2)           |
+| A1  | Realtime channel name documentation                       | JSDoc invariant comment                                                      | NO                            |
+| A2  | Message body length cap (DFS-5)                           | Support 1000 char default                                                    | NO                            |
+| A3  | Read receipts (DFS-2)                                     | Support no-receipts in v1                                                    | NO                            |
+| A4  | Typing indicators (AC-9 / DFS-2)                          | Support no-indicators in v1                                                  | NO                            |
+| A5  | Active-chat push suppression (DFS-6)                      | Accept presence trade-off; document                                          | NO                            |
+| A6  | Delete-my-message RPC (DFS-8)                             | Support new RPC                                                              | NO                            |
+| A7  | Empty-state privacy disclosure (AC-14)                    | Add chat-input disclosure line                                               | NO                            |
+| A8  | Closed-chat read-only window (AC-8)                       | Approved as designed                                                         | NO                            |
+| A9  | No AI translation/summarization on chat content           | Add NEVER-ship lines to spec                                                 | NO                            |
+| A10 | Mutual Mesh brand not translated                          | Reaffirm push review's brand rule                                            | NO                            |
 
 **BLOCKER count: 5 clusters (1.1–1.3, 2.1–2.3, 3.1–3.2, 4.1–4.4, 5.1–5.2 = 14 sub-conditions total).**
 **PRIVACY.md edits proposed: 6 (1 new chat subsection + 5 inventory rows + D2 chat addendum + D6 refinement + Fields-NOT-collected line + new D12 decision = grouped as Edits 6–11 to continue numbering from push review).**
