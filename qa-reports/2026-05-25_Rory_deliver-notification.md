@@ -1,4 +1,5 @@
 # Rory — deliver_notification Edge Function
+
 **Date:** 2026-05-25
 **Branch:** `rory/deliver-notification-edge-fn-2026-05-25`
 **Status:** COMPLETE — pending Sky deploy + migration 012 from Dana
@@ -11,11 +12,11 @@
 
 ### Files created
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/deliver_notification/index.ts` | The Edge Function (Deno, ~350 LoC) |
-| `supabase/functions/deliver_notification/README.md` | Deploy walkthrough, caller contract, open questions |
-| `qa-reports/2026-05-25_Rory_deliver-notification.md` | This report |
+| File                                                 | Purpose                                             |
+| ---------------------------------------------------- | --------------------------------------------------- |
+| `supabase/functions/deliver_notification/index.ts`   | The Edge Function (Deno, ~350 LoC)                  |
+| `supabase/functions/deliver_notification/README.md`  | Deploy walkthrough, caller contract, open questions |
+| `qa-reports/2026-05-25_Rory_deliver-notification.md` | This report                                         |
 
 ---
 
@@ -42,6 +43,7 @@ against future developer edits that accidentally add content to the body.
 
 The spec's AC-15 requires atomic increment of `push_rate_limit.count`. Supabase JS v2's
 `.upsert()` doesn't support `count = count + 1` in the update clause. The solution is:
+
 - Step 1: attempt INSERT with `count = 1` (new window)
 - Step 2: on conflict, call `increment_push_rate_limit(...)` RPC (a SECURITY DEFINER
   `UPDATE ... RETURNING count` — atomically safe)
@@ -73,11 +75,11 @@ quarterly per AC-12.
 
 ## DECISIONS FOR SKY
 
-| # | Decision | Options | Recommendation |
-|---|----------|---------|----------------|
-| D1 | **Migration 012 needed before rate-limiting is active** | Dana writes migration 012 with `push_rate_limit` table + `increment_push_rate_limit` RPC + daily prune cron. | Ask Dana to write migration 012 before deploying this function. Function is safe to deploy without it (rate-limiting simply logs an error and proceeds). |
-| D2 | **AC-6 reduced-motion** — `sound: null` is set unconditionally (silent by default). | (a) Keep silent default. (b) Add `reduce_motion` field to `push_preferences` JSONB and read it here. | Option (a) for MVP — privacy-safe default. |
-| D3 | **Authority check tightening for trigger 2** | The current check is a broad resource-linkage query. Could be tightened to `status = 'completed'` + both IDs present. | Keep broad for MVP; Dana or Steve can tighten post-launch if needed. |
+| #   | Decision                                                                            | Options                                                                                                               | Recommendation                                                                                                                                           |
+| --- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | **Migration 012 needed before rate-limiting is active**                             | Dana writes migration 012 with `push_rate_limit` table + `increment_push_rate_limit` RPC + daily prune cron.          | Ask Dana to write migration 012 before deploying this function. Function is safe to deploy without it (rate-limiting simply logs an error and proceeds). |
+| D2  | **AC-6 reduced-motion** — `sound: null` is set unconditionally (silent by default). | (a) Keep silent default. (b) Add `reduce_motion` field to `push_preferences` JSONB and read it here.                  | Option (a) for MVP — privacy-safe default.                                                                                                               |
+| D3  | **Authority check tightening for trigger 2**                                        | The current check is a broad resource-linkage query. Could be tightened to `status = 'completed'` + both IDs present. | Keep broad for MVP; Dana or Steve can tighten post-launch if needed.                                                                                     |
 
 ---
 

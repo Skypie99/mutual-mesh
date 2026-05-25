@@ -23,17 +23,17 @@ The `error_reports` table, `log_error` RPC, RLS policy, and nightly cron job are
 
 **Checked:** code review + live test run of all 46 unit tests.
 
-| Check | Result |
-|-------|--------|
-| `logError()` exists at expected import path | ✅ `src/lib/errorReporting.ts` (note: Morgan's brief said `errors.ts` — that file only has `errorMessage()`; the full impl is in `errorReporting.ts`) |
-| Opt-in gate — no network call unless user opted in | ✅ `getErrorReportingOptIn()` checked first; returns early if false |
-| PII stripping before data leaves device | ✅ `stripPii()` with 6 heuristics: Expo tokens, HTTP header tokens, URL query tokens, emails, Canadian postal codes (full + FSA), handle-shaped strings |
-| Truncation before send | ✅ 8 KB message cap, 32 KB stack cap — mirrors Edge Function's own limits |
-| URL construction from env vars | ✅ `resolveLogErrorUrl()` derives `${EXPO_PUBLIC_SUPABASE_URL}/functions/v1/log-error`; falls back to `EXPO_PUBLIC_LOG_ERROR_URL` override |
-| Anon key in request headers | ✅ `apikey: <anonKey>` + `Authorization: Bearer <anonKey>` — correct for Supabase Edge Functions |
-| Silent failure on network/parse error | ✅ entire `logError()` body wrapped in try/catch; exceptions swallowed |
-| Unit tests green | ✅ 46/46 pass (0.345s) — cover every pure helper |
-| `ErrorBoundary` wires `logError` correctly | ✅ `src/components/ErrorBoundary.tsx` imports from `@/lib/errorReporting`; fires on `componentDidCatch` |
+| Check                                              | Result                                                                                                                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `logError()` exists at expected import path        | ✅ `src/lib/errorReporting.ts` (note: Morgan's brief said `errors.ts` — that file only has `errorMessage()`; the full impl is in `errorReporting.ts`)   |
+| Opt-in gate — no network call unless user opted in | ✅ `getErrorReportingOptIn()` checked first; returns early if false                                                                                     |
+| PII stripping before data leaves device            | ✅ `stripPii()` with 6 heuristics: Expo tokens, HTTP header tokens, URL query tokens, emails, Canadian postal codes (full + FSA), handle-shaped strings |
+| Truncation before send                             | ✅ 8 KB message cap, 32 KB stack cap — mirrors Edge Function's own limits                                                                               |
+| URL construction from env vars                     | ✅ `resolveLogErrorUrl()` derives `${EXPO_PUBLIC_SUPABASE_URL}/functions/v1/log-error`; falls back to `EXPO_PUBLIC_LOG_ERROR_URL` override              |
+| Anon key in request headers                        | ✅ `apikey: <anonKey>` + `Authorization: Bearer <anonKey>` — correct for Supabase Edge Functions                                                        |
+| Silent failure on network/parse error              | ✅ entire `logError()` body wrapped in try/catch; exceptions swallowed                                                                                  |
+| Unit tests green                                   | ✅ 46/46 pass (0.345s) — cover every pure helper                                                                                                        |
+| `ErrorBoundary` wires `logError` correctly         | ✅ `src/components/ErrorBoundary.tsx` imports from `@/lib/errorReporting`; fires on `componentDidCatch`                                                 |
 
 **No issues in the client layer.**
 
@@ -47,21 +47,21 @@ Zero Edge Functions are deployed to the MutualMesh Supabase project. The local i
 
 **Code review of local implementation** (not deployed — read-only audit):
 
-| Check | Result |
-|-------|--------|
-| Entry point: `Deno.serve(async (req) => {...})` | ✅ correct Deno Edge Function pattern |
-| CORS preflight handled (`OPTIONS` → 204) | ✅ required for Expo web build |
-| Method gate: non-POST → 405 | ✅ |
-| In-process rate limiter: 10/min per IP | ✅ uses rolling window Map; opportunistic GC at 1000 entries |
-| Body size gate: 256 KB hard cap | ✅ checks Content-Length header first, then raw string length |
-| JSON parse + shape validation (`isValidPayload`) | ✅ validates all 5 required fields + enum values |
-| SHA-256 hashing server-side (Web Crypto) | ✅ `sha256Hex()` — raw text never stored |
-| RPC call: `supabase.rpc('log_error', {...})` | ✅ passes only hashes — no raw text in payload |
+| Check                                                         | Result                                                        |
+| ------------------------------------------------------------- | ------------------------------------------------------------- |
+| Entry point: `Deno.serve(async (req) => {...})`               | ✅ correct Deno Edge Function pattern                         |
+| CORS preflight handled (`OPTIONS` → 204)                      | ✅ required for Expo web build                                |
+| Method gate: non-POST → 405                                   | ✅                                                            |
+| In-process rate limiter: 10/min per IP                        | ✅ uses rolling window Map; opportunistic GC at 1000 entries  |
+| Body size gate: 256 KB hard cap                               | ✅ checks Content-Length header first, then raw string length |
+| JSON parse + shape validation (`isValidPayload`)              | ✅ validates all 5 required fields + enum values              |
+| SHA-256 hashing server-side (Web Crypto)                      | ✅ `sha256Hex()` — raw text never stored                      |
+| RPC call: `supabase.rpc('log_error', {...})`                  | ✅ passes only hashes — no raw text in payload                |
 | IP address: used only for in-process rate-limit, never logged | ✅ `getRateLimitKey()` reads XFF but never writes it anywhere |
-| User-Agent: not read at all | ✅ not in any handler |
-| Success: 204 No Content | ✅ |
-| Failure responses: sparse JSON, never echoes request | ✅ `shortStatus()` returns only `{"status": "..."}` |
-| Env vars consumed: `SUPABASE_URL`, `SUPABASE_ANON_KEY` | ✅ Deno auto-injects these in Supabase Edge Function runtime |
+| User-Agent: not read at all                                   | ✅ not in any handler                                         |
+| Success: 204 No Content                                       | ✅                                                            |
+| Failure responses: sparse JSON, never echoes request          | ✅ `shortStatus()` returns only `{"status": "..."}`           |
+| Env vars consumed: `SUPABASE_URL`, `SUPABASE_ANON_KEY`        | ✅ Deno auto-injects these in Supabase Edge Function runtime  |
 
 **The Edge Function is production-ready. It just hasn't been deployed.**
 
@@ -71,16 +71,16 @@ Zero Edge Functions are deployed to the MutualMesh Supabase project. The local i
 
 **Checked:** live SQL queries via Supabase MCP against `mutualmesh-staging`.
 
-| Check | Result |
-|-------|--------|
-| `error_reports` table exists | ✅ confirmed via `information_schema.tables` |
-| Schema matches migration 008 | ✅ all 9 columns present: `id`, `created_at`, `app_version`, `platform`, `severity`, `message_hash`, `stack_hash`, `count`, `last_seen_at` |
-| `log_error` RPC exists | ✅ confirmed via `information_schema.routines` |
-| `GRANT EXECUTE TO anon` on `log_error` | ✅ `anon`, `authenticated`, `postgres`, `service_role`, `PUBLIC` all granted |
-| RLS: `error_reports_sky_select` policy | ✅ SELECT restricted to `auth.uid()::text = config.sky_uuid` |
-| No INSERT/UPDATE/DELETE client policies | ✅ only Sky-SELECT policy exists; write path is RPC-only |
-| `prune_error_reports` cron job | ✅ `prune_error_reports_nightly` at `30 3 * * *`, active=true |
-| `prune_error_reports` function | ✅ confirmed via `information_schema.routines` |
+| Check                                   | Result                                                                                                                                     |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `error_reports` table exists            | ✅ confirmed via `information_schema.tables`                                                                                               |
+| Schema matches migration 008            | ✅ all 9 columns present: `id`, `created_at`, `app_version`, `platform`, `severity`, `message_hash`, `stack_hash`, `count`, `last_seen_at` |
+| `log_error` RPC exists                  | ✅ confirmed via `information_schema.routines`                                                                                             |
+| `GRANT EXECUTE TO anon` on `log_error`  | ✅ `anon`, `authenticated`, `postgres`, `service_role`, `PUBLIC` all granted                                                               |
+| RLS: `error_reports_sky_select` policy  | ✅ SELECT restricted to `auth.uid()::text = config.sky_uuid`                                                                               |
+| No INSERT/UPDATE/DELETE client policies | ✅ only Sky-SELECT policy exists; write path is RPC-only                                                                                   |
+| `prune_error_reports` cron job          | ✅ `prune_error_reports_nightly` at `30 3 * * *`, active=true                                                                              |
+| `prune_error_reports` function          | ✅ confirmed via `information_schema.routines`                                                                                             |
 
 **Live RPC smoke test: BLOCKED (correctly)**  
 A direct `SELECT public.log_error(...)` test was attempted via Supabase MCP SQL but was auto-blocked by the Claude Code permission classifier per Const. Art. 5 ("Never apply anything to a live database or live production surface"). This is the correct outcome — the classifier caught a write-side stored procedure call before it ran. The RPC's internal validation logic was instead verified by reading the function body directly.
@@ -140,12 +140,14 @@ supabase functions deploy log-error --project-ref cslvjfewxiowdxfoqzre
 ```
 
 **Prerequisites:**
+
 - Supabase CLI installed (`npm install -g supabase` or `brew install supabase/tap/supabase`)
 - Logged in: `supabase login`
 - The `SUPABASE_URL` and `SUPABASE_ANON_KEY` env vars are auto-injected by the Supabase runtime — no `.env` changes needed for the Edge Function itself
 - The local file `supabase/functions/log-error/index.ts` is the deploy source — no changes needed
 
 **Verification after deploy (read-only — does not write to DB):**
+
 ```bash
 supabase functions list --project-ref cslvjfewxiowdxfoqzre
 # Should show: log-error | <version> | ACTIVE
@@ -171,6 +173,7 @@ curl -X POST \
 ```
 
 Then confirm the row landed (Sky-only — requires service_role or Sky UUID in auth):
+
 ```sql
 SELECT app_version, platform, severity, count, last_seen_at
 FROM public.error_reports
@@ -190,14 +193,14 @@ Both functions are in `supabase/functions/`. Deploy both in one session.
 
 ## Summary Table
 
-| Layer | Status | Blocking Phase 4? |
-|-------|--------|-------------------|
-| Client: `logError()` in `src/lib/errorReporting.ts` | ✅ Complete, 46 tests green | No |
-| Edge Function: `log-error` | ❌ Not deployed | **YES** |
-| DB: `error_reports` table | ✅ Live on staging | No |
-| DB: `log_error` RPC | ✅ Live, anon-callable | No |
-| DB: Sky-only RLS on SELECT | ✅ In place | No |
-| DB: `prune_error_reports` nightly cron | ✅ Scheduled, active | No |
+| Layer                                               | Status                      | Blocking Phase 4? |
+| --------------------------------------------------- | --------------------------- | ----------------- |
+| Client: `logError()` in `src/lib/errorReporting.ts` | ✅ Complete, 46 tests green | No                |
+| Edge Function: `log-error`                          | ❌ Not deployed             | **YES**           |
+| DB: `error_reports` table                           | ✅ Live on staging          | No                |
+| DB: `log_error` RPC                                 | ✅ Live, anon-callable      | No                |
+| DB: Sky-only RLS on SELECT                          | ✅ In place                 | No                |
+| DB: `prune_error_reports` nightly cron              | ✅ Scheduled, active        | No                |
 
 **Phase 4 / TestFlight readiness for this path: BLOCKED on Edge Function deploy.**  
 One `supabase functions deploy log-error` command from Sky unblocks everything.

@@ -32,15 +32,15 @@ RPCs with service-role access invoke it.
 
 ## Privacy rules (load-bearing — do not relax without Jordan + Sky approval)
 
-| Rule     | What it means here                                                                      |
-|----------|-----------------------------------------------------------------------------------------|
-| AC-2     | `body` is always `""`. Three fixed title strings. No resource name, handle, or content.|
-| AC-5     | Logs contain NO `user_id`, `expo_token`, `recipient_id`, `claim_id`. Aggregates only.  |
-| AC-8     | Consent re-checked before every send. Fails-closed on read error.                       |
-| AC-10    | `recipient_id` must be server-derived by the calling RPC — never a client parameter.   |
-| AC-12    | `EXPO_ACCESS_TOKEN` is an Edge Function secret. Never in source or logs.                |
-| AC-14    | Authority check on every call. No relationship → no delivery.                           |
-| AC-15    | Rate-limit protects recipients from spam-notification abuse (Mara anti-goal).           |
+| Rule  | What it means here                                                                      |
+| ----- | --------------------------------------------------------------------------------------- |
+| AC-2  | `body` is always `""`. Three fixed title strings. No resource name, handle, or content. |
+| AC-5  | Logs contain NO `user_id`, `expo_token`, `recipient_id`, `claim_id`. Aggregates only.   |
+| AC-8  | Consent re-checked before every send. Fails-closed on read error.                       |
+| AC-10 | `recipient_id` must be server-derived by the calling RPC — never a client parameter.    |
+| AC-12 | `EXPO_ACCESS_TOKEN` is an Edge Function secret. Never in source or logs.                |
+| AC-14 | Authority check on every call. No relationship → no delivery.                           |
+| AC-15 | Rate-limit protects recipients from spam-notification abuse (Mara anti-goal).           |
 
 ---
 
@@ -152,6 +152,7 @@ Sky: please ask Dana to write migration 012 before deploying this function.
 ```
 
 Valid title strings:
+
 - `"Your post has an update"` — trigger: `claim_placed`
 - `"A pickup was confirmed"` — trigger: `pickup_confirmed`
 - `"You have an update"` — trigger: `admin_approved` OR `admin_rejected`

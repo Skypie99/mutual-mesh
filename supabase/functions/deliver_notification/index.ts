@@ -415,9 +415,7 @@ Deno.serve(async (req: Request) => {
 
   if (tokenErr || !tokenRows || tokenRows.length === 0) {
     // No registered tokens — nothing to deliver. Not a failure.
-    console.error(
-      `[deliver_notification] no_tokens code=${tokenErr?.code ?? 'none'}`,
-    );
+    console.error(`[deliver_notification] no_tokens code=${tokenErr?.code ?? 'none'}`);
     await writeCronLog(supabase, 0, true, packCronLog({ delivered: 0 }));
     return shortStatus(200, 'ok');
   }
@@ -613,12 +611,8 @@ async function checkRecipientAuthority(
   const { data: linkData, error: linkError } = await supabase
     .from('resources')
     .select('id')
-    .or(
-      `posted_by.eq.${caller_user_id},claimed_by.eq.${caller_user_id}`,
-    )
-    .or(
-      `posted_by.eq.${recipient_id},claimed_by.eq.${recipient_id}`,
-    )
+    .or(`posted_by.eq.${caller_user_id},claimed_by.eq.${caller_user_id}`)
+    .or(`posted_by.eq.${recipient_id},claimed_by.eq.${recipient_id}`)
     .limit(1);
 
   if (linkError) return { data: false, error: linkError };
@@ -658,14 +652,11 @@ async function incrementRateLimit(
 
   // Conflict means a row already exists. Increment via UPDATE + read back.
   // The `count + 1` expression is safe inside a single-row UPDATE.
-  const { data: updated, error: updateErr } = await supabase.rpc(
-    'increment_push_rate_limit',
-    {
-      p_user_id: recipient_id,
-      p_trigger: trigger,
-      p_window_start: window_start,
-    },
-  );
+  const { data: updated, error: updateErr } = await supabase.rpc('increment_push_rate_limit', {
+    p_user_id: recipient_id,
+    p_trigger: trigger,
+    p_window_start: window_start,
+  });
 
   if (updateErr) {
     return { data: null, error: updateErr };
