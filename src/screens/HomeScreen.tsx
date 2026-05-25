@@ -5,7 +5,6 @@ import { FlashBanner } from '@/components/FlashBanner';
 import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { FAB } from '@/components/FAB';
-import { FlashBanner } from '@/components/FlashBanner';
 import { FeedSkeleton } from '@/components/LoadingSkeleton';
 import { MapToggle } from '@/components/MapToggle';
 import { StatusPill } from '@/components/StatusPill';
