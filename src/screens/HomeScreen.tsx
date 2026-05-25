@@ -171,6 +171,7 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
               loadingMore ? (
                 <View
                   accessible
+                  accessibilityLiveRegion="polite"
                   className="items-center py-4"
                   accessibilityLabel="Loading more resources"
                 >
