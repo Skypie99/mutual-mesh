@@ -53,9 +53,19 @@ type HomeScreenProps = {
   onAddResource?: () => void;
   /** Called when user taps the "Map" segment in the toggle. */
   onOpenMap?: () => void;
+  /** Optional success message to show in a FlashBanner (e.g. after posting a resource). */
+  successMessage?: string | null;
+  /** Called when the success banner dismisses so the parent can clear the message. */
+  onSuccessDismiss?: () => void;
 };
 
-export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScreenProps) {
+export function HomeScreen({
+  onOpenResource,
+  onAddResource,
+  onOpenMap,
+  successMessage,
+  onSuccessDismiss,
+}: HomeScreenProps) {
   const { resources, loading, error, reload } = useResources();
   const [refreshing, setRefreshing] = useState(false);
   const [staleBannerDismissed, setStaleBannerDismissed] = useState(false);
@@ -77,6 +87,16 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
 
   return (
     <SafeAreaView className="flex-1 bg-light-bg dark:bg-dark-bg">
+      {/* Success banner — shown after posting a resource; auto-dismisses after 4 s */}
+      {successMessage && (
+        <FlashBanner
+          message={successMessage}
+          variant="success"
+          autoDismissMs={4000}
+          onDismiss={() => onSuccessDismiss?.()}
+        />
+      )}
+
       {/* Stale-data banner — floats above content, auto-dismisses after 6 s */}
       {showStaleBanner && (
         <FlashBanner
