@@ -5,6 +5,7 @@ import { Text, useColorScheme } from 'react-native';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
 import type { HomeStackParamList, MainTabParamList } from '@/types/navigation';
+import { ResourcesProvider } from '@/contexts/ResourcesContext';
 
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ResourceDetailScreen } from '@/screens/ResourceDetailScreen';
@@ -22,11 +23,15 @@ const MainTab = createBottomTabNavigator<MainTabParamList>();
  * The HomeScreen receives navigation handlers from this stack; the real
  * `onOpenResource` / `onAddResource` callbacks wire up here.
  *
- * Phase 0b will replace HomeScreen's mock data with a real `useResources()`
- * hook; the navigation wiring below stays the same.
+ * <ResourcesProvider> wraps the entire stack so HomeScreen and ResourceMapScreen
+ * share a single Supabase Realtime subscription and a single fetch call.
+ * Without this wrapper, each screen that calls useResources() creates its own
+ * channel on 'resources-feed', causing duplicate subscriptions and wasted
+ * fetches (Peter perf audit wave-6, 2026-05-25).
  */
 function HomeStackNavigator() {
   return (
+    <ResourcesProvider>
     <HomeStack.Navigator>
       <HomeStack.Screen name="Feed" options={{ headerShown: false }}>
         {({ navigation }) => (
@@ -61,6 +66,7 @@ function HomeStackNavigator() {
         )}
       </HomeStack.Screen>
     </HomeStack.Navigator>
+    </ResourcesProvider>
   );
 }
 
