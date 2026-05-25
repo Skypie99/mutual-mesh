@@ -255,3 +255,50 @@ When the web build was reviewed (Jordan, 2026-05-25), one concern was the Supaba
 **Contrast with AccessMap:** AccessMap's bucket allows public flag-photo reads (photos are the product; public visibility is intentional). MutualMesh's bucket is private because photos contain item details that could reveal sensitive needs. Never relax the bucket's `public = false` without Jordan review.
 
 **The web demo is auth-gated with no guest mode:** `https://mutual-mesh.vercel.app` requires a verified Mutual Mesh account. Jordan's advisory condition (2026-05-25) requires no unauthenticated marketplace browsing — a web visitor cannot see the marketplace without going through the invite-token + verification gate. This is intentional and non-negotiable per PRIVACY.md.
+
+---
+
+## 2026-05-25 — Storage cascade via security-definer RPC (not client-side)
+
+When an operation must atomically delete both Postgres rows AND Storage objects, the correct pattern is to handle Storage deletion inside a security-definer RPC, not client-side. The `delete_my_account()` RPC in `supabase/migrations/003_storage_cascade_on_delete_and_prune.sql` demonstrates this pattern.
+
+**Why client-side Storage deletion after an RPC is unsafe:** the auth session may already be invalidated by the time client code runs — if the RPC deleted the caller's `auth.users` row, the client's JWT is dead before it can call `supabase.storage.from('bucket').remove([paths])`. Even if the auth row is not deleted synchronously, a network failure between the RPC success and the client Storage delete leaves orphaned files in the bucket with no recovery path. The orphan has no owner row left to link it to, so a weekly scan for unlinked objects is the only way to detect it — and by then you've already leaked the file's existence.
+
+**The correct pattern:** migration 003's `delete_my_account()` RPC uses `DELETE FROM storage.objects USING paths_cte` where `paths_cte` is a CTE that selects the paths belonging to the caller. This runs entirely within a single Postgres transaction. Supabase's Storage API and Postgres share a `storage` schema, so a Postgres-level `DELETE` on `storage.objects` is the authoritative write — no HTTP round-trip to the Storage API is needed.
+
+**What NOT to do:** never call `supabase.storage.from('bucket').remove([paths])` client-side after an RPC that deletes the caller's auth row. The two operations are not atomic, the second may fail silently, and there is no retry path.
+
+Reference files: `supabase/migrations/003_storage_cascade_on_delete_and_prune.sql`, `supabase/schema.sql` `delete_my_account()` RPC.
+
+---
+
+## 2026-05-25 — useFocusEffect for navigation-aware data refresh
+
+Data counts that depend on actions the user took in OTHER tabs must refresh on tab focus, not just on mount. This pattern came out of Dana's AC-6.3 work on `ProfileScreen.tsx`, where the claimed-resource count was stale after a user claimed something in the Feed tab and then switched to the Profile tab.
+
+**Why `useEffect([])` is not enough:** `useEffect` with an empty dependency array fires once — when the component mounts. In a bottom-tab navigator, each tab's screen is mounted once and then kept alive (not unmounted) when the user switches tabs. A user who claims a resource in the Feed tab and then taps the Profile tab will see a stale count because `useEffect([])` has already fired and will not fire again for that screen's lifetime.
+
+**The fix:** replace `useEffect` with `useFocusEffect` from `@react-navigation/native` wrapped in `useCallback`. This fires every time the screen receives focus — including when the user navigates back to it from another tab or pops back from a nested stack. The `useCallback` wrapper is required; `useFocusEffect` expects a stable callback reference.
+
+```tsx
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
+useFocusEffect(
+  useCallback(() => {
+    let mounted = true;
+    async function load() {
+      const data = await fetchSomething();
+      if (mounted) setState(data);
+    }
+    load();
+    return () => {
+      mounted = false;
+    }; // cleanup on blur
+  }, []),
+);
+```
+
+**The mounted-ref pattern still applies inside `useFocusEffect`:** return a cleanup function that sets `mounted = false`. If the user tabs away before the async fetch completes, the cleanup fires on blur, and the `if (mounted)` guard prevents the `setState` from running on an already-blurred screen. Without this guard, a slow network response could write stale data into state after a second focus-cycle fetch has already completed.
+
+Reference file: `src/screens/ProfileScreen.tsx`.
