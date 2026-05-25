@@ -1,9 +1,11 @@
 # Alex — Overlay Focus Audit: ResourceMapScreen Empty State
+
 **Date:** 2026-05-25  
 **Role:** Alex (Accessibility Engineer)  
 **Triggered by:** Design Compiler escalation — overlay focus isolation concern  
-**Files audited:**  
-- `/Users/skypie/MutualMesh/src/screens/ResourceMapScreen.tsx` (lines 369–387, 384–440)  
+**Files audited:**
+
+- `/Users/skypie/MutualMesh/src/screens/ResourceMapScreen.tsx` (lines 369–387, 384–440)
 - `/Users/skypie/MutualMesh/src/components/EmptyState.tsx`
 
 ---
@@ -19,6 +21,7 @@ The map-installed path of `ResourceMapScreen` renders an `EmptyState` overlay ab
 **Location:** `ResourceMapScreen.tsx`, lines 369–440 (map-installed path)
 
 ### Overlay wrapper (lines 369–382):
+
 ```tsx
 {descriptors.length === 0 && !loading && (
   <View
@@ -32,6 +35,7 @@ The map-installed path of `ResourceMapScreen` renders an `EmptyState` overlay ab
 ```
 
 ### MapView wrapper (lines 384–440):
+
 ```tsx
 <View
   className="flex-1"
@@ -46,6 +50,7 @@ The map-installed path of `ResourceMapScreen` renders an `EmptyState` overlay ab
 ```
 
 ### EmptyState component (lines 19–37 of EmptyState.tsx):
+
 The component renders a plain `<View>` with text and an optional `<Button>`. It does **not** set any `importantForAccessibility` or `accessibilityViewIsModal` — this is **correct**: those are caller responsibilities, and the caller (`ResourceMapScreen`) handles them properly.
 
 **Assessment:** No focus trap issue exists. The two-layer isolation strategy (iOS via `accessibilityViewIsModal`, Android via `importantForAccessibility="no-hide-descendants"` on the map container) is exactly the WCAG 2.2 / RN a11y-recommended pattern.

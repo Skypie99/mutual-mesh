@@ -20,6 +20,7 @@ Morgan decision — no Sky approval needed per expanded authority directive 2026
 Branch tip: `f216b6d data(types): sync database.ts with mig 002-009 — add VerificationDecision demote`
 
 **30 files, 3252 insertions, 59 deletions.** Key changes:
+
 - `database.ts` — type sync for migrations 002–009, adds `VerificationDecision` type
 - `ResourceMapScreen.tsx` (719 lines) — FSA-aggregated map view with preview sheet
 - `fsaAggregation.ts` (296 lines) — FSA data aggregation logic
