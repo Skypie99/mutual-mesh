@@ -4,9 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { FlashBanner } from '@/components/FlashBanner';
+import { TextField } from '@/components/TextField';
 import { useAuth } from '@/lib/auth';
-import { deleteMyAccount, listMyClaims, listMyPosts } from '@/lib/resources';
+import { deleteMyAccount, listMyClaims, listMyPosts, updateMyProfile } from '@/lib/resources';
 import { userFacingErrorMessage } from '@/lib/errors';
+import {
+  handleFailureMessage,
+  realNameWarningMessage,
+  validateHandle,
+} from '@/lib/handleValidator';
 import {
   DEFAULT_OPT_IN as ERROR_REPORTING_DEFAULT_OPT_IN,
   getErrorReportingOptIn,
@@ -19,6 +26,12 @@ import {
  * Shows the user's chosen handle + postal_prefix + city, counts of posted
  * resources and active claims, plus sign-out and delete-account actions.
  *
+ * AC-6.1 — inline handle edit:
+ *   - Tap the Handle row to reveal an inline TextField (no modal).
+ *   - Validates with validateHandle() (DFS-C1.1: real-name = soft warn, not block).
+ *   - Calls updateMyProfile() on save; reloads AuthContext profile on success.
+ *   - Mounted-ref guard on the async save (LEARNINGS:2026-05-23).
+ *
  * Delete account (D6 + S5):
  *   - ConfirmationModal with HONEST backup disclosure (Supabase keeps
  *     point-in-time-recovery for 7 days; we cannot scrub backups)
@@ -27,7 +40,7 @@ import {
  *   - on success, signOut() runs to clear the local session
  */
 export function ProfileScreen() {
-  const { profile, signOut, user } = useAuth();
+  const { profile, signOut, user, reloadProfile } = useAuth();
   const [postedCount, setPostedCount] = useState(0);
   const [claimedCount, setClaimedCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -39,6 +52,17 @@ export function ProfileScreen() {
   const [errorReportingOptIn, setErrorReportingOptInState] = useState<boolean>(
     ERROR_REPORTING_DEFAULT_OPT_IN,
   );
+
+  // AC-6.1 — inline handle edit state
+  const [editingHandle, setEditingHandle] = useState(false);
+  const [handleDraft, setHandleDraft] = useState('');
+  const [handleFieldError, setHandleFieldError] = useState<string | undefined>(undefined);
+  const [handleWarning, setHandleWarning] = useState<string | undefined>(undefined);
+  const [savingHandle, setSavingHandle] = useState(false);
+  const [flash, setFlash] = useState<{ message: string; variant: 'success' | 'danger' } | null>(
+    null,
+  );
+
   const mountedRef = useRef(true);
 
   const loadCounts = useCallback(async () => {
@@ -76,6 +100,63 @@ export function ProfileScreen() {
     void setErrorReportingOptIn(next);
   };
 
+  // ── AC-6.1: handle edit handlers ──────────────────────────────────────────
+
+  const startEditingHandle = () => {
+    setHandleDraft(profile?.handle ?? '');
+    setHandleFieldError(undefined);
+    setHandleWarning(undefined);
+    setEditingHandle(true);
+  };
+
+  const cancelEditingHandle = () => {
+    setEditingHandle(false);
+    setHandleFieldError(undefined);
+    setHandleWarning(undefined);
+  };
+
+  const onHandleChange = (text: string) => {
+    setHandleDraft(text);
+    // Clear inline error as user types so feedback is immediate.
+    setHandleFieldError(undefined);
+    setHandleWarning(undefined);
+  };
+
+  const saveHandle = async () => {
+    const result = validateHandle(handleDraft);
+    if (!result.ok) {
+      setHandleFieldError(handleFailureMessage(result.reason));
+      return;
+    }
+    if (result.warning === 'looks-like-real-name') {
+      // Soft-warn per DFS-C1.1: show the message but don't block.
+      // If the warning is already visible, let the second tap proceed.
+      if (!handleWarning) {
+        setHandleWarning(realNameWarningMessage());
+        return;
+      }
+    }
+
+    setSavingHandle(true);
+    setHandleFieldError(undefined);
+    const { error: saveErr } = await updateMyProfile({ handle: handleDraft.trim().toLowerCase() });
+    if (!mountedRef.current) return;
+    setSavingHandle(false);
+
+    if (saveErr) {
+      setFlash({ message: saveErr, variant: 'danger' });
+    } else {
+      setEditingHandle(false);
+      setHandleWarning(undefined);
+      // Reload profile in AuthContext so the rest of the app sees the new handle.
+      await reloadProfile();
+      if (!mountedRef.current) return;
+      setFlash({ message: 'Handle updated!', variant: 'success' });
+    }
+  };
+
+  // ── Delete account ─────────────────────────────────────────────────────────
+
   const handleDeleteConfirm = async () => {
     setDeleting(true);
     setError(null);
@@ -104,14 +185,61 @@ export function ProfileScreen() {
 
         <Card>
           <View className="gap-3">
+            {/* Handle row — tappable to open inline edit (AC-6.1) */}
             <View>
               <Text className="text-xs font-semibold uppercase text-light-text-muted dark:text-dark-text-muted">
                 Handle
               </Text>
-              <Text className="mt-1 text-lg text-light-text dark:text-dark-text">
-                {profile?.handle ?? '—'}
-              </Text>
+              {editingHandle ? (
+                <View className="mt-2 gap-2">
+                  <TextField
+                    label="New handle"
+                    value={handleDraft}
+                    onChangeText={onHandleChange}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    error={handleFieldError}
+                    hint="Lowercase letters, digits, and hyphens only."
+                    returnKeyType="done"
+                    onSubmitEditing={saveHandle}
+                  />
+                  {handleWarning && !handleFieldError && (
+                    <Text
+                      accessibilityLiveRegion="polite"
+                      className="text-xs text-light-warning dark:text-dark-warning"
+                    >
+                      {handleWarning}
+                    </Text>
+                  )}
+                  <View className="flex-row gap-2">
+                    <View className="flex-1">
+                      <Button
+                        label={savingHandle ? 'Saving…' : 'Save'}
+                        variant="primary"
+                        disabled={savingHandle}
+                        onPress={saveHandle}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Button
+                        label="Cancel"
+                        variant="secondary"
+                        disabled={savingHandle}
+                        onPress={cancelEditingHandle}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <Button
+                  label={profile?.handle ?? '—'}
+                  variant="ghost"
+                  onPress={startEditingHandle}
+                  hint="Tap to edit your handle"
+                />
+              )}
             </View>
+
             <View>
               <Text className="text-xs font-semibold uppercase text-light-text-muted dark:text-dark-text-muted">
                 Neighborhood
@@ -198,6 +326,14 @@ export function ProfileScreen() {
           />
         </View>
       </View>
+
+      {flash && (
+        <FlashBanner
+          message={flash.message}
+          variant={flash.variant}
+          onDismiss={() => setFlash(null)}
+        />
+      )}
 
       <ConfirmationModal
         visible={deleteModalOpen}
