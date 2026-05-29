@@ -91,21 +91,37 @@ export async function getClaimantHandle(userId: string) {
   return supabase.from('users').select('handle').eq('id', userId).maybeSingle();
 }
 
-/** Posts the current user has created (any status). */
+/**
+ * Posts the current user has created (any status: available, reserved, completed).
+ *
+ * AC-6.3 fix: selects only `id` since ProfileScreen only needs a count.
+ * The label "Posted" (not "Active posts") is intentionally all-statuses —
+ * a resource that has been claimed or completed still belongs to the poster.
+ */
 export async function listMyPosts(userId: string) {
   return supabase
     .from('resources')
-    .select('*')
+    .select('id')
     .eq('posted_by', userId)
     .order('created_at', { ascending: false })
     .limit(LIST_LIMIT);
 }
 
-/** Claims the current user has placed (status='reserved'). */
+/**
+ * Active claims the current user has placed (status='reserved' only).
+ *
+ * AC-6.3 fix: selects only `id` since ProfileScreen only needs a count.
+ * Excludes `completed` rows on purpose — those are fulfilled pickups, not
+ * active claims. The UI label "Active claims" matches this filter.
+ *
+ * If a resource is released back to 'available' (admin action or account
+ * deletion side-effect), it naturally drops out of this result set, which is
+ * the correct behaviour.
+ */
 export async function listMyClaims(userId: string) {
   return supabase
     .from('resources')
-    .select('*')
+    .select('id')
     .eq('claimed_by', userId)
     .eq('status', 'reserved')
     .order('status_changed_at', { ascending: false })

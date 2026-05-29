@@ -35,6 +35,16 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
+// AC-6.3 — mock useFocusEffect so tests don't need a NavigationContainer.
+// The mock is a no-op: we don't need to verify focus-triggered reloads in
+// unit tests (that's an integration concern). The mount-time useEffect in
+// ProfileScreen already exercises loadCounts on render, which is what the
+// tests assert. Suppressing the real hook avoids "useNavigation called
+// outside of NavigationContainer" errors.
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: jest.fn(),
+}));
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 import { useAuth } from '@/lib/auth';
