@@ -1,34 +1,42 @@
-import { useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { validateContactHandle, validationFailureMessage } from '@/lib/contactHandle';
-import { uploadResourcePhoto, createSignedResourcePhotoUrl } from '@/lib/photos';
 import { createResource } from '@/lib/resources';
 import { userFacingErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 
 type AddResourceScreenProps = {
-  /** Called on successful post; parent dismisses the modal. */
-  onPosted?: () => void;
+  /** Called on successful post; parent dismisses the modal.
+   *  Passes an optional success message for the parent to surface (e.g. FlashBanner). */
+  onPosted?: (successMessage?: string) => void;
   onCancel?: () => void;
 };
 
 /**
- * Add Resource — real submit wired in L26.
+ * AddResourceScreen — text-only resource creation form.
  *
- * Flow:
- *   1. User fills form (name, description, pickup, contact-handle), optionally picks photo
- *   2. On submit:
- *      a. If photo: stripExifAndCompress → upload to resource-photos/<userId>/<ts>.jpg
- *      b. Validate signed URL is accessible (createSignedResourcePhotoUrl — null = stop, show error)
- *      c. createResource with photo_url=path (clients generate signed URLs at view time)
- *      d. Trigger sets created_at + status_changed_at; defaults status='available'
- *   3. Realtime delivers the INSERT to all subscribed clients; HomeScreen updates without re-fetch
+ * Jordan APPROVED WITH CONDITIONS 2026-05-25 (jordan-add-resource-review.md):
+ *   Condition 1 — Pickup location hint must NOT suggest full addresses.
+ *   Condition 2 — Description hint must note visibility to all verified members.
+ *   Condition 3 — Contact handle hint must warn against real names.
  *
- * Per Deb persona + Casey advisory: photo is OPTIONAL with prominent "Photo optional" hint.
+ * No photo upload in this screen. Photo upload requires a separate Jordan
+ * approval for the EXIF pipeline and will ship in a future cycle.
+ *
+ * Category is posted as 'other' per Quinn spec gap (acceptable for MVP).
+ *
+ * Accessibility: WCAG 2.2 AA throughout — all fields have accessibilityLabel,
+ * errors announced via AccessibilityInfo, focus moved to first errored field.
+ *
+ * Alex a11y fixes 2026-05-25 (a11y/auto-2026-05-25-alex-addresource):
+ *   B1 — Keyboard chaining: onSubmitEditing wired for name→description→pickup→contact.
+ *   B2 — Double-announce removed: global error <Text> no longer carries
+ *         accessibilityLiveRegion; AccessibilityInfo.announceForAccessibility is enough.
+ *   B3 — Mounted-ref guard: prevents setState after modal dismiss during inflight request.
+ *   (Button.tsx separately fixed for disabled-label contrast, BLOCKER 1.4.3.)
  */
 export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps) {
   const { user, profile } = useAuth();
@@ -36,9 +44,24 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
   const [description, setDescription] = useState('');
   const [pickupText, setPickupText] = useState('');
   const [contactHandle, setContactHandle] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Refs for focus management — move focus to first errored field on submit failure.
+  // Also used for keyboard chaining: onSubmitEditing advances to the next field.
+  const nameRef = useRef<TextInput>(null);
+  const descriptionRef = useRef<TextInput>(null);
+  const pickupRef = useRef<TextInput>(null);
+  const contactRef = useRef<TextInput>(null);
+
+  // Mounted-ref guard — prevents setState on unmounted component if modal is
+  // dismissed during an inflight network request (LEARNINGS:2026-05-23 gotcha #5).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleValidation = validateContactHandle(contactHandle);
   const handleError =
@@ -53,43 +76,40 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
     handleValidation.ok &&
     !submitting;
 
-  const pickPhoto = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      setError('Photo library permission denied. You can post without a photo.');
+  const handleSubmit = async () => {
+    if (!user) return;
+
+    // Inline validation before submit — focus first errored field.
+    // These focus() calls are synchronous (before any await) — safe from unmount race.
+    if (name.trim().length === 0) {
+      nameRef.current?.focus();
+      const msg = 'Please enter a resource name.';
+      setError(msg);
+      AccessibilityInfo.announceForAccessibility(msg);
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 1, // We compress later in stripExifAndCompress; pick full quality here.
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  };
 
-  const handleSubmit = async () => {
-    if (!canSubmit || !user) return;
+    // P1-A — empty handle check before deeper validation so users see a clear message.
+    if (contactHandle.trim().length === 0) {
+      contactRef.current?.focus();
+      const msg = 'Add a contact handle — Signal, email alias, or any handle you prefer.';
+      setError(msg);
+      AccessibilityInfo.announceForAccessibility('Please add a contact handle');
+      return;
+    }
+
+    if (!handleValidation.ok) {
+      contactRef.current?.focus();
+      const msg = validationFailureMessage(handleValidation.reason);
+      setError(msg);
+      AccessibilityInfo.announceForAccessibility(msg);
+      return;
+    }
+
     setError(null);
     setSubmitting(true);
+
     try {
-      let photoPath: string | null = null;
-      if (photoUri) {
-        photoPath = await uploadResourcePhoto(user.id, photoUri);
-        let signedUrl = await createSignedResourcePhotoUrl(photoPath);
-
-        if (!signedUrl) {
-          // Single retry for transient Supabase API hiccups (network blip, edge latency).
-          // A real RLS failure will still return null on the second attempt.
-          await new Promise((r) => setTimeout(r, 300));
-          signedUrl = await createSignedResourcePhotoUrl(photoPath);
-        }
-
-        if (!signedUrl) {
-          throw new Error('Photo uploaded but could not be verified. Please try again.');
-        }
-      }
       const { error: err } = await createResource(
         {
           name: name.trim(),
@@ -98,16 +118,24 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
           contact_handle: contactHandle.trim(),
           postal_prefix: profile?.postal_prefix ?? null,
           city: profile?.city ?? null,
-          photo_url: photoPath,
+          photo_url: null,
+          category: 'other',
         },
         user.id,
       );
       if (err) throw err;
-      onPosted?.();
+      // onPosted dismisses the modal — no setState needed after this point.
+      onPosted?.('Your resource was posted');
     } catch (err) {
-      setError(userFacingErrorMessage(err, 'Could not post your resource.'));
+      if (!mountedRef.current) return;
+      const msg = userFacingErrorMessage(err, 'Could not post your resource. Please try again.');
+      setError(msg);
+      // Announce via AccessibilityInfo only — the global error <Text> below does NOT
+      // carry accessibilityLiveRegion (combining both causes double-announce on iOS
+      // VoiceOver; WCAG 4.1.3 BLOCKER B2 fix).
+      AccessibilityInfo.announceForAccessibility(msg);
     } finally {
-      setSubmitting(false);
+      if (mountedRef.current) setSubmitting(false);
     }
   };
 
@@ -123,105 +151,104 @@ export function AddResourceScreen({ onPosted, onCancel }: AddResourceScreenProps
         >
           Post a resource
         </Text>
-        <Text className="text-sm text-light-text-muted dark:text-dark-text-muted">
-          Photos uploaded here have all metadata removed automatically.
-        </Text>
 
+        {/* Field 1 — Resource name.
+            returnKeyType="next" + onSubmitEditing advances focus to description.
+            BLOCKER B1 fix: keyboard chain wired. */}
         <TextField
-          label="What is it?"
-          hint="e.g., 'Sensitive baby formula, unopened'"
+          ref={nameRef}
+          label="Resource name"
+          placeholder="What are you sharing?"
           value={name}
           onChangeText={setName}
+          maxLength={100}
           autoCapitalize="sentences"
+          returnKeyType="next"
+          onSubmitEditing={() => descriptionRef.current?.focus()}
         />
 
+        {/* Field 2 — Description (multiline).
+            Jordan Condition 2: hint tells users description is visible to all
+            verified members and nudges item-focused copy.
+            multiline on iOS inserts a newline on Return — platform behaviour.
+            No returnKeyType here; user taps Field 3 or uses the virtual tab-stop. */}
         <TextField
-          label="Details"
-          hint="Quantity, expiry, allergens, anything a recipient should know."
+          ref={descriptionRef}
+          label="Description"
+          placeholder="Describe the item"
+          hint="Describe the item. Visible to all verified members — avoid personal details."
           value={description}
           onChangeText={setDescription}
           multiline
           numberOfLines={4}
+          maxLength={2000}
           autoCapitalize="sentences"
         />
 
+        {/* Field 3 — Pickup area.
+            Jordan Condition 1: hint names neighbourhood/intersection/landmark
+            as the recommended granularity; warns against full addresses.
+            returnKeyType="next" + onSubmitEditing advances focus to contact handle.
+            BLOCKER B1 fix: keyboard chain wired. */}
         <TextField
-          label="Pickup info"
-          hint="Where and when. Be as specific or vague as you want."
+          ref={pickupRef}
+          label="Pickup area"
+          placeholder="e.g. Downtown East Side, near the library"
+          hint="Neighbourhood, intersection, or landmark — not your full address"
           value={pickupText}
           onChangeText={setPickupText}
+          maxLength={280}
           autoCapitalize="sentences"
+          returnKeyType="next"
+          onSubmitEditing={() => contactRef.current?.focus()}
         />
 
+        {/* Field 4 — Contact handle.
+            Jordan Condition 3: shortened hint, explicit no-real-name warning.
+            returnKeyType="done" + onSubmitEditing triggers form submit.
+            BLOCKER B1 fix: keyboard chain wired to submit. */}
         <TextField
-          label="Contact handle (revealed only on claim)"
-          hint="Signal handle, Proton email, or any handle you trust. No links."
+          ref={contactRef}
+          label="Contact handle"
+          placeholder="Your preferred contact method"
+          hint="Signal, email alias, or any handle. No real name. Only shown to the person who claims your resource."
           value={contactHandle}
           onChangeText={setContactHandle}
+          maxLength={64}
           autoCapitalize="none"
           autoCorrect={false}
           error={handleError}
+          returnKeyType="done"
+          onSubmitEditing={() => void handleSubmit()}
         />
 
-        {/* Photo picker -- disabled on web.
-            expo-image-manipulator is native-only; web photo upload without
-            EXIF strip violates PRIVACY.md D5. Jordan advisory condition,
-            2026-05-25-jordan-web-gate.md. */}
-        {Platform.OS === 'web' ? (
-          <View>
-            <Text className="mb-1 text-sm font-semibold text-light-text dark:text-dark-text">
-              Photo (optional)
-            </Text>
-            <Text className="text-xs text-light-text-muted dark:text-dark-text-muted">
-              Photo upload is not available on web. Use the mobile app to add a photo.
-            </Text>
-          </View>
-        ) : (
-          <View>
-            <Text className="mb-1 text-sm font-semibold text-light-text dark:text-dark-text">
-              Photo (optional)
-            </Text>
-            <Text className="mb-2 text-xs text-light-text-muted dark:text-dark-text-muted">
-              All metadata (location, device, time) is stripped before upload.
-            </Text>
-            {photoUri ? (
-              <View className="gap-2">
-                <Pressable
-                  onPress={pickPhoto}
-                  accessibilityLabel="Change photo"
-                  className="overflow-hidden rounded-card"
-                >
-                  <Image
-                    source={{ uri: photoUri }}
-                    style={{ width: '100%', aspectRatio: 1 }}
-                    resizeMode="cover"
-                    accessibilityLabel="Photo preview"
-                  />
-                </Pressable>
-                <Button label="Remove photo" variant="ghost" onPress={() => setPhotoUri(null)} />
-              </View>
-            ) : (
-              <Button label="Add a photo" variant="secondary" onPress={pickPhoto} />
-            )}
-          </View>
-        )}
-
+        {/* Global error state — announced by AccessibilityInfo.announceForAccessibility
+            in handleSubmit. No accessibilityLiveRegion here: combining liveRegion with
+            an explicit announceForAccessibility call causes double-announce on iOS
+            VoiceOver (WCAG 4.1.3 BLOCKER B2 fix). Text remains visible for sighted users. */}
         {error && (
           <Text
-            accessibilityLiveRegion="polite"
+            accessibilityRole="text"
             className="text-sm text-light-danger dark:text-dark-danger"
           >
             {error}
           </Text>
         )}
 
-        <View className="mt-2 gap-3">
+        <View className="mt-4 gap-3">
           <Button
             label={submitting ? 'Posting…' : 'Post resource'}
-            onPress={handleSubmit}
+            hint="Submits your resource listing to the community feed"
+            onPress={() => void handleSubmit()}
             disabled={!canSubmit}
           />
-          <Button label="Cancel" variant="ghost" onPress={onCancel} disabled={submitting} />
+          <Button
+            label="Cancel"
+            variant="ghost"
+            hint="Discards this form and goes back"
+            onPress={onCancel}
+            disabled={submitting}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
