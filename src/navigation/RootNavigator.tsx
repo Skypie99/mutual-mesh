@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -30,6 +31,8 @@ const MainTab = createBottomTabNavigator<MainTabParamList>();
  * fetches (Peter perf audit wave-6, 2026-05-25).
  */
 function HomeStackNavigator() {
+  const [postSuccessMessage, setPostSuccessMessage] = useState<string | null>(null);
+
   return (
     <ResourcesProvider>
     <HomeStack.Navigator>
@@ -39,6 +42,8 @@ function HomeStackNavigator() {
             onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
             onAddResource={() => navigation.navigate('AddResource')}
             onOpenMap={() => navigation.navigate('ResourceMap')}
+            successMessage={postSuccessMessage}
+            onSuccessDismiss={() => setPostSuccessMessage(null)}
           />
         )}
       </HomeStack.Screen>
@@ -61,7 +66,10 @@ function HomeStackNavigator() {
         {({ navigation }) => (
           <AddResourceScreen
             onCancel={() => navigation.goBack()}
-            onPosted={() => navigation.goBack()}
+            onPosted={(msg) => {
+              if (msg) setPostSuccessMessage(msg);
+              navigation.goBack();
+            }}
           />
         )}
       </HomeStack.Screen>
