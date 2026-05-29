@@ -6,7 +6,7 @@
  *   - listResources() call shape (filter + ordering)
  *   - updateResourceStatus via deleteResourceById (no updateResourceStatus in API;
  *     the write path that changes status from client-side is claimResource / deleteResourceById)
- *   - getResourceById() success + error paths
+ *   - getResourceDetail() success + error paths (via get_resource_detail RPC)
  *   - listMyPosts / listMyClaims filter args
  *
  * Supabase is mocked at the module level using the chaining pattern from
@@ -76,13 +76,12 @@ import {
   listResources,
   listMyPosts,
   listMyClaims,
-  getResourceById,
+  getResourceDetail,
   deleteResourceById,
   claimResource,
   deleteMyAccount,
   confirmPickup,
   completeOnboarding,
-  // @ts-expect-error - getClaimantHandle is mocked pending data/auto-2026-05-25-dana-claim-rpc
   getClaimantHandle,
 } from '@/lib/resources';
 import { supabase } from '@/lib/supabase';
@@ -302,83 +301,52 @@ describe('listMyClaims() — query shape', () => {
   });
 });
 
-// ─── getResourceById() ──────────────────────────────────────────────────────
+// ─── getResourceDetail() ─────────────────────────────────────────────────────
 
-describe('getResourceById() — success path', () => {
+describe('getResourceDetail() — success path', () => {
   const fakeRow = { id: 'resource-001', name: 'Rice bag', contact_handle: null };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    resetChain({ data: fakeRow, error: null });
-    // Add maybeSingle to the chain for this test
-    mocks.mockEq.mockReturnValue({
-      eq: mocks.mockEq,
-      order: mocks.mockOrder,
-      limit: mocks.mockLimit,
-      maybeSingle: jest.fn().mockResolvedValue({ data: fakeRow, error: null }),
-    });
-    mocks.mockSelect.mockReturnValue({
-      eq: mocks.mockEq,
-      order: mocks.mockOrder,
-      limit: mocks.mockLimit,
-      single: mocks.mockSingle,
-      maybeSingle: jest.fn().mockResolvedValue({ data: fakeRow, error: null }),
-    });
+    mocks.mockRpc.mockResolvedValue({ data: [fakeRow], error: null });
   });
 
-  it('queries the "resources" table with select("*")', async () => {
-    await getResourceById('resource-001');
-    expect(mocks.mockFrom).toHaveBeenCalledWith('resources');
-    expect(mocks.mockSelect).toHaveBeenCalledWith('*');
+  it('calls the get_resource_detail RPC with the resource id', async () => {
+    await getResourceDetail('resource-001');
+    expect(mocks.mockRpc).toHaveBeenCalledWith('get_resource_detail', { p_resource_id: 'resource-001' });
   });
 
-  it('filters by id', async () => {
-    await getResourceById('resource-001');
-    expect(mocks.mockEq).toHaveBeenCalledWith('id', 'resource-001');
-  });
-
-  it('returns the single row when found', async () => {
-    const result = await getResourceById('resource-001');
+  it('returns the first row from the RPC array', async () => {
+    const result = await getResourceDetail('resource-001');
     expect(result.data).toEqual(fakeRow);
     expect(result.error).toBeNull();
   });
 
-  it('returns null data when not found', async () => {
-    const mockMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
-    mocks.mockEq.mockReturnValue({ maybeSingle: mockMaybeSingle });
-    mocks.mockSelect.mockReturnValue({
-      eq: mocks.mockEq,
-      maybeSingle: mockMaybeSingle,
-    });
-    const result = await getResourceById('missing-id');
+  it('returns null data when RPC returns empty array (not found)', async () => {
+    mocks.mockRpc.mockResolvedValue({ data: [], error: null });
+    const result = await getResourceDetail('missing-id');
     expect(result.data).toBeNull();
     expect(result.error).toBeNull();
   });
 });
 
-describe('getResourceById() — error path', () => {
+describe('getResourceDetail() — error path', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    const mockMaybeSingle = jest.fn().mockResolvedValue({
+    mocks.mockRpc.mockResolvedValue({
       data: null,
-      error: { code: 'PGRST116', message: 'row not found' },
+      error: { code: 'PGRST202', message: 'RPC not found' },
     });
-    mocks.mockEq.mockReturnValue({ maybeSingle: mockMaybeSingle });
-    mocks.mockSelect.mockReturnValue({
-      eq: mocks.mockEq,
-      maybeSingle: mockMaybeSingle,
-    });
-    mocks.mockFrom.mockReturnValue({ select: mocks.mockSelect });
   });
 
-  it('returns null data and the error when query fails', async () => {
-    const result = await getResourceById('resource-001');
+  it('returns null data and the error when RPC fails', async () => {
+    const result = await getResourceDetail('resource-001');
     expect(result.data).toBeNull();
     expect(result.error).toBeTruthy();
   });
 
   it('does NOT throw — returns the error object', async () => {
-    const result = await getResourceById('resource-001');
+    const result = await getResourceDetail('resource-001');
     expect(result).toHaveProperty('error');
   });
 });
