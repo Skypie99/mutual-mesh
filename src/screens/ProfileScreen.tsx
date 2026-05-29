@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Clipboard, Switch, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -59,6 +60,11 @@ const DEVICE_PREF_KEYS_TO_CLEAR = [
  *       deletes auth.users → cascades to public.users.
  *   - On success: signOut() clears the local session, then AsyncStorage
  *     multiRemove clears stale device preferences (AC-6.5).
+ *
+ * AC-6.3 — profile stats refresh on focus:
+ *   - useFocusEffect reloads counts each time the Profile tab comes into focus
+ *     so that a claim placed in the Feed tab is immediately reflected here without
+ *     requiring the user to navigate away and back twice (full unmount cycle).
  */
 export function ProfileScreen() {
   const { profile, signOut, user, reloadProfile } = useAuth();
@@ -112,6 +118,18 @@ export function ProfileScreen() {
       mountedRef.current = false;
     };
   }, [loadCounts]);
+
+  // AC-6.3 — refresh counts every time the Profile tab comes into focus so
+  // that a claim placed in the Feed tab is immediately reflected here without
+  // requiring the user to navigate away and back twice (full unmount cycle).
+  // useFocusEffect fires on initial render AND on every subsequent focus event,
+  // so this is a superset of the mount-only useEffect above. The mounted-ref
+  // guard in loadCounts prevents setState on unmounted components.
+  useFocusEffect(
+    useCallback(() => {
+      void loadCounts();
+    }, [loadCounts]),
+  );
 
   const handleErrorReportingToggle = (next: boolean) => {
     // Optimistic UI: flip the switch immediately, then persist. Persistence

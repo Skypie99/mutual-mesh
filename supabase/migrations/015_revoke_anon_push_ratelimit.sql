@@ -1,0 +1,81 @@
+-- Migration 015 — Revoke anon EXECUTE on increment_push_rate_limit
+-- Applied: <pending Sky apply>
+-- Author: Steve, 2026-05-28
+-- References:
+--   Migration 012: push_rate_limit — created increment_push_rate_limit(uuid)
+--     and granted EXECUTE to authenticated.
+--   Supabase advisor flag (post-apply, 2026-05-28): default Postgres behaviour
+--     means anon also inherited EXECUTE via the PUBLIC role grant that
+--     precedes any per-role grant; advisor flagged this as a privilege
+--     over-grant risk.
+--
+-- ============================================================================
+-- WHAT IT DOES
+-- ============================================================================
+-- Migration 012 created public.increment_push_rate_limit(uuid) as a
+-- SECURITY DEFINER function and granted EXECUTE to `authenticated`. However,
+-- Postgres's default PUBLIC grant means the `anon` role also holds EXECUTE
+-- unless explicitly revoked. The Supabase advisor flagged this immediately
+-- after migration 012 was applied.
+--
+-- Risk: an unauthenticated caller (anon key, no JWT) can invoke the RPC
+-- directly and increment the rate-limit counter for an arbitrary user UUID,
+-- artificially exhausting that user's push quota. The function is SECURITY
+-- DEFINER so it runs as its owner; the caller does not need any table
+-- privilege, making this a free denial-of-service against any known user UUID.
+--
+-- Fix: a single targeted REVOKE. The intended callers (server-side Edge
+-- Functions, authenticated RPC calls) all use the `authenticated` role, which
+-- retains EXECUTE. No functional change to the happy path.
+--
+-- WHAT IT DOES NOT TOUCH
+-- ======================
+-- - The increment_push_rate_limit function body: unchanged.
+-- - The EXECUTE grant to `authenticated`: unchanged (still has it).
+-- - Any other table, function, trigger, or policy.
+-- - Migrations 012, 013, 014: unchanged.
+--
+-- ROLLBACK
+-- ========
+-- Commented-out block at the bottom re-grants EXECUTE to anon.
+-- After rollback the over-grant is restored; the Supabase advisor will
+-- re-flag the same finding. Re-apply this migration to remove it again.
+--
+-- IDEMPOTENT
+-- ==========
+-- REVOKE in Postgres is a no-op when the grantee does not hold the privilege —
+-- it does not error. Safe to re-run.
+--
+-- Constitution Art. 5: This is a FILE. Steve writes; Sky applies via the
+-- Supabase dashboard SQL editor (project cslvjfewxiowdxfoqzre).
+-- Never applied to a live database by any agent.
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- REVOKE anon EXECUTE on increment_push_rate_limit
+-- ============================================================================
+-- Targets the exact signature from migration 012.
+-- `authenticated` retains EXECUTE — no change to the happy-path callers.
+-- Postgres silently ignores a REVOKE when the role never held the privilege,
+-- so this is safe to re-run on a database that already has the revoke applied.
+
+REVOKE EXECUTE ON FUNCTION public.increment_push_rate_limit(uuid) FROM anon;
+
+COMMIT;
+
+-- ============================================================================
+-- ROLLBACK (commented out — apply manually if needed)
+-- ============================================================================
+-- Re-grants EXECUTE to anon, restoring the over-grant flagged by the advisor.
+-- Only apply this if the revoke caused an unexpected breakage AND you have
+-- confirmed that anon callers legitimately need this function (they should not).
+--
+-- BEGIN;
+--   GRANT EXECUTE ON FUNCTION public.increment_push_rate_limit(uuid) TO anon;
+-- COMMIT;
+--
+-- After rollback: anon can again call increment_push_rate_limit(uuid) directly,
+-- enabling the denial-of-service described above. Re-apply migration 015 to
+-- remove the grant again.
