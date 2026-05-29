@@ -348,3 +348,47 @@ Alex's Cycle 7 audit (PASS overall) flagged one finding that deserves a LEARNING
 **The lesson:** accessibility audits must cover all states of a UI component, including states that can only be reached with real data or specific user flows. An audit that only looks at the currently-rendered screen in a test environment will miss any state that requires production or end-to-end data. Future audits should include a test fixture that exercises all four `ResourceStatus` values (`available`, `reserved`, `completed`, `expired`) explicitly.
 
 The pre-fix: switch the dark-mode completed pill to a darker background (e.g., `dark:bg-dark-success` or a dedicated completion token) before real completed data flows. Do not wait until it's reported by a user. See `qa-reports/2026-05-28_Alex_Cycle7_A11yAudit.md` finding F-003 for the computed ratios.
+
+---
+
+## 2026-05-28 — Cycle 6/7 pattern: Schema-code alignment is the load-bearing constraint (meta-level)
+
+Cycles 1 through 7 have validated a hard ordering rule that will recur in every future cycle: **migrations (schema changes) must be applied to the live Supabase project BEFORE code that depends on those schema changes merges to main.** This is not a deployment best-practice; it is the foundational ordering rule of the build system.
+
+**The pattern:** Dana writes a migration (e.g., migration 011 adds the `push_tokens` table and the `register_push_token` RPC). Shamus writes the client-side code that calls the RPC (e.g., `pushNotifications.ts`). The code **will compile and typecheck clean** because TypeScript has no way to verify that RPC param names match the Postgres function signature (the `.rpc()` call uses `Record<string, unknown>` at the supabase-js type level). But if the RPC is not live on Supabase when the code runs, the call fails at runtime with a Postgres error that looks like a network failure to the user.
+
+**The canonical ordering** (confirmed by Cycles 1–7 and baked into Morgan's dispatch workflow): (1) Dana writes the migration file; (2) Sky applies the migration to live Supabase; (3) Shamus writes the code that uses the new schema; (4) Shamus + Gary verify the code works with the live schema; (5) code merges to main. This is why Morgan's Cycle 6/7 briefing explicitly gates the 7-branch merge-wave on `sky/mm-migrations-apply` — **the schema must be live first**.
+
+**The rule going forward:** never ship code on main that depends on a schema change that is "pending" or "staged for later apply." Code without its schema is a proposal, not a runnable product. Escalate any request to merge code before its schema is live — it is a blocker, not a polish.
+
+**Reference:** `qa-reports/2026-05-28_Morgan_14hr-Phase-BC-Dispatch.md` (gates section), Cycle 1 auth gate, Cycle 2 marketplace feed, velocity-plan-2026-05-24.md (D-V-2).
+
+---
+
+## 2026-05-28 — Cycle 6/7 pattern: Three-layer auth gate is defense-in-depth; never relax to two (meta-level)
+
+Steve's Cycle 7 security audit confirms all three layers remain in place: (1) UI gate checks `is_verified` before routing to RootNavigator, (2) RLS policies block unprivileged row reads on `public.users` and all resource tables, (3) Storage bucket RLS enforces the path-namespace scheme (auth.uid in the first segment of the path). The temptation to remove one layer — "because the other two already protect us" — will recur in future cycles and must be resisted.
+
+**Why all three matter:** the value of defense-in-depth is that a misconfiguration in any single layer doesn't expose users. A Postgres migration that accidentally removes an RLS policy (Layer 2) would be catastrophic IF only Layer 2 existed. But with Layer 1 (UI) and Layer 3 (Storage) also in place, the single-layer gap is caught before real damage. A future developer who reads `src/lib/verification.ts` and asks "why is there a `is_verified` check here if RLS already blocks it?" must hear: **because if an RLS migration ever breaks, this UI check is the safety net.**
+
+**The rule:** never approve a security change that removes or relaxes any of the three layers, even if the other two seem sufficient. Treating any single-layer gap as a BLOCKER is the correct posture. Escalate to Morgan/Steve, do not ship.
+
+**Reference:** `qa-reports/2026-05-28_Steve_Cycle7_SecurityAudit.md`, PRIVACY.md (Jordan's three-layer privacy gate), Cycle 1 section (4) Security-definer RPCs, Cycle 3 section (3) Jordan web gate.
+
+---
+
+## 2026-05-28 — Cycle 6/7 pattern: Async handoff between roles requires typecheck GREEN (meta-level)
+
+Every handoff from one role to another (Steve types → Shamus builds, Dana migrates → Shamus wires, Shamus ships → Gary tests, Dani designs → Shamus implements) has a hard gate: `npm run typecheck` must be GREEN. This is Const. 4.5 (inter-role handoff requires green typecheck), but the **non-obvious pattern** is what "green" means in a monorepo with shared + role-specific paths.
+
+**The categories of typecheck failures that slip through manually:**
+
+1. **RPC param name drift.** Dana writes a migration with `CREATE FUNCTION register_push_token (p_expo_token text, p_platform text) ...`. Shamus writes the client call `await supabase.rpc('register_push_token', { token, platform })`. TypeScript allows this because `.rpc('name', params)` has type `Record<string, unknown>`. The param names do not match (`token` vs `p_expo_token`). Typecheck is green. The call fails at runtime with a Postgres error. **Rule: always cross-check RPC call sites against the migration SQL and verify param names character-for-character.**
+
+2. **Missing database.ts type exports.** Steve adds `VerificationDecision` to the database schema. Dana updates `src/types/database.ts` to export the new type. But if Shamus's code tries to use `VerificationDecision` and the type is not yet exported from `database.ts`, typecheck will fail. **Rule: never assume a handoff is complete until you run typecheck yourself.**
+
+3. **Component prop mismatches.** Dani proposes a new Button variant with `variant?: 'primary' | 'secondary' | 'danger'`. Shamus implements the component. A third-party component (not Shamus) uses the Button with `variant="destructive"` (a typo). Typecheck catches it, but only if the user runs typecheck themselves — it is not automatically verified between handoffs. **Rule: when accepting a feature from another role, run typecheck before merging.**
+
+**The pattern:** never trust that a role has verified their output is typesafe, even if they claim they did. Always run `npm run typecheck` yourself before accepting the handoff. The gate exists for exactly this reason — to catch mismatches that the human author missed.
+
+**Reference:** `qa-reports/velocity-loop-2026-05-24.md` (typecheck as the canary), Cycle 1 section (toolchain validation), LEARNINGS entries on RPC param drift (2026-05-28).
