@@ -9,18 +9,21 @@ import {
 import type { ResourceRow } from '@/types/database';
 
 /**
- * useResources — marketplace feed data + realtime.
+ * useResources — marketplace feed data + realtime + cursor pagination.
  *
  * Responsibilities:
- *   1. Initial fetch via listResources (filtered to status='available', .limit(500)).
- *   2. Subscribe to Supabase Realtime on public.resources.
- *   3. Apply deltas via the PURE helper applyResourceDelta (tested in Loop 5).
- *   4. Surface { resources, loading, error, reload }.
+ *   1. Initial fetch via listResources(page=0) — PAGE_SIZE=20, newest first.
+ *   2. loadMore() — fetches the next page and appends to the list.
+ *   3. Subscribe to Supabase Realtime on public.resources.
+ *   4. Apply deltas via the PURE helper applyResourceDelta (tested in Loop 5).
+ *   5. Surface { resources, loading, loadingMore, hasMore, error, reload, loadMore }.
  *
  * Patterns:
  *   - Mounted-ref guards every async setState (AccessMap LEARNINGS).
+ *   - pageRef tracks the current page without triggering re-renders.
  *   - Realtime channel removed on unmount.
- *   - Reload is a manual refresh handle for pull-to-refresh UX (Cycle 2.5).
+ *   - reload() resets to page 0 (for pull-to-refresh).
+ *   - loadMore() appends the next page; no-ops if loadingMore or !hasMore.
  *
  * Note on filtering: this hook returns ONLY available resources. INSERT
  * events for resources that arrive as status='available' add to the list;
@@ -31,44 +34,72 @@ import type { ResourceRow } from '@/types/database';
 export type UseResourcesState = {
   resources: ResourceRow[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
   error: string | null;
   reload: () => Promise<void>;
+  loadMore: () => Promise<void>;
 };
 
 export function useResources(): UseResourcesState {
   const [resources, setResources] = useState<ResourceRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const pageRef = useRef(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (page: number, append: boolean) => {
     if (!mountedRef.current) return;
     setError(null);
-    const { data, error: err } = await listResources();
+
+    const { data, error: err, hasMore: more } = await listResources(page);
+
     if (!mountedRef.current) return;
     if (err) {
       setError(err.message ?? 'Failed to load listings.');
-      setResources([]);
+      if (!append) setResources([]);
     } else {
       // listResources uses an explicit column select that intentionally omits
       // contact_handle (Jordan blocking condition 2 -- web gate 2026-05-25).
       // Feed components never access contact_handle, so this cast is safe.
       // contact_handle is only returned by getResourceDetail() RPC (detail screen).
-      setResources((data ?? []) as ResourceRow[]);
+      const rows = data as ResourceRow[];
+      if (append) {
+        setResources((prev) => [...prev, ...rows]);
+      } else {
+        setResources(rows);
+      }
+      setHasMore(more);
     }
-    setLoading(false);
   }, []);
 
   const reload = useCallback(async () => {
     if (!mountedRef.current) return;
+    pageRef.current = 0;
     setLoading(true);
-    await load();
+    await load(0, false);
+    if (mountedRef.current) setLoading(false);
   }, [load]);
+
+  const loadMore = useCallback(async () => {
+    if (!mountedRef.current) return;
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = pageRef.current + 1;
+    pageRef.current = nextPage;
+    await load(nextPage, true);
+    if (mountedRef.current) setLoadingMore(false);
+  }, [load, loadingMore, hasMore]);
 
   // Initial load + cleanup
   useEffect(() => {
     mountedRef.current = true;
-    void load();
+    pageRef.current = 0;
+    void load(0, false).then(() => {
+      if (mountedRef.current) setLoading(false);
+    });
     return () => {
       mountedRef.current = false;
     };
@@ -94,5 +125,5 @@ export function useResources(): UseResourcesState {
     };
   }, []);
 
-  return { resources, loading, error, reload };
+  return { resources, loading, loadingMore, hasMore, error, reload, loadMore };
 }
