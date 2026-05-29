@@ -302,3 +302,49 @@ useFocusEffect(
 **The mounted-ref pattern still applies inside `useFocusEffect`:** return a cleanup function that sets `mounted = false`. If the user tabs away before the async fetch completes, the cleanup fires on blur, and the `if (mounted)` guard prevents the `setState` from running on an already-blurred screen. Without this guard, a slow network response could write stale data into state after a second focus-cycle fetch has already completed.
 
 Reference file: `src/screens/ProfileScreen.tsx`.
+
+---
+
+_Phase 0a through Phase 3 patterns above. Cycle 6 + Cycle 7 entries follow._
+
+---
+
+## 2026-05-28 — Cycle 6/7: RPC param drift is a real ship risk
+
+Dana's audit (2026-05-25) surfaced a param-name mismatch between the client and the database on push-related RPCs: the client was sending `{ token, platform }` while the database function expected `(p_expo_token, p_platform)`. The app had been compiling clean and `npm run typecheck` was green the whole time — because the client-side call uses `.rpc('function_name', params)` where `params` is typed `Record<string, unknown>` at the supabase-js level. TypeScript does NOT verify that your param names match the Postgres function signature.
+
+**The lesson:** RPC param alignment is not caught by `npm run typecheck`. It is only caught by running the RPC against a real Supabase project. Always cross-check RPC call sites in `src/lib/` against the migration SQL that defines the function. When Dana adds a new migration with an RPC, the companion PR must also include the updated call site in `src/lib/` — the two files are a single atomic change, not independent PRs.
+
+**The verification recipe:** after any RPC-adding migration, search for all `.rpc('function_name'` call sites (there should be exactly one per function) and confirm the object keys match the `$` param names in the SQL function signature character-for-character. A one-line mismatch (`token` vs `p_expo_token`) silently returns a Postgres error at runtime but looks like a network failure to the user.
+
+---
+
+## 2026-05-28 — Cycle 6/7: EXIF strip subtlety — client re-encode + server strip are BOTH load-bearing
+
+The dual-layer EXIF strip pattern (`src/lib/photos.ts` client-side re-encode + `supabase/functions/exif-strip` server-side `img.strip()`) was audited by Steve (Cycle 7). The key subtlety that trips contributors: **`expo-image-manipulator` strips EXIF as a SIDE EFFECT of re-encoding, not via an explicit strip call.** This is correct and intentional — a full re-encode discards the EXIF container entirely. But it means you cannot achieve the same safety with `compress`-only or `resize`-only operations; you must always include at least one transform that triggers a re-encode (e.g., a resize or quality reduction). A quality-1.0 identity "compress" with no resize may not force a re-encode on all platforms.
+
+The server-side Edge Function uses `imagemagick_deno`'s explicit `.strip()` method — this IS an explicit metadata call, not a side effect. The idempotency check (a `x-exif-stripped: v1` user-metadata marker on the Storage object) ensures the function runs at most once per object, even with webhook redeliveries. If you update the exif-strip function, preserve both the explicit `.strip()` call and the idempotency marker — they are independent safety mechanisms.
+
+**Rule going forward:** never assume EXIF is stripped. Verify by checking for the `x-exif-stripped` marker on the `storage.objects` row. A weekly scan for unmarked objects in `resource-photos` is the recommended monitoring posture.
+
+---
+
+## 2026-05-28 — Cycle 6/7: Cross-cycle patterns that earned their place in CLAUDE.md
+
+Three patterns recurred across every cycle and are worth promoting to "load-bearing":
+
+**(1) Three-layer auth gate (`is_verified` at UI + RLS + Storage).** Steve's Cycle 7 audit confirmed all three layers remain in place. The rule: if you are ever tempted to relax one layer "because the other two cover it," don't. The value of three layers is defense-in-depth — a future RLS misconfiguration in one migration doesn't expose users because the other two layers are independent. Treat any single-layer gap as a blocker.
+
+**(2) Atomic claim via Postgres RPC with `SELECT … FOR UPDATE`.** The `claim_resource()` RPC has been called from `ResourceDetailScreen` for every Cycle 2+ build and has never had a race condition reported. The pattern (RPC → FOR UPDATE → status check → UPDATE → return) is the canonical template for any future state transition that must be exclusive. Do not use client-side UPDATE for exclusive transitions.
+
+**(3) `.limit(500)` cap on every `list*` query.** Peter's Cycle 7 background audit confirmed the cap is in place on all list helpers and FSA aggregation is bounded. This cap is not a workaround — it is the deliberate safety valve while cursor-based pagination is the P1 upgrade for production scale. Never remove the cap; replace it with proper cursor pagination when real data volume requires it. The JSDoc TODO pointing to cursor pagination as P1 must move with the cap.
+
+---
+
+## 2026-05-28 — Cycle 7 a11y audit: StatusPill dark-mode contrast is a pre-blocking issue
+
+Alex's Cycle 7 audit (PASS overall) flagged one finding that deserves a LEARNINGS entry because it is the kind of issue that ships silently: the `StatusPill` "Completed" state uses `bg-dark-accent` (#4FBFA8) + white text in dark mode, which is 2.8:1 contrast — below the 4.5:1 AA threshold for normal text. The issue does NOT show up in the app today because no resources have ever been in `completed` status in testing. Once real data flows and resources start completing the pickup flow, this will be a visible WCAG failure in dark mode.
+
+**The lesson:** accessibility audits must cover all states of a UI component, including states that can only be reached with real data or specific user flows. An audit that only looks at the currently-rendered screen in a test environment will miss any state that requires production or end-to-end data. Future audits should include a test fixture that exercises all four `ResourceStatus` values (`available`, `reserved`, `completed`, `expired`) explicitly.
+
+The pre-fix: switch the dark-mode completed pill to a darker background (e.g., `dark:bg-dark-success` or a dedicated completion token) before real completed data flows. Do not wait until it's reported by a user. See `qa-reports/2026-05-28_Alex_Cycle7_A11yAudit.md` finding F-003 for the computed ratios.

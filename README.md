@@ -2,7 +2,13 @@
 
 A privacy-first community-run mutual-aid network for marginalized groups to share food, baby formula, and critical resources — without corporate or state surveillance.
 
-**Status:** **Phases 1–4 complete (2026-05-24).** 172+ tests, real Supabase wiring, full resource marketplace, photo uploads with EXIF stripping, resource map (OSM + FSA aggregation), push notification infrastructure, error reporting, and Policy/ToS screens. See `qa-reports/phase-2-closeout-2026-05-24.md` and `qa-reports/phase-3-4-security-sweep-2026-05-24.md` for the full audit trail.
+**Status:** **Phases 1–4 complete; Cycle 7 audits underway (2026-05-28).** 172+ tests, real Supabase wiring, full resource marketplace, photo uploads with EXIF stripping, resource map (OSM + FSA aggregation), push notification infrastructure, error reporting, and Policy/ToS screens. Cycle 6 branches gate-approved, pending migrations 012–014 apply by Sky. See `qa-reports/phase-2-closeout-2026-05-24.md`, `qa-reports/phase-3-4-security-sweep-2026-05-24.md`, and `qa-reports/2026-05-28_Morgan_MigrationGate.md` for the full audit trail.
+
+## Stack
+
+**Expo SDK 54** · **React Native 0.81** · **React 19.1** · **TypeScript strict** · **Supabase** (auth + Postgres + RLS + Storage) · **NativeWind** (design tokens) · **Jest + jest-expo** · **ESLint + Prettier** · **GitHub Actions CI**
+
+Path alias: `@/*` → `src/*`
 
 ## Features
 
@@ -75,7 +81,7 @@ Every component bakes in WCAG 2.5.5 (44pt minimum touch targets), `accessibility
 | `CONTRIBUTING.md` + `SECURITY.md`              | Contributor entry point + vulnerability disclosure policy                             |
 | `community/` + `research/` + `designs/`        | Casey / Riley / Dani role homes                                                       |
 | `qa-reports/`                                  | Audit reports, cycle briefings, privacy reviews for every phase                       |
-| `supabase/schema.sql` + `supabase/migrations/` | Full schema + 10 migration files. FILES ONLY — Sky applies via dashboard.             |
+| `supabase/schema.sql` + `supabase/migrations/` | Full schema + 14 migration files (001–014). FILES ONLY — Sky applies via dashboard.   |
 | `supabase/functions/exif-strip/`               | Edge Function for server-side EXIF strip. Deploy via `supabase functions deploy`.     |
 | `src/lib/`                                     | All pure helpers + Supabase client + auth + push + error reporting + i18n             |
 | `src/components/`                              | 13 reusable UI primitives, all WCAG 2.5.5 + label compliant                           |
@@ -100,7 +106,7 @@ The app requires a Supabase project with the schema applied to show real data. W
 You need a Supabase project before the app does anything useful.
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Run `supabase/schema.sql` in the SQL editor, then apply migrations `001` through `010` in order.
+2. Run `supabase/schema.sql` in the SQL editor, then apply migrations `001` through `011` in order. Migrations `012`–`014` are pending Sky apply (see "What Sky still needs to apply" below).
 3. Set `config.sky_uuid` to your Supabase user UUID, then run
    `UPDATE public.users SET is_admin = true WHERE id = '<your-uuid>'` via the service role.
 4. Generate a first invite token:
@@ -118,9 +124,13 @@ Numbered apply steps with exact SQL for each migration live in `qa-reports/cycle
 
 A few pieces are files in the repo but not yet live on any Supabase project. Sky applies these via the dashboard:
 
-- Migrations `011` (push preference server gate) and `012` (push rate limit) — in their respective `supabase/migrations/` files.
+- Migration `012` (`push_rate_limit`) — `supabase/migrations/012_push_rate_limit.sql`
+- Migration `013` (`verification_log_fix`) — `supabase/migrations/013_verification_log_fix.sql`
+- Migration `014` (`get_resource_detail` RPC privacy gate) — `supabase/migrations/014_get_resource_detail_rpc.sql`
 - EXIF strip Edge Function — `supabase functions deploy exif-strip` + wire the Storage webhook (steps in `supabase/functions/exif-strip/README.md`).
 - `deliver_notification` Edge Function — in `rory/deliver-notification-edge-fn-2026-05-25` branch.
+
+Apply order matters: 012 → 013 → 014. Steve's Cycle 7 audit confirms all three are security-sound and production-ready.
 
 See `CLAUDE.md` for stack details and full gotchas list.
 
