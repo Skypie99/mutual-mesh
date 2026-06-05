@@ -88,6 +88,7 @@ jest.mock('@/lib/supabase', () => ({
 // without causing infinite re-renders during the render phase.
 // (Same fix as ProfileScreen + baseline ResourceDetailScreen tests.)
 jest.mock('@react-navigation/native', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react') as typeof import('react');
   return {
     useFocusEffect: (cb: () => (() => void) | void) => {
