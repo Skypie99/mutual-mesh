@@ -130,7 +130,7 @@ The app ships a web build powered by [Expo web](https://docs.expo.dev/workflow/w
 
 **Live URL:** `https://mutual-mesh.vercel.app`
 
-**Access:** auth-gated — a valid Mutual Mesh account (invite token + Sky verification) is required. There is no guest mode. Jordan's web-gate advisory (2026-05-25) prohibits unauthenticated marketplace browsing.
+**Access:** the real marketplace is auth-gated — a valid Mutual Mesh account (invite token + Sky verification) is required, and Jordan's web-gate advisory (2026-05-25) bars any unauthenticated access to real user data. One exception: `?demo=1` opens a read-only **guest demo** that renders only synthetic sample data with zero network calls (Jordan gate 2026-06-05), so a visitor can explore the UI without an account and without ever touching real listings.
 
 **Map:** the web map uses `react-leaflet` + OpenStreetMap tiles via `src/components/PlatformMapView.web.tsx`. Metro's platform-specific file resolution serves this file instead of `PlatformMapView.tsx` (which imports `react-native-maps`) on web builds. Both files export the same `PlatformMapView` component and props type.
 

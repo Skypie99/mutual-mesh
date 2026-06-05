@@ -3,9 +3,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { DemoProvider, useDemo } from '@/lib/demo/DemoContext';
 import { decideGateRoute } from '@/lib/verification';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { DemoRootNavigator } from '@/navigation/DemoRootNavigator';
 import { SignInScreen } from '@/screens/SignInScreen';
 import { CompleteProfileScreen } from '@/screens/CompleteProfileScreen';
 import { WaitingRoomScreen } from '@/screens/WaitingRoomScreen';
@@ -37,9 +39,17 @@ import './global.css';
  */
 function Gate() {
   const { loading, session, profile } = useAuth();
+  const { isDemo } = useDemo();
   const [splashDismissed, setSplashDismissed] = useState(false);
 
-  const route = decideGateRoute({ loading, session, profile });
+  const route = decideGateRoute({ loading, session, profile, demo: isDemo });
+
+  // Anonymous guest demo (WEB-4): short-circuit BEFORE the splash block. The
+  // demo has no async boot (no getSession, no profile fetch), so there's
+  // nothing to wait on — go straight to the synthetic read-only navigator.
+  if (route === 'demo-home') {
+    return <DemoRootNavigator />;
+  }
 
   // Splash UX wrapper: even when the route resolves to a non-splash screen,
   // we keep showing the Splash until MIN_DISPLAY_MS has elapsed (avoids flash).
@@ -63,11 +73,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <ErrorBoundary>
-            <Gate />
-          </ErrorBoundary>
-        </AuthProvider>
+        {/* DemoProvider is OUTSIDE AuthProvider: a guest has no auth/session. */}
+        <DemoProvider>
+          <AuthProvider>
+            <ErrorBoundary>
+              <Gate />
+            </ErrorBoundary>
+          </AuthProvider>
+        </DemoProvider>
         <StatusBar style="auto" />
       </SafeAreaProvider>
     </GestureHandlerRootView>

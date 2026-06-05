@@ -254,7 +254,7 @@ When the web build was reviewed (Jordan, 2026-05-25), one concern was the Supaba
 
 **Contrast with AccessMap:** AccessMap's bucket allows public flag-photo reads (photos are the product; public visibility is intentional). MutualMesh's bucket is private because photos contain item details that could reveal sensitive needs. Never relax the bucket's `public = false` without Jordan review.
 
-**The web demo is auth-gated with no guest mode:** `https://mutual-mesh.vercel.app` requires a verified Mutual Mesh account. Jordan's advisory condition (2026-05-25) requires no unauthenticated marketplace browsing — a web visitor cannot see the marketplace without going through the invite-token + verification gate. This is intentional and non-negotiable per PRIVACY.md.
+**The REAL web demo is auth-gated; a synthetic guest demo is the one exception:** `https://mutual-mesh.vercel.app` shows the real, live marketplace only to a verified Mutual Mesh account. Jordan's web-gate advisory (2026-05-25) still bars any unauthenticated access to _real_ user data, and that remains non-negotiable. The narrowing (Jordan gate 2026-06-05, `qa-reports/2026-06-05_Jordan_DemoMode_Privacy_Gate.md`): `?demo=1` enters a read-only **guest demo** that renders ONLY bundled synthetic fixtures with ZERO Supabase calls — no real listing, handle, photo, or location is ever exposed. The principle (no anon access to real data) holds; only the blanket "no guest mode at all" rule is relaxed for a synthetic, zero-network demo.
 
 ---
 

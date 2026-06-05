@@ -46,6 +46,7 @@ If a listing looks wrong to you, long-press it to report it. We'll take a look.
 When you claim a resource, Mutual Mesh shows you the poster's contact handle — a Signal number, an email alias, a Telegram handle, whatever they chose. You reach out to them on that channel and arrange the handoff between the two of you. Your address doesn't appear anywhere in the app.
 
 **For pickups from someone you don't know personally:**
+
 - Meet in a public place for a first exchange — a library, a Tim Hortons, the lobby of a community center.
 - Bring a friend if you want to.
 - Trust your instincts. If something feels off, you don't have to go through with it. No one here will judge you.

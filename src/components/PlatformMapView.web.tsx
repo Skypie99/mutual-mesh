@@ -1,104 +1,50 @@
 /**
- * PlatformMapView -- web path (react-leaflet + OpenStreetMap).
+ * PlatformMapView — web path (PLACEHOLDER).
  *
- * Resolved instead of PlatformMapView.tsx when Metro bundles for web. The
- * native file imports react-native-maps which doesn't work in a browser;
- * this file provides an equivalent tile map using react-leaflet.
+ * The interactive web map (react-leaflet + OpenStreetMap) is not currently
+ * wired: `leaflet` / `react-leaflet` were never declared dependencies, so
+ * importing them broke the web bundle (`Unable to resolve leaflet/dist/leaflet.css`).
+ * Rather than ship a crash, the web build renders a graceful placeholder that
+ * points users to the FSA filter chips (and the mobile app for the full map).
+ * Resolved instead of PlatformMapView.tsx when Metro bundles for web.
  *
- * Jordan advisory conditions (2026-05-25-jordan-web-gate.md):
- *   - OSM attribution is visible by default via react-leaflet TileLayer.
- *     Do NOT hide or overlay it.
- *   - No precise user location is shown. The parent (ResourceMapScreen)
- *     controls the region; this component renders whatever region it receives.
- *   - Zoom is clamped at FSA scale (MIN_DELTA) by ResourceMapScreen --
- *     maxZoom=13 here reinforces that at the Leaflet level.
+ * The guest demo hides the list/map toggle entirely (see DemoRootNavigator),
+ * so demo visitors never reach this screen.
  *
- * Location handling note: ResourceMapScreen's handleCenterOnMe uses
- *   require('expo-location') inside a try/catch. On web, expo-location is
- *   not available, so it falls through to navigator.geolocation via the
- *   catch block's "GPS unavailable" path. No explicit Platform guard needed
- *   in ResourceMapScreen because the dynamic require already handles it.
+ * To restore the real web map: add `leaflet` + `react-leaflet` to package.json
+ * (with an `.npmrc` `legacy-peer-deps=true` for the React 19 pin) and bring back
+ * the MapContainer/TileLayer + `deltaToZoom` helper from git history (commit
+ * before this stub). Keep the OSM attribution visible and `keyboard={false}`
+ * for the WCAG 2.1.2 no-keyboard-trap requirement.
  *
- * A11y notes (Alex audit 2026-05-25, WCAG 2.2 AA):
- *   - keyboard={false} on MapContainer disables Leaflet's built-in keyboard
- *     handler. Without this, Leaflet captures arrow keys and Tab indefinitely
- *     once the map tile pane is focused, violating WCAG 2.1.2 (No Keyboard
- *     Trap, Level A). Leaflet's default +/- zoom controls remain reachable
- *     via Tab before/after the map region because they are rendered as <a>
- *     elements outside the tile pane.
- *   - A visually-hidden paragraph inside the wrapper div informs keyboard and
- *     AT users that map interaction is limited and directs them to the FSA
- *     filter chips (WCAG 2.1.2 advisory + 1.3.1).
- *   - The outer div has role="img" + aria-label so the whole region is treated
- *     as a single landmark image by screen readers rather than an interactive
- *     widget (WCAG 4.1.2).
+ * A11y: role="img" + aria-label keep the region a single landmark; the visible
+ * note directs keyboard/AT users to the FSA chips (WCAG 2.1.2 + 1.3.1).
  */
 
-import 'leaflet/dist/leaflet.css';
 import React from 'react';
-import { MapContainer, TileLayer } from 'react-leaflet';
 import type { PlatformMapViewProps } from './PlatformMapView';
 
-// deltaToZoom converts react-native-maps latitudeDelta to a Leaflet zoom level.
-// Mirrors the same helper in AccessMap's PlatformMap.web.tsx.
-function deltaToZoom(latitudeDelta: number): number {
-  return Math.max(2, Math.min(13, Math.round(Math.log2(360 / latitudeDelta))));
-}
-
-/**
- * Web map tile view -- react-leaflet + OpenStreetMap tiles.
- *
- * onRegionChangeComplete is not wired here: Leaflet's moveend fires with
- * slightly different coordinate semantics and the FSA map doesn't need
- * region sync from the map to the parent on web (the parent controls the
- * initial region; user panning/zooming on web doesn't feed back to native
- * state). This is intentional -- FSA chips drive navigation, not the map.
- */
-export function PlatformMapView({ region, accessibilityLabel }: PlatformMapViewProps) {
-  const zoom = deltaToZoom(region.latitudeDelta);
-
+export function PlatformMapView({ accessibilityLabel }: PlatformMapViewProps) {
   return (
     <div
-      style={{ position: 'absolute', inset: 0 }}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        textAlign: 'center',
+        backgroundColor: '#EFEAE2',
+        color: '#5B5247',
+      }}
       role="img"
       aria-label={accessibilityLabel ?? 'Resource map'}
     >
-      {/* Visually-hidden keyboard/AT notice (WCAG 2.1.2 + 1.3.1).
-          Leaflet maps are not fully keyboard-navigable even with keyboard={false}.
-          This message directs non-pointer users to the equivalent FSA chip list. */}
-      <p
-        style={{
-          position: 'absolute',
-          width: 1,
-          height: 1,
-          padding: 0,
-          margin: -1,
-          overflow: 'hidden',
-          clip: 'rect(0,0,0,0)',
-          whiteSpace: 'nowrap',
-          border: 0,
-        }}
-      >
-        This map is not fully keyboard accessible. Use the FSA filter chips above to navigate
-        resources by area.
+      <p style={{ maxWidth: 360, fontSize: 15, lineHeight: 1.5, margin: 0 }}>
+        The interactive map is available in the Mutual Mesh mobile app. On the web, use the area
+        (FSA) filter chips above to browse resources by neighbourhood.
       </p>
-      <MapContainer
-        center={[region.latitude, region.longitude]}
-        zoom={zoom}
-        maxZoom={13}
-        style={{ height: '100%', width: '100%' }}
-        // Disable scroll zoom to avoid page scroll interference on web
-        scrollWheelZoom={false}
-        // keyboard={false} prevents Leaflet from capturing arrow keys and Tab
-        // focus inside the tile pane, which would create a keyboard trap
-        // violating WCAG 2.1.2 (No Keyboard Trap, Level A).
-        keyboard={false}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-      </MapContainer>
     </div>
   );
 }
