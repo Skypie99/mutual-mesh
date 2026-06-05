@@ -20,6 +20,8 @@ import { createSignedResourcePhotoUrl } from '@/lib/photos';
 import { userFacingErrorMessage } from '@/lib/errors';
 import { radii } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
+import { useDemo } from '@/lib/demo/DemoContext';
+import { findDemoResource } from '@/lib/demo/fixtures';
 import type { ResourceRow } from '@/types/database';
 
 type ResourceDetailScreenProps = {
@@ -71,6 +73,7 @@ export function ResourceDetailScreen({
   onNavigateBack,
 }: ResourceDetailScreenProps) {
   const { user } = useAuth();
+  const { isDemo, promptSignUp } = useDemo();
   const [resource, setResource] = useState<ResourceRow | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,6 +92,20 @@ export function ResourceDetailScreen({
         setError('Missing resource id.');
         setLoading(false);
       }
+      return;
+    }
+
+    // DEMO MODE (WEB-4): resolve from bundled synthetic fixtures — NO RPC, NO
+    // network. The fixture's contact_handle is already null (no handle reveal)
+    // and photo_url is already null (no Storage signed-URL call). Jordan gate
+    // conditions 1 + 2.
+    if (isDemo) {
+      const demoRow = findDemoResource(resourceId);
+      if (!mountedRef.current) return;
+      setResource(demoRow);
+      setPhotoUrl(null);
+      setLoading(false);
+      setError(demoRow ? null : 'Resource not found.');
       return;
     }
 
@@ -113,7 +130,7 @@ export function ResourceDetailScreen({
     } else {
       if (mountedRef.current) setPhotoUrl(null);
     }
-  }, [resourceId]);
+  }, [resourceId, isDemo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -157,6 +174,17 @@ export function ResourceDetailScreen({
       cancelled = true;
     };
   }, [resource?.status, resource?.claimed_by, resource?.posted_by, user]);
+
+  // Tapping "Claim this resource". In demo this is a read-only no-op that opens
+  // the sign-up sheet (Jordan condition 3 — never execute claim_resource). In
+  // the real app it opens the claim confirmation modal as before.
+  const handleClaimPress = () => {
+    if (isDemo) {
+      promptSignUp();
+      return;
+    }
+    setClaimModalOpen(true);
+  };
 
   const handleClaimConfirm = async () => {
     if (!resourceId) return;
@@ -227,9 +255,14 @@ export function ResourceDetailScreen({
    *   - current user did NOT post it (can't self-claim; RPC also enforces)
    *
    * Riley F1: button label must be "Claim this resource" not bare "Claim".
+   *
+   * DEMO MODE (WEB-4): there is no signed-in user, so show the claim CTA for any
+   * available resource. Tapping it is intercepted into the "Sign up to
+   * participate" sheet (handleClaimPress) rather than executing a claim — the
+   * demo is strictly read-only. Jordan gate condition 3.
    */
   const canClaim =
-    resource?.status === 'available' && !!user && !isMyPost;
+    resource?.status === 'available' && (isDemo || (!!user && !isMyPost));
 
   /**
    * Show the contact handle section when contact_handle is non-null.
@@ -411,8 +444,12 @@ export function ResourceDetailScreen({
         {canClaim ? (
           <Button
             label={claiming ? 'Reserving…' : 'Claim this resource'}
-            hint="Reserves this resource for you and reveals the poster's contact handle."
-            onPress={() => setClaimModalOpen(true)}
+            hint={
+              isDemo
+                ? 'This is a demo with sample data. Claiming needs an account — opens a sign-up prompt.'
+                : "Reserves this resource for you and reveals the poster's contact handle."
+            }
+            onPress={handleClaimPress}
             disabled={claiming}
           />
         ) : (

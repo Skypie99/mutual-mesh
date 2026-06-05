@@ -37,3 +37,18 @@ export type MainTabParamList = {
   VerifyTab: undefined;
   ProfileTab: undefined;
 };
+
+/**
+ * `DemoStackParamList` — the anonymous guest demo stack (WEB-4, 2026-06-05).
+ *
+ * No Profile/Verify (there is no signed-in user in the demo). Reuses the same
+ * Feed / Detail / ResourceMap screens, which are demo-aware via DemoContext.
+ *   - Feed        (HomeScreen — onAddResource opens the sign-up sheet)
+ *   - Detail      (ResourceDetailScreen — Claim opens the sign-up sheet)
+ *   - ResourceMap (ResourceMapScreen — FSA map over synthetic fixtures)
+ */
+export type DemoStackParamList = {
+  Feed: undefined;
+  Detail: { resourceId: string };
+  ResourceMap: undefined;
+};
