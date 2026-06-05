@@ -98,10 +98,12 @@ beforeEach(() => {
 
   // Rebuild channel mock fresh for each test.
   const fakeChannel: FakeChannel = {
-    on: jest.fn().mockImplementation((_type: string, _filter: unknown, handler: (p: unknown) => void) => {
-      capturedListener = handler;
-      return fakeChannel;
-    }),
+    on: jest
+      .fn()
+      .mockImplementation((_type: string, _filter: unknown, handler: (p: unknown) => void) => {
+        capturedListener = handler;
+        return fakeChannel;
+      }),
     subscribe: jest.fn().mockReturnValue(undefined),
   };
 

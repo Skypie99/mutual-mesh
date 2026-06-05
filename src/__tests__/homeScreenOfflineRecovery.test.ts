@@ -103,12 +103,7 @@ describe('isNetworkError() — integration contract (spec-specified cases)', () 
 // Source: HomeScreen.tsx render tree (feat/auto-2026-05-25-shamus-offline-recovery).
 // ============================================================================
 
-type HomeScreenState =
-  | 'network-error'
-  | 'server-error'
-  | 'stale-data'
-  | 'empty'
-  | 'normal';
+type HomeScreenState = 'network-error' | 'server-error' | 'stale-data' | 'empty' | 'normal';
 
 /**
  * Pure model of HomeScreen's display-branch selection logic.

@@ -121,7 +121,6 @@ jest.mock('@/lib/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-
 // ─── Import mocked modules ───────────────────────────────────────────────────
 
 import { getResourceDetail } from '@/lib/resources';
@@ -189,12 +188,8 @@ function mockClaimSuccess(postClaimResource: ResourceRow) {
  * Render the screen and wait until the resource name appears (i.e. the
  * initial fetch has resolved and the main content is visible).
  */
-async function renderAndLoad(
-  props: { resourceId?: string; onNavigateBack?: () => void } = {},
-) {
-  const result = render(
-    <ResourceDetailScreen resourceId={RES_ID} {...props} />,
-  );
+async function renderAndLoad(props: { resourceId?: string; onNavigateBack?: () => void } = {}) {
+  const result = render(<ResourceDetailScreen resourceId={RES_ID} {...props} />);
   // Wait for the resource name — confirms initial fetch is done.
   await screen.findByText('Baby Formula (Similac)');
   return result;
@@ -254,9 +249,7 @@ describe('ResourceDetailScreen — race-condition scenarios', () => {
       // Some user-facing text about the claim outcome must appear.
       // userFacingErrorMessage forwards the message when it doesn't look internal,
       // so the raw message "Resource already claimed" should be the minimum shown.
-      const errorNodes = screen.queryAllByText(
-        /claimed|available|could not claim/i,
-      );
+      const errorNodes = screen.queryAllByText(/claimed|available|could not claim/i);
       expect(errorNodes.length).toBeGreaterThan(0);
     });
   });
@@ -294,9 +287,7 @@ describe('ResourceDetailScreen — race-condition scenarios', () => {
 
     await waitFor(() => {
       expect(screen.queryByText(/PGRST504/)).toBeNull();
-      const errorNodes = screen.queryAllByText(
-        /claimed|reserved|available|could not claim/i,
-      );
+      const errorNodes = screen.queryAllByText(/claimed|reserved|available|could not claim/i);
       expect(errorNodes.length).toBeGreaterThan(0);
     });
   });
@@ -503,10 +494,7 @@ import * as path from 'path';
 
 describe('ResourceDetailScreen source — race-condition contract pins', () => {
   const screenSrc = (() => {
-    const diskPath = path.resolve(
-      __dirname,
-      '../../src/screens/ResourceDetailScreen.tsx',
-    );
+    const diskPath = path.resolve(__dirname, '../../src/screens/ResourceDetailScreen.tsx');
     if (fs.existsSync(diskPath)) {
       return fs.readFileSync(diskPath, 'utf8');
     }

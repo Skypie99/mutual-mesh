@@ -68,8 +68,7 @@ export async function listResources() {
  * File lives on data/auto-2026-05-25-dana-claim-rpc; Sky applies via dashboard.
  */
 export async function getResourceDetail(resourceId: string) {
-  const { data, error } = await supabase
-    .rpc('get_resource_detail', { p_resource_id: resourceId });
+  const { data, error } = await supabase.rpc('get_resource_detail', { p_resource_id: resourceId });
   if (error) return { data: null, error };
   // RPC returns a rows array; first item is our resource (or undefined = not found)
   const row = Array.isArray(data) ? (data[0] ?? null) : (data ?? null);

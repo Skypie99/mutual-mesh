@@ -35,45 +35,45 @@ function HomeStackNavigator() {
 
   return (
     <ResourcesProvider>
-    <HomeStack.Navigator>
-      <HomeStack.Screen name="Feed" options={{ headerShown: false }}>
-        {({ navigation }) => (
-          <HomeScreen
-            onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
-            onAddResource={() => navigation.navigate('AddResource')}
-            onOpenMap={() => navigation.navigate('ResourceMap')}
-            successMessage={postSuccessMessage}
-            onSuccessDismiss={() => setPostSuccessMessage(null)}
-          />
-        )}
-      </HomeStack.Screen>
-      <HomeStack.Screen name="Detail" options={{ title: '' }}>
-        {({ route }) => <ResourceDetailScreen resourceId={route.params.resourceId} />}
-      </HomeStack.Screen>
-      <HomeStack.Screen name="ResourceMap" options={{ title: 'Map', headerShown: false }}>
-        {({ navigation }) => (
-          <ResourceMapScreen
-            onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
-            onSelectFsa={() => navigation.navigate('Feed')}
-            onSwitchToList={() => navigation.navigate('Feed')}
-          />
-        )}
-      </HomeStack.Screen>
-      <HomeStack.Screen
-        name="AddResource"
-        options={{ title: 'Post a resource', presentation: 'modal' }}
-      >
-        {({ navigation }) => (
-          <AddResourceScreen
-            onCancel={() => navigation.goBack()}
-            onPosted={(msg) => {
-              if (msg) setPostSuccessMessage(msg);
-              navigation.goBack();
-            }}
-          />
-        )}
-      </HomeStack.Screen>
-    </HomeStack.Navigator>
+      <HomeStack.Navigator>
+        <HomeStack.Screen name="Feed" options={{ headerShown: false }}>
+          {({ navigation }) => (
+            <HomeScreen
+              onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
+              onAddResource={() => navigation.navigate('AddResource')}
+              onOpenMap={() => navigation.navigate('ResourceMap')}
+              successMessage={postSuccessMessage}
+              onSuccessDismiss={() => setPostSuccessMessage(null)}
+            />
+          )}
+        </HomeStack.Screen>
+        <HomeStack.Screen name="Detail" options={{ title: '' }}>
+          {({ route }) => <ResourceDetailScreen resourceId={route.params.resourceId} />}
+        </HomeStack.Screen>
+        <HomeStack.Screen name="ResourceMap" options={{ title: 'Map', headerShown: false }}>
+          {({ navigation }) => (
+            <ResourceMapScreen
+              onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
+              onSelectFsa={() => navigation.navigate('Feed')}
+              onSwitchToList={() => navigation.navigate('Feed')}
+            />
+          )}
+        </HomeStack.Screen>
+        <HomeStack.Screen
+          name="AddResource"
+          options={{ title: 'Post a resource', presentation: 'modal' }}
+        >
+          {({ navigation }) => (
+            <AddResourceScreen
+              onCancel={() => navigation.goBack()}
+              onPosted={(msg) => {
+                if (msg) setPostSuccessMessage(msg);
+                navigation.goBack();
+              }}
+            />
+          )}
+        </HomeStack.Screen>
+      </HomeStack.Navigator>
     </ResourcesProvider>
   );
 }

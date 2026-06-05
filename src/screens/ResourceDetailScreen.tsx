@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Pressable,
-  ScrollView,
-  Share,
-  Text,
-  View,
-} from 'react-native';
+import { AccessibilityInfo, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -68,10 +61,7 @@ type ResourceDetailScreenProps = {
  * useFocusEffect drives fetch so navigation-back-and-return refreshes the
  * screen (same pattern as ProfileScreen).
  */
-export function ResourceDetailScreen({
-  resourceId,
-  onNavigateBack,
-}: ResourceDetailScreenProps) {
+export function ResourceDetailScreen({ resourceId, onNavigateBack }: ResourceDetailScreenProps) {
   const { user } = useAuth();
   const { isDemo, promptSignUp } = useDemo();
   const [resource, setResource] = useState<ResourceRow | null>(null);
@@ -212,8 +202,7 @@ export function ResourceDetailScreen({
       if (isRaceCondition) {
         // Riley F4: name the outcome in plain English; never say "try again".
         // Route back to feed so the user can find something else.
-        const raceMsg =
-          "Someone else just claimed this. It's no longer available.";
+        const raceMsg = "Someone else just claimed this. It's no longer available.";
         setError(raceMsg);
         AccessibilityInfo.announceForAccessibility(raceMsg);
         // Give the user a moment to read the error before navigating back.
@@ -223,10 +212,7 @@ export function ResourceDetailScreen({
           }, 2500);
         }
       } else {
-        const friendlyMsg = userFacingErrorMessage(
-          err,
-          'Could not claim this resource.',
-        );
+        const friendlyMsg = userFacingErrorMessage(err, 'Could not claim this resource.');
         setError(friendlyMsg);
         AccessibilityInfo.announceForAccessibility(friendlyMsg);
       }
@@ -261,8 +247,7 @@ export function ResourceDetailScreen({
    * participate" sheet (handleClaimPress) rather than executing a claim — the
    * demo is strictly read-only. Jordan gate condition 3.
    */
-  const canClaim =
-    resource?.status === 'available' && (isDemo || (!!user && !isMyPost));
+  const canClaim = resource?.status === 'available' && (isDemo || (!!user && !isMyPost));
 
   /**
    * Show the contact handle section when contact_handle is non-null.
@@ -277,7 +262,8 @@ export function ResourceDetailScreen({
   const showContactHandle = resource?.contact_handle != null;
   // Show claimant's profile handle ONLY to the poster when reserved.
   // Jordan-approved: handle only, no other PII. (2026-05-25-jordan-admin-tab-ack.md)
-  const showsClaimantHandle = isMyPost && resource?.status === 'reserved' && claimantHandle !== null;
+  const showsClaimantHandle =
+    isMyPost && resource?.status === 'reserved' && claimantHandle !== null;
 
   // ─── Loading ─────────────────────────────────────────────────────────────
 
@@ -315,7 +301,6 @@ export function ResourceDetailScreen({
   return (
     <SafeAreaView className="flex-1 bg-light-bg dark:bg-dark-bg">
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-
         {/* Photo — only when available */}
         {photoUrl && (
           <Image
