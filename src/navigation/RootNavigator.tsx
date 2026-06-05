@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -5,6 +6,7 @@ import { Text, useColorScheme } from 'react-native';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
 import type { HomeStackParamList, MainTabParamList } from '@/types/navigation';
+import { ResourcesProvider } from '@/contexts/ResourcesContext';
 
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ResourceDetailScreen } from '@/screens/ResourceDetailScreen';
@@ -22,45 +24,57 @@ const MainTab = createBottomTabNavigator<MainTabParamList>();
  * The HomeScreen receives navigation handlers from this stack; the real
  * `onOpenResource` / `onAddResource` callbacks wire up here.
  *
- * Phase 0b will replace HomeScreen's mock data with a real `useResources()`
- * hook; the navigation wiring below stays the same.
+ * <ResourcesProvider> wraps the entire stack so HomeScreen and ResourceMapScreen
+ * share a single Supabase Realtime subscription and a single fetch call.
+ * Without this wrapper, each screen that calls useResources() creates its own
+ * channel on 'resources-feed', causing duplicate subscriptions and wasted
+ * fetches (Peter perf audit wave-6, 2026-05-25).
  */
 function HomeStackNavigator() {
+  const [postSuccessMessage, setPostSuccessMessage] = useState<string | null>(null);
+
   return (
-    <HomeStack.Navigator>
-      <HomeStack.Screen name="Feed" options={{ headerShown: false }}>
-        {({ navigation }) => (
-          <HomeScreen
-            onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
-            onAddResource={() => navigation.navigate('AddResource')}
-            onOpenMap={() => navigation.navigate('ResourceMap')}
-          />
-        )}
-      </HomeStack.Screen>
-      <HomeStack.Screen name="Detail" options={{ title: '' }}>
-        {({ route }) => <ResourceDetailScreen resourceId={route.params.resourceId} />}
-      </HomeStack.Screen>
-      <HomeStack.Screen name="ResourceMap" options={{ title: 'Map', headerShown: false }}>
-        {({ navigation }) => (
-          <ResourceMapScreen
-            onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
-            onSelectFsa={() => navigation.navigate('Feed')}
-            onSwitchToList={() => navigation.navigate('Feed')}
-          />
-        )}
-      </HomeStack.Screen>
-      <HomeStack.Screen
-        name="AddResource"
-        options={{ title: 'Post a resource', presentation: 'modal' }}
-      >
-        {({ navigation }) => (
-          <AddResourceScreen
-            onCancel={() => navigation.goBack()}
-            onPosted={() => navigation.goBack()}
-          />
-        )}
-      </HomeStack.Screen>
-    </HomeStack.Navigator>
+    <ResourcesProvider>
+      <HomeStack.Navigator>
+        <HomeStack.Screen name="Feed" options={{ headerShown: false }}>
+          {({ navigation }) => (
+            <HomeScreen
+              onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
+              onAddResource={() => navigation.navigate('AddResource')}
+              onOpenMap={() => navigation.navigate('ResourceMap')}
+              successMessage={postSuccessMessage}
+              onSuccessDismiss={() => setPostSuccessMessage(null)}
+            />
+          )}
+        </HomeStack.Screen>
+        <HomeStack.Screen name="Detail" options={{ title: '' }}>
+          {({ route }) => <ResourceDetailScreen resourceId={route.params.resourceId} />}
+        </HomeStack.Screen>
+        <HomeStack.Screen name="ResourceMap" options={{ title: 'Map', headerShown: false }}>
+          {({ navigation }) => (
+            <ResourceMapScreen
+              onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
+              onSelectFsa={() => navigation.navigate('Feed')}
+              onSwitchToList={() => navigation.navigate('Feed')}
+            />
+          )}
+        </HomeStack.Screen>
+        <HomeStack.Screen
+          name="AddResource"
+          options={{ title: 'Post a resource', presentation: 'modal' }}
+        >
+          {({ navigation }) => (
+            <AddResourceScreen
+              onCancel={() => navigation.goBack()}
+              onPosted={(msg) => {
+                if (msg) setPostSuccessMessage(msg);
+                navigation.goBack();
+              }}
+            />
+          )}
+        </HomeStack.Screen>
+      </HomeStack.Navigator>
+    </ResourcesProvider>
   );
 }
 

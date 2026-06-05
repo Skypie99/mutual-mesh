@@ -68,8 +68,7 @@ export async function listResources() {
  * File lives on data/auto-2026-05-25-dana-claim-rpc; Sky applies via dashboard.
  */
 export async function getResourceDetail(resourceId: string) {
-  const { data, error } = await supabase
-    .rpc('get_resource_detail', { p_resource_id: resourceId });
+  const { data, error } = await supabase.rpc('get_resource_detail', { p_resource_id: resourceId });
   if (error) return { data: null, error };
   // RPC returns a rows array; first item is our resource (or undefined = not found)
   const row = Array.isArray(data) ? (data[0] ?? null) : (data ?? null);
@@ -91,21 +90,37 @@ export async function getClaimantHandle(userId: string) {
   return supabase.from('users').select('handle').eq('id', userId).maybeSingle();
 }
 
-/** Posts the current user has created (any status). */
+/**
+ * Posts the current user has created (any status: available, reserved, completed).
+ *
+ * AC-6.3 fix: selects only `id` since ProfileScreen only needs a count.
+ * The label "Posted" (not "Active posts") is intentionally all-statuses —
+ * a resource that has been claimed or completed still belongs to the poster.
+ */
 export async function listMyPosts(userId: string) {
   return supabase
     .from('resources')
-    .select('*')
+    .select('id')
     .eq('posted_by', userId)
     .order('created_at', { ascending: false })
     .limit(LIST_LIMIT);
 }
 
-/** Claims the current user has placed (status='reserved'). */
+/**
+ * Active claims the current user has placed (status='reserved' only).
+ *
+ * AC-6.3 fix: selects only `id` since ProfileScreen only needs a count.
+ * Excludes `completed` rows on purpose — those are fulfilled pickups, not
+ * active claims. The UI label "Active claims" matches this filter.
+ *
+ * If a resource is released back to 'available' (admin action or account
+ * deletion side-effect), it naturally drops out of this result set, which is
+ * the correct behaviour.
+ */
 export async function listMyClaims(userId: string) {
   return supabase
     .from('resources')
-    .select('*')
+    .select('id')
     .eq('claimed_by', userId)
     .eq('status', 'reserved')
     .order('status_changed_at', { ascending: false })
@@ -186,15 +201,31 @@ export async function deleteResourceById(id: string) {
 // ============================================================================
 
 /**
- * Hard-delete the current user's account. Calls delete_my_account RPC
- * which:
- *   - locks the auth.users row with FOR UPDATE (S5)
- *   - DELETEs all resources posted by the user (cascade)
- *   - NULLs out claims the user had placed on others' resources
- *   - DELETEs from auth.users → cascades to public.users
+ * Hard-delete the current user's account.
  *
- * Note: Supabase platform backups retain the data for ~7 days (D6 honest
- * disclosure). The in-app delete confirmation should say so.
+ * Calls the `delete_my_account` security-definer RPC, which runs in a single
+ * atomic transaction:
+ *   1. Locks the `auth.users` row with `SELECT … FOR UPDATE` (S5 — prevents
+ *      concurrent claims or resource actions during deletion).
+ *   2. Deletes all Storage objects in `resource-photos/<userId>/…` via the
+ *      cascade installed in migration 003
+ *      (`supabase/migrations/003_storage_cascade_on_delete_and_prune.sql`).
+ *      Storage deletes are **immediate and permanent** — Storage objects are
+ *      NOT covered by Supabase's Postgres PITR backups.
+ *   3. Cascade-deletes all `public.resources` rows posted by the user.
+ *   4. NULLs `claimed_by` on any resources the user had claimed on others'
+ *      posts (so those listings remain available).
+ *   5. Deletes from `auth.users`, which cascades to `public.users`.
+ *
+ * Returns the standard Supabase `{ data, error }` shape — callers should
+ * pipe `error` through `userFacingErrorMessage()` before display.
+ *
+ * @privacy-note Implements PRIVACY.md D6 (right-to-erasure). Cascade is
+ *   implemented server-side in the `delete_my_account` RPC + migration 003.
+ *   Row data (account info, posts metadata, claims metadata) may persist in
+ *   Supabase Postgres PITR backups for up to 7 days — callers must surface
+ *   this in the delete-confirmation UI. Storage photos are NOT subject to
+ *   PITR and are permanently deleted immediately.
  */
 export async function deleteMyAccount() {
   return supabase.rpc('delete_my_account');

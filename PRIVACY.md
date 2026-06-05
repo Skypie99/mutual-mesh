@@ -284,3 +284,9 @@ Steve's recommendation: **APPROVE Jordan's D1–D10 AND Steve's S1–S8 together
 - [x] ✅ **S6** — Approved (`cron_log` table + alert on consecutive prune failures).
 - [x] ✅ **S7** — Approved (stay on AsyncStorage for MVP; disclose unencrypted-at-rest risk; prominent sign-out; SecureStore as v2 path).
 - [x] ✅ **S8** — Approved (`verification_log` append-only at RLS; Sky-only SELECT).
+
+---
+
+## Addendum — Guest demo exception (2026-06-05)
+
+A read-only, anonymous **guest demo** (`?demo=1` on the web build) was added and privacy-reviewed (Jordan gate: `qa-reports/2026-06-05_Jordan_DemoMode_Privacy_Gate.md`, APPROVE-WITH-CONDITIONS). It renders ONLY bundled synthetic fixtures (`src/lib/demo/fixtures.ts`) and makes **zero Supabase calls** — no real listing, handle (`contact_handle` is structurally `null`), photo (`photo_url` is `null`), or location is ever exposed. This does **not** change any D1–D10 / S1–S8 decision above: the rule "no unauthenticated access to _real_ user data" stands and is honored by construction; only the broader "no guest mode at all" note (previously in LEARNINGS/README) is narrowed to permit a synthetic, zero-network demo.

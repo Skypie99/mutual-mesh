@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Pressable,
-  ScrollView,
-  Share,
-  Text,
-  View,
-} from 'react-native';
+import { AccessibilityInfo, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,6 +13,8 @@ import { createSignedResourcePhotoUrl } from '@/lib/photos';
 import { userFacingErrorMessage } from '@/lib/errors';
 import { radii } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
+import { useDemo } from '@/lib/demo/DemoContext';
+import { findDemoResource } from '@/lib/demo/fixtures';
 import type { ResourceRow } from '@/types/database';
 
 type ResourceDetailScreenProps = {
@@ -66,11 +61,9 @@ type ResourceDetailScreenProps = {
  * useFocusEffect drives fetch so navigation-back-and-return refreshes the
  * screen (same pattern as ProfileScreen).
  */
-export function ResourceDetailScreen({
-  resourceId,
-  onNavigateBack,
-}: ResourceDetailScreenProps) {
+export function ResourceDetailScreen({ resourceId, onNavigateBack }: ResourceDetailScreenProps) {
   const { user } = useAuth();
+  const { isDemo, promptSignUp } = useDemo();
   const [resource, setResource] = useState<ResourceRow | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,6 +82,20 @@ export function ResourceDetailScreen({
         setError('Missing resource id.');
         setLoading(false);
       }
+      return;
+    }
+
+    // DEMO MODE (WEB-4): resolve from bundled synthetic fixtures — NO RPC, NO
+    // network. The fixture's contact_handle is already null (no handle reveal)
+    // and photo_url is already null (no Storage signed-URL call). Jordan gate
+    // conditions 1 + 2.
+    if (isDemo) {
+      const demoRow = findDemoResource(resourceId);
+      if (!mountedRef.current) return;
+      setResource(demoRow);
+      setPhotoUrl(null);
+      setLoading(false);
+      setError(demoRow ? null : 'Resource not found.');
       return;
     }
 
@@ -113,7 +120,7 @@ export function ResourceDetailScreen({
     } else {
       if (mountedRef.current) setPhotoUrl(null);
     }
-  }, [resourceId]);
+  }, [resourceId, isDemo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -158,6 +165,17 @@ export function ResourceDetailScreen({
     };
   }, [resource?.status, resource?.claimed_by, resource?.posted_by, user]);
 
+  // Tapping "Claim this resource". In demo this is a read-only no-op that opens
+  // the sign-up sheet (Jordan condition 3 — never execute claim_resource). In
+  // the real app it opens the claim confirmation modal as before.
+  const handleClaimPress = () => {
+    if (isDemo) {
+      promptSignUp();
+      return;
+    }
+    setClaimModalOpen(true);
+  };
+
   const handleClaimConfirm = async () => {
     if (!resourceId) return;
     setClaiming(true);
@@ -184,8 +202,7 @@ export function ResourceDetailScreen({
       if (isRaceCondition) {
         // Riley F4: name the outcome in plain English; never say "try again".
         // Route back to feed so the user can find something else.
-        const raceMsg =
-          "Someone else just claimed this. It's no longer available.";
+        const raceMsg = "Someone else just claimed this. It's no longer available.";
         setError(raceMsg);
         AccessibilityInfo.announceForAccessibility(raceMsg);
         // Give the user a moment to read the error before navigating back.
@@ -195,10 +212,7 @@ export function ResourceDetailScreen({
           }, 2500);
         }
       } else {
-        const friendlyMsg = userFacingErrorMessage(
-          err,
-          'Could not claim this resource.',
-        );
+        const friendlyMsg = userFacingErrorMessage(err, 'Could not claim this resource.');
         setError(friendlyMsg);
         AccessibilityInfo.announceForAccessibility(friendlyMsg);
       }
@@ -227,9 +241,13 @@ export function ResourceDetailScreen({
    *   - current user did NOT post it (can't self-claim; RPC also enforces)
    *
    * Riley F1: button label must be "Claim this resource" not bare "Claim".
+   *
+   * DEMO MODE (WEB-4): there is no signed-in user, so show the claim CTA for any
+   * available resource. Tapping it is intercepted into the "Sign up to
+   * participate" sheet (handleClaimPress) rather than executing a claim — the
+   * demo is strictly read-only. Jordan gate condition 3.
    */
-  const canClaim =
-    resource?.status === 'available' && !!user && !isMyPost;
+  const canClaim = resource?.status === 'available' && (isDemo || (!!user && !isMyPost));
 
   /**
    * Show the contact handle section when contact_handle is non-null.
@@ -244,7 +262,8 @@ export function ResourceDetailScreen({
   const showContactHandle = resource?.contact_handle != null;
   // Show claimant's profile handle ONLY to the poster when reserved.
   // Jordan-approved: handle only, no other PII. (2026-05-25-jordan-admin-tab-ack.md)
-  const showsClaimantHandle = isMyPost && resource?.status === 'reserved' && claimantHandle !== null;
+  const showsClaimantHandle =
+    isMyPost && resource?.status === 'reserved' && claimantHandle !== null;
 
   // ─── Loading ─────────────────────────────────────────────────────────────
 
@@ -282,7 +301,6 @@ export function ResourceDetailScreen({
   return (
     <SafeAreaView className="flex-1 bg-light-bg dark:bg-dark-bg">
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-
         {/* Photo — only when available */}
         {photoUrl && (
           <Image
@@ -411,8 +429,12 @@ export function ResourceDetailScreen({
         {canClaim ? (
           <Button
             label={claiming ? 'Reserving…' : 'Claim this resource'}
-            hint="Reserves this resource for you and reveals the poster's contact handle."
-            onPress={() => setClaimModalOpen(true)}
+            hint={
+              isDemo
+                ? 'This is a demo with sample data. Claiming needs an account — opens a sign-up prompt.'
+                : "Reserves this resource for you and reveals the poster's contact handle."
+            }
+            onPress={handleClaimPress}
             disabled={claiming}
           />
         ) : (

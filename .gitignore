@@ -23,3 +23,6 @@ web-build/
 # dev server; everything else under .claude/ is local.
 .claude/settings.local.json
 .claude/worktrees/
+
+# generated test coverage (never commit)
+coverage/

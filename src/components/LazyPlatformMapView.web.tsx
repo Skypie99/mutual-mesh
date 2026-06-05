@@ -16,7 +16,7 @@ import { View, ActivityIndicator } from 'react-native';
 import type { PlatformMapViewProps } from './PlatformMapView';
 
 const PlatformMapView = React.lazy(() =>
-  import('./PlatformMapView.web').then((m) => ({ default: m.PlatformMapView }))
+  import('./PlatformMapView.web').then((m) => ({ default: m.PlatformMapView })),
 );
 
 function MapLoadingFallback() {

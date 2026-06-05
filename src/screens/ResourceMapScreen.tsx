@@ -318,7 +318,7 @@ export function ResourceMapScreen({
             {/* Hidden accessibility equivalent (AC-5) */}
             <View
               accessibilityLabel={hiddenListText}
-              accessibilityRole="summary"
+              accessibilityRole="none"
               style={{ height: 0, overflow: 'hidden' }}
             >
               <Text>{hiddenListText}</Text>
@@ -429,7 +429,7 @@ export function ResourceMapScreen({
       {/* Hidden a11y list (AC-5) */}
       <View
         accessibilityLabel={hiddenListText}
-        accessibilityRole="summary"
+        accessibilityRole="none"
         style={{ height: 0, overflow: 'hidden' }}
       >
         <Text>{hiddenListText}</Text>

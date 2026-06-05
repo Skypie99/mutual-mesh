@@ -1,6 +1,7 @@
 import { memo, useCallback, useState } from 'react';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlashBanner } from '@/components/FlashBanner';
 import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { FAB } from '@/components/FAB';
@@ -13,12 +14,31 @@ import { useColorScheme } from 'react-native';
 import type { ResourceRow } from '@/types/database';
 
 /**
+ * Returns true when an error message looks like a network/connectivity failure
+ * rather than a server-side or data error. We check for common patterns from
+ * the Fetch API and React Native's networking layer — no NetInfo dependency.
+ */
+function isNetworkError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('network') ||
+    lower.includes('fetch') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('typeerror') ||
+    lower.includes('network request failed') ||
+    lower.includes('no internet')
+  );
+}
+
+/**
  * Home / Feed screen — wired to real Supabase data via useResources.
  *
  * States rendered:
  *   - loading (first fetch)                  → FeedSkeleton
+ *   - loaded + empty + network error         → EmptyState with offline copy + retry
+ *   - loaded + empty + other error           → EmptyState with generic error copy + retry
  *   - loaded + empty                         → EmptyState with Casey copy
- *   - loaded + error                         → EmptyState with retry copy
+ *   - loaded + items + error (stale)         → FlatList + FlashBanner warning
  *   - loaded + items                         → FlatList of ResourceCard
  *
  * Pull-to-refresh wires to the hook's reload(). Realtime updates flow in via
@@ -33,11 +53,26 @@ type HomeScreenProps = {
   onAddResource?: () => void;
   /** Called when user taps the "Map" segment in the toggle. */
   onOpenMap?: () => void;
+  /** Show the list/map view toggle. Hidden in the web guest demo — the web map
+   *  (react-leaflet) isn't wired, so there's nothing to switch to. Defaults to true. */
+  showMapToggle?: boolean;
+  /** Optional success message to show in a FlashBanner (e.g. after posting a resource). */
+  successMessage?: string | null;
+  /** Called when the success banner dismisses so the parent can clear the message. */
+  onSuccessDismiss?: () => void;
 };
 
-export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScreenProps) {
+export function HomeScreen({
+  onOpenResource,
+  onAddResource,
+  onOpenMap,
+  showMapToggle = true,
+  successMessage,
+  onSuccessDismiss,
+}: HomeScreenProps) {
   const { resources, loading, error, reload } = useResources();
   const [refreshing, setRefreshing] = useState(false);
+  const [staleBannerDismissed, setStaleBannerDismissed] = useState(false);
   const scheme = useColorScheme();
   const accent = scheme === 'dark' ? colors.dark.accent : colors.light.accent;
 
@@ -54,8 +89,35 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
     [onOpenResource],
   );
 
+  // Show stale-data banner when we have items but the latest refresh failed.
+  // Dismissed state resets next time error clears (i.e. a successful reload).
+  const showStaleBanner = Boolean(error && resources.length > 0 && !staleBannerDismissed);
+
+  // Determine the right copy when there's an error and no data at all.
+  const networkErrorState = error && resources.length === 0 && isNetworkError(error);
+
   return (
     <SafeAreaView className="flex-1 bg-light-bg dark:bg-dark-bg">
+      {/* Success banner — shown after posting a resource; auto-dismisses after 4 s */}
+      {successMessage && (
+        <FlashBanner
+          message={successMessage}
+          variant="success"
+          autoDismissMs={4000}
+          onDismiss={() => onSuccessDismiss?.()}
+        />
+      )}
+
+      {/* Stale-data banner — floats above content, auto-dismisses after 6 s */}
+      {showStaleBanner && (
+        <FlashBanner
+          message="Showing saved resources — couldn't refresh"
+          variant="warning"
+          autoDismissMs={6000}
+          onDismiss={() => setStaleBannerDismissed(true)}
+        />
+      )}
+
       <View className="flex-1 px-4 pt-4">
         {/* Header + view toggle */}
         <Text
@@ -65,22 +127,34 @@ export function HomeScreen({ onOpenResource, onAddResource, onOpenMap }: HomeScr
           Available now
         </Text>
 
-        {/* MapToggle — 'list' is always selected here; tapping 'map' navigates away */}
-        <View className="mb-4">
-          <MapToggle
-            value="list"
-            onChange={(next) => {
-              if (next === 'map') onOpenMap?.();
-            }}
-          />
-        </View>
+        {/* MapToggle — 'list' is always selected here; tapping 'map' navigates away.
+            Hidden in the web guest demo: the web map (react-leaflet) isn't wired. */}
+        {showMapToggle && (
+          <View className="mb-4">
+            <MapToggle
+              value="list"
+              onChange={(next) => {
+                if (next === 'map') onOpenMap?.();
+              }}
+            />
+          </View>
+        )}
 
         {loading && resources.length === 0 ? (
           <FeedSkeleton />
+        ) : networkErrorState ? (
+          // Network/offline error — distinct copy from a server error.
+          <EmptyState
+            title="Can't reach the network"
+            description="Check your connection and pull down to retry."
+            ctaLabel="Retry"
+            onCta={() => void reload()}
+          />
         ) : error && resources.length === 0 ? (
+          // Server or data error — keep original intent but add explicit retry.
           <EmptyState
             title="Couldn't load listings"
-            description={error}
+            description="Something went wrong on our end. Try again in a moment."
             ctaLabel="Try again"
             onCta={() => void reload()}
           />
