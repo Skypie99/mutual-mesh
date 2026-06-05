@@ -6,6 +6,8 @@ import {
   type RealtimeEvent,
   type RealtimeResource,
 } from '@/lib/resourcesRealtime';
+import { useDemo } from '@/lib/demo/DemoContext';
+import { DEMO_RESOURCES } from '@/lib/demo/fixtures';
 import type { ResourceRow } from '@/types/database';
 
 /**
@@ -56,6 +58,7 @@ const ResourcesContext = createContext<ResourcesContextValue | null>(null);
  * Single subscription shared across Home and Map tabs — prevents duplicate channels.
  */
 export function ResourcesProvider({ children }: { children: React.ReactNode }) {
+  const { isDemo } = useDemo();
   const [resources, setResources] = useState<ResourceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +66,15 @@ export function ResourcesProvider({ children }: { children: React.ReactNode }) {
 
   const load = useCallback(async () => {
     if (!mountedRef.current) return;
+    // DEMO MODE (WEB-4): serve bundled synthetic fixtures and return BEFORE any
+    // Supabase call. This is the zero-network guarantee for the feed + FSA map
+    // (both consume this context). Jordan gate condition 1.
+    if (isDemo) {
+      setResources(DEMO_RESOURCES);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     setError(null);
     const { data, error: err } = await listResources();
     if (!mountedRef.current) return;
@@ -77,7 +89,7 @@ export function ResourcesProvider({ children }: { children: React.ReactNode }) {
       setResources((data ?? []) as ResourceRow[]);
     }
     setLoading(false);
-  }, []);
+  }, [isDemo]);
 
   const reload = useCallback(async () => {
     if (!mountedRef.current) return;
@@ -96,6 +108,11 @@ export function ResourcesProvider({ children }: { children: React.ReactNode }) {
 
   // Single subscription shared across Home and Map tabs — prevents duplicate channels.
   useEffect(() => {
+    // DEMO MODE (WEB-4): no Realtime channel — opening a `wss` connection would
+    // violate the zero-network guarantee. Fixtures are static, so there's
+    // nothing to subscribe to. Jordan gate condition 1.
+    if (isDemo) return;
+
     const channel = supabase
       .channel('resources-feed')
       .on(
@@ -116,7 +133,7 @@ export function ResourcesProvider({ children }: { children: React.ReactNode }) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isDemo]);
 
   return (
     <ResourcesContext.Provider value={{ resources, loading, error, reload }}>

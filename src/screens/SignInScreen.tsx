@@ -5,6 +5,7 @@ import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { signInWithEmail, signUpWithEmail, verifyOtp, resendOtp, supabase } from '@/lib/supabase';
 import { userFacingErrorMessage } from '@/lib/errors';
+import { useDemo } from '@/lib/demo/DemoContext';
 
 type SignInScreenProps = {
   /** Called after sign-in succeeds OR after OTP verification completes.
@@ -35,6 +36,7 @@ type Mode =
  * (handle + postal_prefix + city).
  */
 export function SignInScreen({ onAuthSuccess }: SignInScreenProps) {
+  const { enterDemo } = useDemo();
   const [mode, setMode] = useState<Mode>({ kind: 'sign-in' });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -283,6 +285,15 @@ export function SignInScreen({ onAuthSuccess }: SignInScreenProps) {
               setMode(isSignUp ? { kind: 'sign-in' } : { kind: 'sign-up-credentials' });
             }}
           />
+          {/* Anonymous guest demo (WEB-4) — only on the sign-in view, not mid sign-up. */}
+          {!isSignUp && (
+            <Button
+              label="Explore the demo"
+              variant="ghost"
+              hint="Browse a read-only demo with sample data. No account needed."
+              onPress={enterDemo}
+            />
+          )}
         </View>
       </View>
     </SafeAreaView>

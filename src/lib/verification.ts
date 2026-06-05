@@ -84,9 +84,18 @@ export type Cycle1GateInput = {
     handle: string;
     is_verified: boolean;
   } | null;
+  /**
+   * Anonymous guest demo mode (WEB-4, 2026-06-05). When true, route straight
+   * to the synthetic read-only demo — no session, no profile, no network.
+   * Optional + defaults to undefined so every existing caller and test is
+   * unaffected (the demo branch only fires on an explicit `demo: true`).
+   * Jordan-approved gate: qa-reports/2026-06-05_Jordan_DemoMode_Privacy_Gate.md
+   */
+  demo?: boolean;
 };
 
 export type Cycle1GateRoute =
+  | 'demo-home' // anonymous guest demo (synthetic fixtures, zero network)
   | 'splash' // booting OR session arrived but profile still hydrating
   | 'sign-in' // no session
   | 'complete-profile' // signup step 3 — handle still 'pending-XXX'
@@ -108,6 +117,7 @@ export function isProfilePending(handle: string): boolean {
  * never to 'home'. We never optimistically expose marketplace UI.
  */
 export function decideGateRoute(input: Cycle1GateInput): Cycle1GateRoute {
+  if (input.demo) return 'demo-home';
   if (input.loading) return 'splash';
   if (!input.session) return 'sign-in';
   if (input.profile === null) return 'splash';
