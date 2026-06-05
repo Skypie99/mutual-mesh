@@ -53,6 +53,9 @@ type HomeScreenProps = {
   onAddResource?: () => void;
   /** Called when user taps the "Map" segment in the toggle. */
   onOpenMap?: () => void;
+  /** Show the list/map view toggle. Hidden in the web guest demo — the web map
+   *  (react-leaflet) isn't wired, so there's nothing to switch to. Defaults to true. */
+  showMapToggle?: boolean;
   /** Optional success message to show in a FlashBanner (e.g. after posting a resource). */
   successMessage?: string | null;
   /** Called when the success banner dismisses so the parent can clear the message. */
@@ -63,6 +66,7 @@ export function HomeScreen({
   onOpenResource,
   onAddResource,
   onOpenMap,
+  showMapToggle = true,
   successMessage,
   onSuccessDismiss,
 }: HomeScreenProps) {
@@ -123,15 +127,18 @@ export function HomeScreen({
           Available now
         </Text>
 
-        {/* MapToggle — 'list' is always selected here; tapping 'map' navigates away */}
-        <View className="mb-4">
-          <MapToggle
-            value="list"
-            onChange={(next) => {
-              if (next === 'map') onOpenMap?.();
-            }}
-          />
-        </View>
+        {/* MapToggle — 'list' is always selected here; tapping 'map' navigates away.
+            Hidden in the web guest demo: the web map (react-leaflet) isn't wired. */}
+        {showMapToggle && (
+          <View className="mb-4">
+            <MapToggle
+              value="list"
+              onChange={(next) => {
+                if (next === 'map') onOpenMap?.();
+              }}
+            />
+          </View>
+        )}
 
         {loading && resources.length === 0 ? (
           <FeedSkeleton />
