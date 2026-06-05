@@ -9,6 +9,7 @@ import type { DemoStackParamList } from '@/types/navigation';
 
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ResourceDetailScreen } from '@/screens/ResourceDetailScreen';
+import { ResourceMapScreen } from '@/screens/ResourceMapScreen';
 
 const DemoStack = createNativeStackNavigator<DemoStackParamList>();
 
@@ -72,13 +73,14 @@ function DemoBanner() {
 }
 
 /**
- * DemoStackNavigator — Feed → Detail, reusing the real screens.
+ * DemoStackNavigator — Feed → Detail → ResourceMap, reusing the real screens.
  *
- * The screens read DemoContext and serve synthetic fixtures. Demo-specific
- * behavior: `onAddResource` opens the "Sign up to participate" sheet instead of
- * navigating to AddResource (read-only; Jordan condition 3), and the list/map
- * toggle is hidden (`showMapToggle={false}`) because the web map (react-leaflet)
- * isn't wired — so the demo has no Map screen and never hits that crash.
+ * The screens read DemoContext and serve synthetic fixtures (zero Supabase calls).
+ * Demo-specific behavior: `onAddResource` opens the "Sign up to participate"
+ * sheet instead of navigating to AddResource (read-only; Jordan condition 3).
+ * The list/map toggle is now shown — the real react-leaflet web map is wired
+ * (shamus/restore-web-map-2026-06-05). ResourceMapScreen renders ONLY the
+ * bundled synthetic fixtures via DemoContext/useResources demo-guard.
  */
 function DemoStackNavigator() {
   const { promptSignUp } = useDemo();
@@ -91,7 +93,8 @@ function DemoStackNavigator() {
             <HomeScreen
               onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
               onAddResource={promptSignUp}
-              showMapToggle={false}
+              onOpenMap={() => navigation.navigate('ResourceMap')}
+              showMapToggle={true}
             />
           )}
         </DemoStack.Screen>
@@ -100,6 +103,14 @@ function DemoStackNavigator() {
             <ResourceDetailScreen
               resourceId={route.params.resourceId}
               onNavigateBack={() => navigation.navigate('Feed')}
+            />
+          )}
+        </DemoStack.Screen>
+        <DemoStack.Screen name="ResourceMap" options={{ headerShown: false }}>
+          {({ navigation }) => (
+            <ResourceMapScreen
+              onOpenResource={(id) => navigation.navigate('Detail', { resourceId: id })}
+              onSwitchToList={() => navigation.navigate('Feed')}
             />
           )}
         </DemoStack.Screen>
