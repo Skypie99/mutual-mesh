@@ -1,5 +1,5 @@
 -- ============================================================================
--- Migration 015 — RPC parameter rename: drop p_ prefix
+-- Migration 016 — RPC parameter rename: drop p_ prefix
 -- ============================================================================
 -- Date: 2026-05-25
 -- Author: Jordan (legal-privacy role) — routed by Morgan stabilization cycle
@@ -39,7 +39,7 @@
 -- NOTE ON GRANTS
 -- GRANTs reference type signatures (TEXT, TEXT) and (JSONB), not parameter
 -- names, so existing grants from migrations 009/010 remain valid. Re-granting
--- here is idempotent and ensures correctness if 009 and 015 are applied
+-- here is idempotent and ensures correctness if 009 and 016 are applied
 -- without 009's original GRANT.
 -- ============================================================================
 
@@ -56,6 +56,8 @@
 --   Guard 5 [F1a]: is_verified = true
 --   Guard 6 [F1b]: push_preferences.enabled = true
 -- Plus FOR SHARE lock on user row for race protection.
+
+DROP FUNCTION IF EXISTS public.register_push_token(text, text);
 
 CREATE OR REPLACE FUNCTION public.register_push_token(token TEXT, platform TEXT)
 RETURNS BOOLEAN
@@ -163,7 +165,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.register_push_token(TEXT, TEXT) IS
-  'Push token registration (PATCHED by migration 015: p_expo_token → token, '
+  'Push token registration (PATCHED by migration 016: p_expo_token → token, '
   'p_platform → platform; carries ALL migration 011 security gates). '
   'Guards in order: (1) authenticated, (2) valid platform, (3) non-empty token, '
   '(4) [F4b] token ≤ 4096 chars, (5) [F1a] is_verified = true, '
@@ -179,6 +181,8 @@ GRANT EXECUTE ON FUNCTION public.register_push_token(TEXT, TEXT) TO authenticate
 -- Body is identical to migration 009's definition. Only p_prefs → prefs.
 -- Logic, SECURITY DEFINER, search_path, auth guard, validation, and JSONB
 -- merge semantics are unchanged.
+
+DROP FUNCTION IF EXISTS public.update_push_preferences(jsonb);
 
 CREATE OR REPLACE FUNCTION public.update_push_preferences(prefs JSONB)
 RETURNS JSONB
@@ -222,6 +226,6 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.update_push_preferences(JSONB) IS
-  'Phase 3 push preference update (PATCHED by migration 015: p_prefs → prefs). Shallow-merges prefs onto users.push_preferences via JSONB || operator. Returns the merged result. Client calls supabase.rpc(''update_push_preferences'', { prefs: merged }).';
+  'Phase 3 push preference update (PATCHED by migration 016: p_prefs → prefs). Shallow-merges prefs onto users.push_preferences via JSONB || operator. Returns the merged result. Client calls supabase.rpc(''update_push_preferences'', { prefs: merged }).';
 
 GRANT EXECUTE ON FUNCTION public.update_push_preferences(JSONB) TO authenticated;
