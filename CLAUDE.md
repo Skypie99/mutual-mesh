@@ -4,7 +4,9 @@ A privacy-first community-run mutual-aid network for marginalized groups to shar
 
 **Live local path:** `~/MutualMesh`
 **Owner:** skylerhalisky@gmail.com
-**Status (2026-05-23):** **Cycle 1 complete (Loops 11–20).** PRIVACY.md 🟢 APPROVED. Build chain green: typecheck + **91 jest tests** in 8 suites + lint + format:check. Cycle 1 wired the real Supabase layer: `supabase/schema.sql` (8 tables + 7 RPCs + 4 triggers + RLS coverage tested in `supabase/__tests__/rls.sql`) + `realtime.sql`; `src/types/database.ts` (using `type`, never `interface`); `src/lib/supabase.ts` (env-var safe init); `src/lib/auth.tsx` (AuthProvider with realtime `is_verified` subscription); `src/lib/handleGenerator.ts` (~150 adj + ~150 noun wordlist, generates `<adj>-<noun>-<4digit>`); `src/lib/handleValidator.ts` (no-real-names soft warn per DFS-C1.1). `App.tsx` Gate uses pure `decideGateRoute` (5 states: splash / sign-in / complete-profile / wait / home). Three-step signup with OTP. **Schema is a FILE — not yet applied to any live Supabase project.** Sky applies via dashboard (numbered steps in `qa-reports/cycle-1-auth-gate-2026-05-23.md`). After Sky applies + sets `config.sky_uuid` + promotes self to `is_admin`, Cycle 2 (Marketplace Feed real data) starts.
+**Status (2026-05-28):** **Cycles 1–6 complete; Cycle 7 audits underway.** PRIVACY.md 🟢 APPROVED. 172+ tests across 13+ suites, typecheck green, lint + format:check clean. Full resource marketplace shipped: auth gate, invite-only onboarding, marketplace feed, resource detail, add resource with dual-layer EXIF stripping, FSA resource map, atomic claim RPC, pickup confirmation, push notification infrastructure (three-layer consent), error reporting, admin verification queue, Policy/ToS screens. **50 Cycle-1–5 branches gate-approved and queued for merge** pending migrations 012–014 apply by Sky. Cycle 7 security audit: PASS (Steve 2026-05-28). Cycle 7 a11y audit: PASS, 4 LOW findings (Alex 2026-05-28). See `qa-reports/2026-05-28_Morgan_MigrationGate.md` for merge-gate status.
+
+<!-- WILL-NOTE: The detailed Cycle 1 narrative below (build chain, loop numbers, initial schema wiring) is accurate history but is now several cycles stale. A future CLAUDE.md update should restructure the Status section into a table: Cycle | Date | Key deliverable | Status. Leaving as-is for now per minimal-edit rule. -->
 
 ---
 
@@ -140,9 +142,9 @@ qa-reports/                             orchestrator cycle reports
 
 ---
 
-## Database (Supabase) — Cycle 1 (Dana 2026-05-23)
+## Database (Supabase) — updated 2026-05-28 (Cycles 1–7)
 
-Source-of-truth: [`supabase/schema.sql`](supabase/schema.sql) + [`supabase/realtime.sql`](supabase/realtime.sql). Dana writes files only; **Sky applies via dashboard.** See `qa-reports/cycle-1-auth-gate-2026-05-23.md` for numbered apply steps.
+Source-of-truth: [`supabase/schema.sql`](supabase/schema.sql) + [`supabase/realtime.sql`](supabase/realtime.sql) + migrations `001`–`014`. Dana writes files only; **Sky applies via dashboard.** See `qa-reports/cycle-1-auth-gate-2026-05-23.md` for Cycle 1 apply steps. **Pending Sky apply:** migrations 012 (`push_rate_limit`), 013 (`verification_log_fix`), 014 (`get_resource_detail` RPC). Apply in order 012 → 013 → 014. Details in `qa-reports/2026-05-28_Morgan_MigrationGate.md`.
 
 ### Tables
 
