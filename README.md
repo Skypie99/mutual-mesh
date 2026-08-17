@@ -2,7 +2,7 @@
 
 A privacy-first community-run mutual-aid network for marginalized groups to share food, baby formula, and critical resources — without corporate or state surveillance.
 
-**Status:** **Phases 1–4 complete (2026-05-24).** 172+ tests, real Supabase wiring, full resource marketplace, photo uploads with EXIF stripping, resource map (OSM + FSA aggregation), push notification infrastructure, error reporting, and Policy/ToS screens. See `qa-reports/phase-2-closeout-2026-05-24.md` and `qa-reports/phase-3-4-security-sweep-2026-05-24.md` for the full audit trail.
+**Status:** **Phases 1–4 complete (2026-05-24).** 441 tests passing across 26 suites (measured 2026-08-16 from a fresh clone: `npm ci && npx jest --ci`), real Supabase wiring, full resource marketplace, photo uploads with EXIF stripping, resource map (OSM + FSA aggregation), push notification infrastructure, error reporting, and Policy/ToS screens. See `qa-reports/phase-2-closeout-2026-05-24.md` and `qa-reports/phase-3-4-security-sweep-2026-05-24.md` for the full audit trail.
 
 ## Features
 
