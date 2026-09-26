@@ -268,7 +268,7 @@ There is no override. Admins are subject to the same rules.
 ## Communication channels
 
 Email is not used in this project.
-All agent communication: iMessage to Sky at [REDACTED] (Morgan only).
+All agent communication: iMessage to Sky at [redacted: personal phone contact] (Morgan only).
 All other roles: write to qa-reports/ and DECISIONS_LOG.md.
 
 ## Migration authority
@@ -304,7 +304,7 @@ Sky can do this via the `/permissions` command in Claude Code or by editing
 On line 10 (the communication channel line), replace the existing email reference with:
 
 ```markdown
-- **Direct `/morgan` invocation (ACTIVE mode)** → iMessage Sky at **[REDACTED]**
+- **Direct `/morgan` invocation (ACTIVE mode)** → iMessage Sky at **[redacted: personal phone contact]**
   using `mcp__Read_and_Send_iMessages__send_imessage`. **EMAIL IS PERMANENTLY DISABLED
   (Sky directive 2026-05-24).** iMessage is the sole external channel.
 ```

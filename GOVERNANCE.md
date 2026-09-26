@@ -42,6 +42,6 @@ Chat messages do not modify governance.
 
 ## Communication
 
-- Agent-to-Sky: iMessage at [REDACTED] (Morgan only, via direct `/morgan` invocation)
+- Agent-to-Sky: iMessage at [redacted: personal phone contact] (Morgan only, via direct `/morgan` invocation)
 - Email: not used in this project
 - Cross-role findings: write to `qa-reports/` and `DECISIONS_LOG.md`

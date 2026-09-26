@@ -2,6 +2,8 @@
 
 A privacy-first community-run mutual-aid network for marginalized groups to share food, baby formula, and critical resources — without corporate or state surveillance.
 
+The source repository is public. The community marketplace requires an invitation and account verification. Public source visibility and service access are separate.
+
 **Status:** **Phases 1–4 complete (2026-05-24).** 172+ tests, real Supabase wiring, full resource marketplace, photo uploads with EXIF stripping, resource map (OSM + FSA aggregation), push notification infrastructure, error reporting, and Policy/ToS screens. See `qa-reports/phase-2-closeout-2026-05-24.md` and `qa-reports/phase-3-4-security-sweep-2026-05-24.md` for the full audit trail.
 
 ## Features
@@ -130,7 +132,7 @@ The app ships a web build powered by [Expo web](https://docs.expo.dev/workflow/w
 
 **Live URL:** `https://mutual-mesh.vercel.app`
 
-**Access:** the real marketplace is auth-gated — a valid Mutual Mesh account (invite token + Sky verification) is required, and Jordan's web-gate advisory (2026-05-25) bars any unauthenticated access to real user data. One exception: `?demo=1` opens a read-only **guest demo** that renders only synthetic sample data with zero network calls (Jordan gate 2026-06-05), so a visitor can explore the UI without an account and without ever touching real listings.
+**Access:** the real marketplace requires a Mutual Mesh account with an invite token and verification. `?demo=1` selects a read-only guest interface with synthetic sample data. The web map requests OpenStreetMap tiles. Isolation from an existing saved account session has not been verified, so this documentation makes no guarantee of zero network requests or zero backend access. See the [saved-session privacy review request](qa-reports/2026-09-26_Codex_DemoSessionPrivacyReviewRequest.md) before relying on demo isolation.
 
 **Map:** the web map uses `react-leaflet` + OpenStreetMap tiles via `src/components/PlatformMapView.web.tsx`. Metro's platform-specific file resolution serves this file instead of `PlatformMapView.tsx` (which imports `react-native-maps`) on web builds. Both files export the same `PlatformMapView` component and props type.
 

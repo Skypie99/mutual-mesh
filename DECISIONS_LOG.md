@@ -39,7 +39,7 @@ Rationale: Role-based (.ca domain, privacy@ prefix) — PIPEDA-appropriate, surv
 Applied: commit a435556 on feat/resource-map-screen-2026-05-24 (policyText.ts lines 117, 186, 226).
 
 **Morgan communication channel — iMessage only** — Sky directive 2026-05-24
-Decision: Email permanently disabled for Morgan. Morgan iMessages Sky at [REDACTED] on direct /morgan invocation (ACTIVE mode).
+Decision: Email permanently disabled for Morgan. Morgan iMessages Sky at [redacted: personal phone contact] on direct /morgan invocation (ACTIVE mode).
 Status: iMessage sent successfully this session. morgan.md documentation update BLOCKED by auto-mode classifier — requires manual edit by Sky in Cowork or text editor.
 Files to update manually: ~/ClaudeCorp/.claude/commands/morgan.md line 10, then deploy: cp -R ~/ClaudeCorp/.claude/\* ~/.claude/
 
@@ -70,4 +70,5 @@ Decision: Migrations 002-011 are FILE ARTIFACTS only. Auto-mode classifier corre
 ---
 
 ## [MM-MIGRATION-016-RORY-APPLY] — 2026-06-18
+
 Sky granted Rory a one-time, scoped authority to fix + apply migration 016 to mutualmesh-staging only (cslvjfewxiowdxfoqzre; zero real users). Production / real-data DB applies remain Sky-only. Verified applied: register_push_token(token, platform) / update_push_preferences(prefs). Rollback: re-run migrations 011 + 009. Ref: qa-reports/cycle-2026-06-18-morgan-mm-phaseA-B.md, PR #38.
