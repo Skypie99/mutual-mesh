@@ -39,7 +39,7 @@ Baseline exit 1: `Checking formatting...`; `[warn] DECISIONS_LOG.md`; `[warn] Co
 npm run typecheck -- --pretty false --incremental false
 ```
 
-Exit 0: `mutual-mesh@0.1.0 typecheck`; `tsc --noEmit --pretty false --incremental false`. Dependencies were reused through an ignored local symlink; no packages were installed or changed.
+Exit 0: `mutual-mesh@0.1.0 typecheck`; `tsc --noEmit --pretty false --incremental false`. Dependencies were reused through a temporary untracked local symlink, removed after verification; no packages were installed or changed.
 
 ```bash
 git diff --cached --check
