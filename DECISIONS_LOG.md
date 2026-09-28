@@ -70,4 +70,5 @@ Decision: Migrations 002-011 are FILE ARTIFACTS only. Auto-mode classifier corre
 ---
 
 ## [MM-MIGRATION-016-RORY-APPLY] — 2026-06-18
+
 Sky granted Rory a one-time, scoped authority to fix + apply migration 016 to mutualmesh-staging only (cslvjfewxiowdxfoqzre; zero real users). Production / real-data DB applies remain Sky-only. Verified applied: register_push_token(token, platform) / update_push_preferences(prefs). Rollback: re-run migrations 011 + 009. Ref: qa-reports/cycle-2026-06-18-morgan-mm-phaseA-B.md, PR #38.
