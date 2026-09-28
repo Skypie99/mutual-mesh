@@ -2,11 +2,21 @@
 
 A privacy-first community-run mutual-aid network for marginalized groups to share food, baby formula, and critical resources — without corporate or state surveillance.
 
-**Status:** **Phases 1–4 complete (2026-05-24).** 172+ tests, real Supabase wiring, full resource marketplace, photo uploads with EXIF stripping, resource map (OSM + FSA aggregation), push notification infrastructure, error reporting, and Policy/ToS screens. See `qa-reports/phase-2-closeout-2026-05-24.md` and `qa-reports/phase-3-4-security-sweep-2026-05-24.md` for the full audit trail.
+## Project status
+
+**Paused prototype — not a running service.** Built May–June 2026; development is paused.
+
+| Question               | Answer (verified 2026-09-25)                                                                                                                                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Implemented in source  | Everything under **Features** below, on `main`.                                                                                                                                                                              |
+| Deployed today         | The web build at [mutualmesh.skypistudio.com](https://mutualmesh.skypistudio.com). The old `mutual-mesh.vercel.app` address redirects there.                                                                                 |
+| Works today            | The read-only guest demo at [`?demo=1`](https://mutualmesh.skypistudio.com/?demo=1): synthetic sample data only, with zero calls to any backend.                                                                             |
+| Intentionally inactive | Accounts, the real marketplace, push delivery and error intake. The hosted Supabase project used during development was a staging project with no real users, and it was retired in August 2026, so sign-in cannot complete. |
+| Pending / unapplied    | Database migrations and Edge Functions live here as files. None of them are running anywhere today.                                                                                                                          |
 
 ## Features
 
-Everything below is shipped and in the codebase. Nothing here is "coming soon."
+Everything below is implemented in the source on `main`. Implemented is not the same as running today: see **Project status** above.
 
 ### Auth gate
 
@@ -48,7 +58,7 @@ Admins see a queue of accounts waiting for approval. Approvals and rejections go
 
 The wiring is in place: opt-in per trigger (marketplace activity, admin approval result), default OFF for every user. Notifications are title-only on the lock screen — the body is always empty, so the resource name never appears where someone else could read it. The push token is not stored in AsyncStorage; it is re-read fresh each session.
 
-This is infrastructure, not a fully deployed feature. The Edge Function for delivery (`deliver_notification`) and the server-side preference gate (migration 011) are queued for deployment — Sky applies them via the Supabase dashboard.
+This was infrastructure, not a fully deployed feature. The delivery Edge Function (`supabase/functions/deliver_notification/`) and the server-side preference gate (migration `011`) are in the repo; with the backend retired, neither is running.
 
 ### Error reporting
 
@@ -64,31 +74,33 @@ Every component bakes in WCAG 2.5.5 (44pt minimum touch targets), `accessibility
 
 ## What's here
 
-| File / Directory                               | What it is                                                                            |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `PRD.md`                                       | Sky's original product spec (some fields superseded by privacy redesign)              |
-| `CLAUDE.md`                                    | Team context, gotchas, decisions log, file map, Role → Outputs map                    |
-| `PRIVACY.md`                                   | **🟢 APPROVED.** Jordan data model + Steve audit. Source of truth for data decisions. |
-| `FEATURES.md`                                  | Backlog ordered by value/cost                                                         |
-| `DESIGN.md`                                    | Visual system v1 with WCAG-verified contrast ratios                                   |
-| `LEARNINGS.md`                                 | Durable patterns and gotchas — appended each phase                                    |
-| `CONTRIBUTING.md` + `SECURITY.md`              | Contributor entry point + vulnerability disclosure policy                             |
-| `community/` + `research/` + `designs/`        | Casey / Riley / Dani role homes                                                       |
-| `qa-reports/`                                  | Audit reports, cycle briefings, privacy reviews for every phase                       |
-| `supabase/schema.sql` + `supabase/migrations/` | Full schema + 10 migration files. FILES ONLY — Sky applies via dashboard.             |
-| `supabase/functions/exif-strip/`               | Edge Function for server-side EXIF strip. Deploy via `supabase functions deploy`.     |
-| `src/lib/`                                     | All pure helpers + Supabase client + auth + push + error reporting + i18n             |
-| `src/components/`                              | 13 reusable UI primitives, all WCAG 2.5.5 + label compliant                           |
-| `src/screens/`                                 | 13 screens wired to real Supabase data                                                |
-| `src/navigation/`                              | Bottom tabs + Home stack + Profile stack + deep-link auth gate                        |
+| File / Directory                               | What it is                                                                                                                                 |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PRD.md`                                       | Sky's original product spec (some fields superseded by privacy redesign)                                                                   |
+| `CLAUDE.md`                                    | Team context, gotchas, decisions log, file map, Role → Outputs map                                                                         |
+| `PRIVACY.md`                                   | **🟢 APPROVED.** Jordan data model + Steve audit. Source of truth for data decisions.                                                      |
+| `FEATURES.md`                                  | Backlog ordered by value/cost                                                                                                              |
+| `DESIGN.md`                                    | Visual system v1 with WCAG-verified contrast ratios                                                                                        |
+| `LEARNINGS.md`                                 | Durable patterns and gotchas — appended each phase                                                                                         |
+| `CONTRIBUTING.md` + `SECURITY.md`              | Contributor entry point + vulnerability disclosure policy                                                                                  |
+| `community/` + `research/`                     | Casey / Riley role homes                                                                                                                   |
+| `qa-reports/`                                  | Audit reports, cycle briefings, privacy reviews for every phase                                                                            |
+| `supabase/schema.sql` + `supabase/migrations/` | Full schema + 15 migration files (`002`–`016`). FILES ONLY — never applied automatically.                                                  |
+| `supabase/functions/`                          | Edge Functions: `exif-strip` (server-side EXIF re-encode), `log-error` (PII-scrubbed error intake), `deliver_notification` (push delivery) |
+| `.github/workflows/` + `.gitleaks.toml`        | CI on every PR to `main`: typecheck, lint + format check, Jest, email-import guard, migration-sequence guard; plus a gitleaks secrets scan |
+| `src/lib/`                                     | All pure helpers + Supabase client + auth + push + error reporting + i18n                                                                  |
+| `src/lib/demo/`                                | The guest demo: synthetic fixtures and the zero-network demo context                                                                       |
+| `src/components/`                              | Reusable UI primitives, all WCAG 2.5.5 + label compliant                                                                                   |
+| `src/screens/`                                 | 13 screens wired to Supabase data                                                                                                          |
+| `src/navigation/`                              | Bottom tabs + Home stack + Profile stack + deep-link auth gate                                                                             |
 
 ## Running it locally
 
 ```bash
 npm install --legacy-peer-deps   # required because of the React 19.1 pin
 npm run typecheck                 # tsc --noEmit
-npm test                          # 172+ tests across 13+ suites
-npm run lint                      # eslint clean
+npm test                          # Jest (26 test files)
+npm run lint                      # eslint
 npm run format                    # prettier auto-format
 npm start                         # boots Expo dev server
 ```
@@ -100,7 +112,7 @@ The app requires a Supabase project with the schema applied to show real data. W
 You need a Supabase project before the app does anything useful.
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Run `supabase/schema.sql` in the SQL editor, then apply migrations `001` through `010` in order.
+2. Run `supabase/schema.sql` in the SQL editor, then apply the files in `supabase/migrations/` in numeric order (`002`–`016`).
 3. Set `config.sky_uuid` to your Supabase user UUID, then run
    `UPDATE public.users SET is_admin = true WHERE id = '<your-uuid>'` via the service role.
 4. Generate a first invite token:
@@ -114,13 +126,9 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 
 Numbered apply steps with exact SQL for each migration live in `qa-reports/cycle-1-auth-gate-2026-05-23.md`.
 
-## What Sky still needs to apply
+## Backend state
 
-A few pieces are files in the repo but not yet live on any Supabase project. Sky applies these via the dashboard:
-
-- Migrations `011` (push preference server gate) and `012` (push rate limit) — in their respective `supabase/migrations/` files.
-- EXIF strip Edge Function — `supabase functions deploy exif-strip` + wire the Storage webhook (steps in `supabase/functions/exif-strip/README.md`).
-- `deliver_notification` Edge Function — in `rory/deliver-notification-edge-fn-2026-05-25` branch.
+Nothing in this repository is applied to a live backend today. The hosted Supabase project used during development was retired in August 2026. The migrations and Edge Functions stay here as reference files, and a self-hoster applies them by following **Setup** above.
 
 See `CLAUDE.md` for stack details and full gotchas list.
 
@@ -128,9 +136,9 @@ See `CLAUDE.md` for stack details and full gotchas list.
 
 The app ships a web build powered by [Expo web](https://docs.expo.dev/workflow/web/) + [react-leaflet](https://react-leaflet.js.org/) (for the resource map).
 
-**Live URL:** `https://mutual-mesh.vercel.app`
+**Live URL:** [mutualmesh.skypistudio.com](https://mutualmesh.skypistudio.com) (the older `https://mutual-mesh.vercel.app` redirects there)
 
-**Access:** the real marketplace is auth-gated — a valid Mutual Mesh account (invite token + Sky verification) is required, and Jordan's web-gate advisory (2026-05-25) bars any unauthenticated access to real user data. One exception: `?demo=1` opens a read-only **guest demo** that renders only synthetic sample data with zero network calls (Jordan gate 2026-06-05), so a visitor can explore the UI without an account and without ever touching real listings.
+**Access:** the real marketplace is auth-gated. A valid Mutual Mesh account (invite token + Sky verification) is required, and Jordan's web-gate advisory (2026-05-25) bars any unauthenticated access to real user data. With the backend retired, sign-in cannot complete, so the live site is effectively demo-only. `?demo=1` opens a read-only **guest demo** that renders only synthetic sample data with zero network calls (Jordan gate 2026-06-05), so a visitor can explore the UI without an account and without ever touching real listings. The demo's "Sign up" button leads into that inactive sign-in flow.
 
 **Map:** the web map uses `react-leaflet` + OpenStreetMap tiles via `src/components/PlatformMapView.web.tsx`. Metro's platform-specific file resolution serves this file instead of `PlatformMapView.tsx` (which imports `react-native-maps`) on web builds. Both files export the same `PlatformMapView` component and props type.
 
@@ -141,3 +149,7 @@ npm run web   # starts the Expo web dev server
 ```
 
 The Vercel deployment uses `--legacy-peer-deps` in `installCommand` (see `vercel.json`) because react-leaflet has a peer dependency conflict with the React 19.1 pin.
+
+## Project records
+
+This README is the current source of truth for the project's status. `CLAUDE.md`, `PRD.md`, `FEATURES.md`, `LEARNINGS.md`, `DECISIONS_LOG.md`, `GOVERNANCE.md` and `qa-reports/` are dated working records from the May–June 2026 build. Where one of them disagrees with this README, the README wins. The build used AI-assisted roles under [Claude Corp](https://github.com/Skypie99/Claude_Corp) governance. Product intent, privacy and accessibility boundaries, and release decisions stayed with the owner. The phase audit trail starts at `qa-reports/phase-2-closeout-2026-05-24.md` and `qa-reports/phase-3-4-security-sweep-2026-05-24.md`.
