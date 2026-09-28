@@ -59,10 +59,10 @@ Life is hard and complicated. If you can't make a handoff happen — or if someo
 ## If something goes wrong
 
 **Flagging a bad listing:**
-Long-press any listing → tap "Report." Or email us at privacy@mutualmesh.ca with the listing handle and a brief description of what you saw.
+Long-press any listing → tap "Report." Or email us at skylerhalisky@gmail.com with the listing handle and a brief description of what you saw.
 
 **Flagging unsafe behaviour:**
-If someone made you feel unsafe — through messages, in person, or in the app — email privacy@mutualmesh.ca. Be as detailed or as brief as you're comfortable being.
+If someone made you feel unsafe — through messages, in person, or in the app — email skylerhalisky@gmail.com. Be as detailed or as brief as you're comfortable being.
 
 **What happens after you report:**
 A human reads every report. No automated filters, no algorithmic strike systems. We'll contact the person who reported (if you want us to — you can report anonymously too) and take action based on what we find. For serious safety concerns, we'll act quickly. For policy questions, we'll aim to respond within 48 hours.
@@ -83,12 +83,12 @@ Your job is to apply the criteria (see `community/onboarding.md`) and let people
 **What you see, and only what you see:**
 During verification, you have access to a verified applicant's handle, email, postal prefix, and invite-code status. After you decide, your session ends and you retain no ongoing access to that account's data. You cannot view resource posts, claim history, or contact handles for users you've approved — not through the admin interface. The database allows admin-role reads of the full applicant row — the restriction is enforced by the app, not a column-level lock. If you discover a way to access data outside the admin UI, treat it as a security report, not a feature.
 
-**If you discover an access gap — a way to see data you shouldn't be able to see — treat it as a security report**, not a privilege. File it at privacy@mutualmesh.ca and we'll fix it fast.
+**If you discover an access gap — a way to see data you shouldn't be able to see — treat it as a security report**, not a privilege. File it at skylerhalisky@gmail.com and we'll fix it fast.
 
 **Escalate before you decide alone.**
 If an application is contested, unusual, or you're just not sure, escalate. That's what the process is for. Slow and careful is better than fast and wrong.
 
 ---
 
-_Questions, concerns, or corrections to this document: privacy@mutualmesh.ca._
+_Questions, concerns, or corrections to this document: skylerhalisky@gmail.com._
 _Last updated: 2026-05-25 — Casey v1, written against Riley's personas (Mara, Keo, Sasha) and Jordan's PRIVACY.md._

@@ -114,7 +114,7 @@ If we change this policy in a way that affects you, we will post a notice in the
 
 CONTACT
 
-Reach the project owner (Sky) at privacy@mutualmesh.ca. We will respond to privacy questions, deletion requests, and complaints. If you would rather reach us through an alias or a privacy-preserving channel, that is fine — say so and we will accommodate.
+Reach the project owner (Sky) at skylerhalisky@gmail.com. We will respond to privacy questions, deletion requests, and complaints. If you would rather reach us through an alias or a privacy-preserving channel, that is fine — say so and we will accommodate.
 
 
 REMINDER
@@ -183,7 +183,7 @@ When you sign up, a community verification admin reviews your account. The admin
 
 REPORTING BAD ACTORS
 
-If another user violates these terms, you can report them. The in-app report flow is on the project roadmap but is not yet built. Until it lands, email the project owner (Sky) at privacy@mutualmesh.ca with the handle and a description of what happened. We will investigate and take action when warranted.
+If another user violates these terms, you can report them. The in-app report flow is on the project roadmap but is not yet built. Until it lands, email the project owner (Sky) at skylerhalisky@gmail.com with the handle and a description of what happened. We will investigate and take action when warranted.
 
 
 SUSPENSION AND TERMINATION
@@ -223,7 +223,7 @@ If we change these terms in a way that affects you, we will post a notice in the
 
 CONTACT
 
-Reach the project owner (Sky) at privacy@mutualmesh.ca.
+Reach the project owner (Sky) at skylerhalisky@gmail.com.
 
 
 REMINDER

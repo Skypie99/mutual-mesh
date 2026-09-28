@@ -61,6 +61,14 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { ResourceDetailScreen } from '@/screens/ResourceDetailScreen';
 
+// Every test here mounts the full screen and then waits on an async claim round
+// trip, which is slow enough that jest's 5s default is a coin flip on a loaded
+// or slower machine — the suite went red on a busy CI runner and green on a
+// quiet one with no code change. The work is genuinely this slow, so give it
+// real headroom rather than letting a stranger's first clone-and-run look
+// broken. (Same fix as prepared in PR #39.)
+jest.setTimeout(20000);
+
 // ─── Module mocks ────────────────────────────────────────────────────────────
 
 jest.mock('@/lib/resources', () => ({
