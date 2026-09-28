@@ -72,3 +72,11 @@ Decision: Migrations 002-011 are FILE ARTIFACTS only. Auto-mode classifier corre
 ## [MM-MIGRATION-016-RORY-APPLY] — 2026-06-18
 
 Sky granted Rory a one-time, scoped authority to fix + apply migration 016 to mutualmesh-staging only (cslvjfewxiowdxfoqzre; zero real users). Production / real-data DB applies remain Sky-only. Verified applied: register_push_token(token, platform) / update_push_preferences(prefs). Rollback: re-run migrations 011 + 009. Ref: qa-reports/cycle-2026-06-18-morgan-mm-phaseA-B.md, PR #38.
+
+---
+
+## 2026-09-27 — Public estate closure (OD-10 / OD-09)
+
+[PRIVACY-CONTACT-RETIRED] `privacy@mutualmesh.ca` is retired as the project's privacy and safety contact: the domain was never registered (NXDOMAIN), so mail to it is undeliverable and the name is open for anyone to register. The published contact in `src/lib/policyText.ts` and `community/SAFETY.md` is now the owner's established public contact address, `skylerhalisky@gmail.com` (the address published on the portfolio contact page). This log is append-only, so the 2026-05-24 entry above and the dated `qa-reports/` mentions are left exactly as written: they record what was decided then, not the current contact. — Sky, 2026-09-27
+
+[HISTORY-REWRITTEN-2026-09-27] The public refs of this repository were rewritten on 2026-09-27 to remove the owner's personal phone number from the current tree and from git history. The occurrences in `DECISIONS_LOG.md`, `GOVERNANCE.md` and `qa-reports/2026-05-24_morgan_governance-upgrade.md` now read `[REDACTED]`. Every commit SHA changed. If you hold an old clone, re-clone instead of merging. The pre-rewrite refs are preserved in a private offline bundle held by the owner. — Sky, 2026-09-27
